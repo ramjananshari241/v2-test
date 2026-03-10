@@ -26,7 +26,7 @@ export const getStaticPaths = async () => {
   // 🟢 极速部署核心：限制最多只预渲染最新的 100 篇文章
   // 部署时间将被死死封印在 100 篇的工作量内，绝不会再超时
   const paths = formattedPosts
-    .slice(0, 100)
+    .slice(0, 80)
     .map((post) => ({
       params: { post: post.slug },
     }))
