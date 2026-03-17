@@ -150,21 +150,39 @@ const FullScreenLoader = () => (
 );
 
 // 工具函数：清洗 URL
+// 🟢 修复版：AdminDashboard 顶部的洗链逻辑
 const cleanAndFormat = (input) => {
   if (!input) return "";
-  try {
-    const lines = input.split('\n').map(line => {
-      let raw = line.trim();
-      if (!raw) return ""; 
-      const mdMatch = raw.match(/(?:!|)?\[.*?\]\((.*?)\)/);
-      if(mdMatch) raw = mdMatch[1];
-      const urlMatch = raw.match(/https?:\/\/[^\s)\]"]+/);
-      if(urlMatch) raw = urlMatch[0];
-      if (/\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|webm|ogg|mkv)(\?|$)/i.test(raw)) return `![](${raw})`;
-      return raw;
-    });
-    return lines.filter(l=>l).join('\n');
-  } catch (e) { return input; }
+  const lines = input.split('\n').map(line => {
+    let raw = line.trim();
+    if (!raw) return ""; 
+    
+    // 1. 提取 URL
+    const mdMatch = raw.match(/\[.*?\]\((.*?)\)/);
+    let urlCandidate = mdMatch ? mdMatch[1] : raw;
+    const urlMatch = urlCandidate.match(/https?:\/\/[^\s"']+/);
+    
+    if(urlMatch) {
+      let finalUrl = urlMatch[0];
+      
+      // 2. 强制转义中括号，防止 Notion 报错
+      if (/[\[\]]/.test(finalUrl)) {
+        try {
+          finalUrl = encodeURI(decodeURI(finalUrl));
+        } catch(e) {
+          finalUrl = encodeURI(finalUrl);
+        }
+      }
+      
+      // 3. 包装成标准格式
+      if (/\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|webm|ogg|mkv)(\?|$)/i.test(finalUrl)) {
+         return `![](${finalUrl})`;
+      }
+      return finalUrl;
+    }
+    return raw;
+  });
+  return lines.filter(l=>l).join('\n');
 };
 
 // ==========================================
@@ -644,9 +662,14 @@ export default function AdminDashboard() {
                  <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>发布日期 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
                </div>
             </StepAccordion>
-            <StepAccordion step={3} title="标签与封面" isOpen={expandedStep === 3} onToggle={()=>setExpandedStep(expandedStep===3?0:3)}>
+<StepAccordion step={3} title="标签与封面" isOpen={expandedStep === 3} onToggle={()=>setExpandedStep(expandedStep===3?0:3)}>
                <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>标签</label><input className="glow-input" value={form.tags} onChange={e=>setForm({...form, tags:e.target.value})} placeholder="多标签请用英文逗号+空格分隔，如标签1, 标签2..." /><div style={{marginTop:'10px', display:'flex', flexWrap:'wrap'}}>{displayTags.map(t => <span key={t} className="tag-chip" onClick={()=>{const cur=form.tags ? form.tags.split(',') : []; if(!cur.includes(t)) setForm({...form, tags:[...cur,t].join(',')})}}>{t}<div className="tag-del" onClick={(e)=>{deleteTagOption(e, t)}}>×</div></span>)}{options.tags.length > 12 && <span onClick={()=>setShowAllTags(!showAllTags)} style={{fontSize:'12px', color:'greenyellow', cursor:'pointer', fontWeight:'bold', marginLeft:'5px'}}>{showAllTags ? '收起' : `...`}</span>}</div></div>
-               <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>封面图 URL (自动清洗)</label><input className="glow-input" value={form.cover} onChange={e=>setForm({...form, cover:e.target.value})} onBlur={e=>{setForm({...form, cover: cleanAndFormat(e.target.value).replace(/!\[.*\]\((.*)\)/, '$1')})}} placeholder="粘贴链接，自动去除多余参数..." /></div>
+               <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>封面图 URL (自动清洗)</label><input className="glow-input" value={form.cover} onChange={e=>setForm({...form, cover:e.target.value})} onBlur={e=>{
+                 // 🟢 核心修复：1. 获取清洗后的链接；2. 使用非贪婪正则 .*? 精准剥离 Markdown 壳，不再抹除 URL 内部括号
+                 const cleaned = cleanAndFormat(e.target.value);
+                 const stripped = cleaned.replace(/^!\[.*?\]\((.*?)\)$/, '$1');
+                 setForm({...form, cover: stripped});
+               }} placeholder="粘贴链接，自动去除多余参数..." /></div>
             </StepAccordion>
             
             {/* 🟢 修复：移除了 Step 4 发布状态选择 */}
