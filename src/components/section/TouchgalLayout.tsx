@@ -147,7 +147,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
             作品购买
          </div>
          
-         <h4 className="text-3xl font-black mb-10 tracking-tighter text-neutral-800 dark:text-white">立即前往贩售机购买我的作品吧！</h4>
+         <h4 className="text-3xl font-black mb-10 tracking-tighter text-neutral-800 dark:text-white">前往贩售机购买我的作品吧！</h4>
          
          <div className="flex flex-wrap justify-center gap-6 relative z-10">
             <button 
