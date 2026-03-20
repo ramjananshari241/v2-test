@@ -18,8 +18,6 @@ import { ApiScope } from '../types/notion'
 // 🟢 导入 Touchgal 主题布局组件
 import { TouchgalLayout } from '../components/section/TouchgalLayout'
 
-
-
 const Home: NextPage<{
   posts: Post[]
   widgets: {
@@ -49,40 +47,65 @@ const Home: NextPage<{
 }
 
 export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
-  async (_context, sharedPageStaticProps: SharedNavFooterStaticProps) => {
+  async (
+    _context: GetStaticPropsContext,
+    sharedPageStaticProps: SharedNavFooterStaticProps
+  ) => {
     try {
+      // 1. 抓取全量已发布文章
       const postsRaw = await getPosts(ApiScope.Archive)
       let allFormattedPosts = await formatPosts(postsRaw)
 
+      // 🛡️ 备份逻辑
       if (!allFormattedPosts || allFormattedPosts.length === 0) {
-          const backupPosts = (sharedPageStaticProps.props.navPages as any[]) || []
-          allFormattedPosts = backupPosts.filter(p => p.type === 'Post')
+        const backupPosts = (sharedPageStaticProps.props.navPages as any[]) || []
+        allFormattedPosts = backupPosts.filter(p => p.type === 'Post')
       }
 
+      // 2. 逻辑处理：拦截公告 (Slug 为 announcement)
       const announcementPost = allFormattedPosts.find(p => p.slug === 'announcement') || null
       const filteredPosts = allFormattedPosts.filter(p => p.slug !== 'announcement')
 
-      const formattedWidgets = await formatWidgets(await preFormatWidgets(await getWidgets()), await getBlogStats())
+      // 3. 获取侧边栏组件与统计数据
+      const blogStats = await getBlogStats()
+      const rawWidgets = await getWidgets()
+      const preFormattedWidgets = await preFormatWidgets(rawWidgets)
+      const formattedWidgets = await formatWidgets(preFormattedWidgets, blogStats)
 
+      // 🛡️ 强制类型转换
       const safeWidgets = formattedWidgets as any
       if (safeWidgets && safeWidgets.profile) {
-        if (safeWidgets.profile.links === undefined) safeWidgets.profile.links = null
+        if (safeWidgets.profile.links === undefined) {
+          safeWidgets.profile.links = null
+        }
       }
-      if (safeWidgets) safeWidgets.announcement = announcementPost
+      if (safeWidgets) {
+        safeWidgets.announcement = announcementPost
+      }
+
+      // 4. 终极序列化
+      const finalProps = JSON.parse(JSON.stringify(sharedPageStaticProps.props))
+      
+      // 🟢 修改点：不再使用 .slice(0, 12)，将全部文章传给组件由前端处理分页
+      const finalPosts = JSON.parse(JSON.stringify(filteredPosts))
+      const finalWidgets = JSON.parse(JSON.stringify(safeWidgets || {}))
 
       return {
         props: {
-          ...sharedPageStaticProps.props,
-          posts: JSON.parse(JSON.stringify(filteredPosts.slice(0, 12))), 
-          // 🟢 注入总文章数，用于计算页码
-          totalPostsCount: filteredPosts.length, 
-          widgets: JSON.parse(JSON.stringify(safeWidgets || {})),
+          ...finalProps,
+          posts: finalPosts,
+          widgets: finalWidgets,
         },
         revalidate: 1,
       }
     } catch (e) {
+      console.error('Index page build failed:', e)
       return {
-        props: JSON.parse(JSON.stringify(sharedPageStaticProps.props)),
+        props: {
+          ...JSON.parse(JSON.stringify(sharedPageStaticProps.props)),
+          posts: [],
+          widgets: {},
+        },
         revalidate: 1,
       }
     }
