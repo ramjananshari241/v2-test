@@ -316,7 +316,7 @@ export default function AdminDashboard() {
     const configItem = posts.find(p => p.slug === 'theme-config');
 
     if (!configItem) {
-      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。\n提示：请确保该页面已在 Notion 中创建并设为 Published 状态。");
+      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。\n提示：请确保该页面已创建并设为 Published 状态。");
       return;
     }
 
@@ -347,7 +347,7 @@ export default function AdminDashboard() {
         throw new Error(data.error || 'Notion API 校验未通过');
       }
 
-      alert(`✅ 模式切换成功：已改为 ${version === 'v1' ? '经典 (V1)' : '极客 (V2)'}。\n数据已保存，请点击上方绿色图标推送部署。`);
+      alert(`✅ 主题切换成功：已改为 ${version === 'v1' ? '经典 (V1)' : '极客 (V2)'}。\n请点击上方绿色图标推送更新。`);
       
       if (typeof fetchPosts === 'function') fetchPosts();
 
