@@ -2,13 +2,37 @@ import { ApiScope } from '@/src/types/notion'
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 import { getAll } from './getDatabase'
 
+/**
+ * 🟢 获取远程主题配置 (代号映射逻辑)
+ * 映射关系：v1 -> anzifan (经典), v2 -> touchgal (极客)
+ */
+export const getRemoteTheme = async () => {
+  try {
+    const pages = await getPages()
+    const themeConfigPage = pages.find(
+      (page) =>
+        (page.properties['slug'] as any).rich_text[0]?.plain_text === 'theme-config'
+    )
+    
+    // 强制类型转换为 any 以解决 TypeScript 报红
+    const themeCode = (themeConfigPage?.properties['excerpt'] as any)?.rich_text[0]?.plain_text?.trim()
+    
+    if (themeCode === 'v2') return 'touchgal'
+    if (themeCode === 'v1') return 'anzifan'
+    
+    return null
+  } catch (e) {
+    console.error('获取远程主题配置失败:', e)
+    return null
+  }
+}
+
 export const getPageBySlug = async (slug: string) => {
   const pages = await getPages()
   return (
     pages.find(
       (page) =>
-        page.properties['slug'].type === 'rich_text' &&
-        page.properties['slug'].rich_text[0].plain_text === slug
+        (page.properties['slug'] as any).rich_text[0]?.plain_text === slug
     ) ?? (null as unknown as PageObjectResponse)
   )
 }

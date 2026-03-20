@@ -308,6 +308,27 @@ const NotionView = ({ blocks }) => {
 // 5. 主组件
 // ==========================================
 export default function AdminDashboard() {
+  const [isThemeLoading, setIsThemeLoading] = useState(false);
+  const handleThemeChange = async (version) => {
+    setIsThemeLoading(true);
+    try {
+      const res = await fetch('/api/admin/post', {
+        method: 'POST',
+        body: JSON.stringify({
+          slug: 'theme-config',
+          type: 'Page', // 确保 Notion 逻辑识别为 Page 类型
+          properties: {
+            excerpt: {
+              rich_text: [{ text: { content: version } }]
+            }
+          }
+        })
+      });
+      if (res.ok) alert(`系统模式已切换至 ${version === 'v1' ? '经典' : '极客'}，请点击推送进行部署。`);
+    } catch (err) {
+      alert('切换失败');
+    } finally { setIsThemeLoading(false); }
+  };
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('list');
@@ -327,6 +348,7 @@ export default function AdminDashboard() {
   const [editorBlocks, setEditorBlocks] = useState([]);
   
   const [isDeploying, setIsDeploying] = useState(false);
+  
 
   useEffect(() => { setMounted(true); 
     // 🟢 注入 Logo
@@ -617,40 +639,69 @@ export default function AdminDashboard() {
            </div>
         </header>
 
-        {view === 'list' ? (
+{view === 'list' ? (
           <main>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-               {/* 🟢 修复：移除了 Draft Tab */}
-               <div style={{background:'#424242', padding:'5px', borderRadius:'12px', display:'flex'}}>
-                 {['Post', 'Widget', 'Page'].map(t => (
-                   <button 
-                     key={t} 
-                     onClick={() => { setActiveTab(t); setSelectedFolder(null); }} 
-                     style={activeTab === t ? {padding:'8px 20px', border:'none', background:'#555', color:'#fff', borderRadius:'10px', fontWeight:'bold', fontSize:'13px', cursor:'pointer'} : {padding:'8px 20px', border:'none', background:'none', color:'#888', borderRadius:'10px', fontWeight:'bold', fontSize:'13px', cursor:'pointer'}}
-                   >
-                     {t === 'Page' ? '自定义页面' : t === 'Post' ? '已发布' : '组件'}
-                   </button>
-                 ))}
-               </div>
-               <SlidingNav activeIdx={navIdx} onSelect={handleNavClick} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {/* 1. 分类标签组 */}
+                <div style={{ background: '#424242', padding: '5px', borderRadius: '12px', display: 'flex' }}>
+                  {['Post', 'Widget', 'Page'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => { setActiveTab(t); setSelectedFolder(null); }}
+                      style={activeTab === t ? { padding: '8px 20px', border: 'none', background: '#555', color: '#fff', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' } : { padding: '8px 20px', border: 'none', background: 'none', color: '#888', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}
+                    >
+                      {t === 'Page' ? '自定义页面' : t === 'Post' ? '已发布' : '组件'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 2. 🟢 模式切换按钮 (V1/V2) */}
+                <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid #444' }}>
+                  <button
+                    disabled={isThemeLoading}
+                    onClick={() => handleThemeChange('v1')}
+                    style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '900', color: isThemeLoading ? '#333' : '#888', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    V1
+                  </button>
+                  <div style={{ width: '1px', height: '10px', background: '#444' }}></div>
+                  <button
+                    disabled={isThemeLoading}
+                    onClick={() => handleThemeChange('v2')}
+                    style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '900', color: isThemeLoading ? '#333' : '#888', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    V2
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. 右侧滑动导航 */}
+              <SlidingNav activeIdx={navIdx} onSelect={handleNavClick} />
             </div>
-            
-            <div style={viewMode === 'gallery' || viewMode === 'folder' ? {display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'15px'} : {}}>
-              {viewMode === 'folder' && options.categories.map(cat => <div key={cat} onClick={()=>{setSelectedFolder(cat); handleNavClick(1);}} style={{padding:'15px', background:'#424242', borderRadius:'10px', display:'flex', alignItems:'center', gap:'12px', border:'1px solid #555', cursor:'pointer'}} className="btn-ia"><Icons.FolderIcon />{cat}</div>)}
+
+            {/* 4. 列表渲染区域 */}
+            <div style={viewMode === 'gallery' || viewMode === 'folder' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' } : {}}>
+              {viewMode === 'folder' && options.categories.map(cat => (
+                <div key={cat} onClick={() => { setSelectedFolder(cat); handleNavClick(1); }} style={{ padding: '15px', background: '#424242', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #555', cursor: 'pointer' }} className="btn-ia">
+                  <Icons.FolderIcon />{cat}
+                </div>
+              ))}
               {viewMode !== 'folder' && filtered.map(p => {
                 const st = (p.status === 'Draft') ? { borderColor: '#f97316', color: '#f97316', label: '📝 草稿' } : { borderColor: 'transparent', color: 'greenyellow', label: '🚀 已发布' };
                 return (
-                  <div key={p.id} onClick={() => handlePreview(p)} className="card-item" style={{...(viewMode === 'text' ? {display:'flex', alignItems:'center', padding:'16px 20px'} : viewMode === 'gallery' ? {display:'flex', flexDirection:'column', height:'auto'} : {}), background:'#424242', borderRadius:'12px', marginBottom:'8px', border: `1px solid ${st.borderColor}`}}>
-                    {viewMode === 'covered' && <><div style={{width:'160px', flexShrink:0, background:'#303030', display:'flex', alignItems:'center', justifyContent:'center'}}>{p.cover ? <img src={p.cover} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={{fontSize:'28px', color:'#444'}}>{activeTab[0]}</div>}</div><div style={{padding:'20px 35px', flex:1}}><div style={{fontWeight:'bold', fontSize:'20px', color:'#fff', marginBottom:'8px'}}>{p.title}</div><div style={{color:'#fff', fontSize:'12px', opacity:0.8, display:'flex', alignItems:'center', gap:'10px'}}><span style={{border:`1px solid ${st.color}`, color:st.color, padding:'2px 6px', borderRadius:'4px', fontSize:'10px', fontWeight:'bold'}}>{st.label}</span>{p.category} · {p.date}</div></div></>}
-                    {viewMode === 'text' && <div style={{flex:1, display:'flex', alignItems:'center'}}><div style={{flex:1, fontSize:'14px', display:'flex', alignItems:'center', gap:'10px'}}><span style={{width:'6px', height:'6px', borderRadius:'50%', background:st.color}}></span>{p.title}</div><div style={{color:'#fff', fontSize:'12px', opacity:0.8}}>{p.category} · {p.date}</div></div>}
-                    {viewMode === 'gallery' && <><div style={{height:'140px', background:'#303030', display:'flex', alignItems:'center', justifyContent:'center', position:'relative'}}><div style={{position:'absolute', top:'10px', right:'10px', background:st.color, color:'#000', padding:'2px 6px', borderRadius:'4px', fontSize:'10px', fontWeight:'bold'}}>{p.status === 'Draft' ? 'DRAFT' : 'PUB'}</div>{p.cover ? <img src={p.cover} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={{fontSize:'40px', color:'#444'}}>{activeTab[0]}</div>}</div><div style={{padding:'15px'}}><div style={{fontSize:'14px', fontWeight:'bold', color:'#fff'}}>{p.title}</div><div style={{color:'#fff', fontSize:'12px', opacity:0.8}}>{p.category} · {p.date}</div></div></>}
-                    <div className="drawer"><div onClick={(e) => { e.stopPropagation(); handleEdit(p); }} style={{background:'greenyellow', color:'#000'}} className="dr-btn"><Icons.Edit /></div><div onClick={(e) => { e.stopPropagation(); if(confirm('彻底删除？')){setLoading(true); fetch('/api/admin/post?id='+p.id,{method:'DELETE'}).then(()=>fetchPosts())}}} style={{background:'#ff4d4f'}} className="dr-btn"><Icons.Trash /></div></div>
+                  <div key={p.id} onClick={() => handlePreview(p)} className="card-item" style={{ ...(viewMode === 'text' ? { display: 'flex', alignItems: 'center', padding: '16px 20px' } : viewMode === 'gallery' ? { display: 'flex', flexDirection: 'column', height: 'auto' } : {}), background: '#424242', borderRadius: '12px', marginBottom: '8px', border: `1px solid ${st.borderColor}` }}>
+                    {viewMode === 'covered' && <><div style={{ width: '160px', flexShrink: 0, background: '#303030', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.cover ? <img src={p.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '28px', color: '#444' }}>{activeTab[0]}</div>}</div><div style={{ padding: '20px 35px', flex: 1 }}><div style={{ fontWeight: 'bold', fontSize: '20px', color: '#fff', marginBottom: '8px' }}>{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ border: `1px solid ${st.color}`, color: st.color, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{st.label}</span>{p.category} · {p.date}</div></div></>}
+                    {viewMode === 'text' && <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}><div style={{ flex: 1, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: st.color }}></span>{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8 }}>{p.category} · {p.date}</div></div>}
+                    {viewMode === 'gallery' && <><div style={{ height: '140px', background: '#303030', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}><div style={{ position: 'absolute', top: '10px', right: '10px', background: st.color, color: '#000', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{p.status === 'Draft' ? 'DRAFT' : 'PUB'}</div>{p.cover ? <img src={p.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '40px', color: '#444' }}>{activeTab[0]}</div>}</div><div style={{ padding: '15px' }}><div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8 }}>{p.category} · {p.date}</div></div></>}
+                    <div className="drawer"><div onClick={(e) => { e.stopPropagation(); handleEdit(p); }} style={{ background: 'greenyellow', color: '#000' }} className="dr-btn"><Icons.Edit /></div><div onClick={(e) => { e.stopPropagation(); if (confirm('彻底删除？')) { setLoading(true); fetch('/api/admin/post?id=' + p.id, { method: 'DELETE' }).then(() => fetchPosts()) } }} style={{ background: '#ff4d4f' }} className="dr-btn"><Icons.Trash /></div></div>
                   </div>
                 );
               })}
             </div>
           </main>
         ) : (
+          /* 这里是之前的表单编辑代码... */
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <StepAccordion step={1} title="基础信息" isOpen={expandedStep === 1} onToggle={()=>setExpandedStep(expandedStep===1?0:1)}>
                <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>标题 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" value={form.title} onChange={e=>setForm({...form, title:e.target.value})} placeholder="输入文章标题..." /></div>
