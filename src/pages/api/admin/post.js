@@ -8,7 +8,7 @@ const n2m = new NotionToMarkdown({ notionClient: notion });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// === 1. 解析器 (保留原有洗链、加密块、视频图片识别功能) ===
+// === 1. 解析器 (保留所有核心逻辑) ===
 function parseLinesToChildren(text) {
   const lines = text.split(/\r?\n/);
   const blocks = [];
@@ -95,10 +95,8 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const { id, title, content, slug, excerpt, category, tags, status, date, type, cover } = body;
-
       const props = {};
       
-      // 🟢 局部更新逻辑：只有传入了的字段才会更新
       if (title !== undefined) {
          const titleKey = body.titleKey || 'title';
          props[titleKey] = { title: [{ text: { content: title || "无标题" } }] };
@@ -108,7 +106,7 @@ export default async function handler(req, res) {
       if (category !== undefined) props["category"] = category ? { select: { name: category } } : { select: null };
       if (tags !== undefined) props["tags"] = { multi_select: (tags || "").split(',').filter(t => t.trim()).map(t => ({ name: t.trim() })) };
       
-      // 🔴 关键：只有前端明确传了状态才修改，主题切换不发此字段，Notion 状态就会保留
+      // 只有当前端明确发送了 status 时才更新，切换主题时 payload 中不含 status，从而保留原有 Hidden
       if (status !== undefined && status !== null) {
           props["status"] = { select: { name: status } };
       }
@@ -118,7 +116,6 @@ export default async function handler(req, res) {
       if (cover !== undefined && cover.startsWith('http')) props["cover"] = { url: cover };
 
       if (id) {
-        // 动态校准属性类型
         try {
           const currentPage = await notion.pages.retrieve({ page_id: id });
           const currentProps = currentPage.properties;
@@ -130,7 +127,6 @@ export default async function handler(req, res) {
 
         await notion.pages.update({ page_id: id, properties: props });
 
-        // 只有传了正文才重写块
         if (content !== undefined && content !== null && content.trim().length > 0) {
             const children = await notion.blocks.children.list({ block_id: id });
             if (children.results.length > 0) {
@@ -155,7 +151,6 @@ export default async function handler(req, res) {
       await notion.pages.update({ page_id: queryId, archived: true });
       return res.status(200).json({ success: true });
     }
-
   } catch (error) {
     console.error('API Error:', error);
     return res.status(500).json({ success: false, error: error.message });
