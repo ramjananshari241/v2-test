@@ -15,12 +15,24 @@ import { MorePostsCollection } from '../components/section/MorePostsCollection'
 import { Post, SharedNavFooterStaticProps } from '../types/blog'
 import { ApiScope } from '../types/notion'
 
+// 🟢 导入 Touchgal 主题布局 (请确保对应的文件名是 TouchgalLayout.tsx)
+import { TouchgalLayout } from '../components/section/TouchgalLayout'
+
 const Home: NextPage<{
   posts: Post[]
   widgets: {
     [key: string]: any
   }
 }> = ({ posts, widgets }) => {
+  // 🟢 核心主题分流逻辑
+  const theme = process.env.NEXT_PUBLIC_THEME || 'anzifan'
+  const isTouchgal = theme.toLowerCase() === 'touchgal'
+
+  if (isTouchgal) {
+    return <TouchgalLayout posts={posts} widgets={widgets} />
+  }
+
+  // 默认 ANZIFAN 布局保持原封不动
   return (
     <>
       <ContainerLayout>
@@ -39,39 +51,54 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     _context: GetStaticPropsContext,
     sharedPageStaticProps: SharedNavFooterStaticProps
   ) => {
-    const { LARGE, MEDIUM, SMALL, MORE } = CONFIG.HOME_POSTS_COUNT
-    const sum = LARGE + MEDIUM + SMALL + MORE + 5
+    try {
+      const { LARGE, MEDIUM, SMALL, MORE } = CONFIG.HOME_POSTS_COUNT
+      const sum = LARGE + MEDIUM + SMALL + MORE + 5
 
-    const postsRaw = await getLimitPosts(sum, ApiScope.Home)
-    const allFormattedPosts = await formatPosts(postsRaw)
+      const postsRaw = await getLimitPosts(sum, ApiScope.Home)
+      const allFormattedPosts = await formatPosts(postsRaw)
 
-    const announcementPost = allFormattedPosts.find(p => p.slug === 'announcement') || null
-    const filteredPosts = allFormattedPosts.filter(p => p.slug !== 'announcement')
+      const announcementPost = allFormattedPosts.find(p => p.slug === 'announcement') || null
+      const filteredPosts = allFormattedPosts.filter(p => p.slug !== 'announcement')
 
-    const blogStats = await getBlogStats()
-    const rawWidgets = await getWidgets()
-    const preFormattedWidgets = await preFormatWidgets(rawWidgets)
-    const formattedWidgets = await formatWidgets(preFormattedWidgets, blogStats)
+      const blogStats = await getBlogStats()
+      const rawWidgets = await getWidgets()
+      const preFormattedWidgets = await preFormatWidgets(rawWidgets)
+      const formattedWidgets = await formatWidgets(preFormattedWidgets, blogStats)
 
-    // 🛡️ TypeScript 兼容防崩保护
-    const safeWidgets = formattedWidgets as any
-    if (safeWidgets && safeWidgets.profile) {
-        if (safeWidgets.profile.links === undefined) {
-            safeWidgets.profile.links = null;
-        }
-    }
-    if (safeWidgets) {
-        safeWidgets.announcement = announcementPost;
-    }
+      // 🛡️ 核心修复：使用 (as any) 强制转换，消除 TS 报红
+      const safeWidgets = formattedWidgets as any
+      if (safeWidgets && safeWidgets.profile) {
+          // 检查并补全 links，防止序列化报错
+          if (safeWidgets.profile.links === undefined) {
+              safeWidgets.profile.links = null;
+          }
+      }
+      
+      // 注入拦截下来的公告数据
+      if (safeWidgets) {
+          safeWidgets.announcement = announcementPost;
+      }
 
-    return {
-      props: {
-        ...sharedPageStaticProps.props,
-        posts: filteredPosts.slice(0, sum - 5), 
-        widgets: safeWidgets || {},
-      },
-      // 🟢 核心优化：首页开启自动更新 (你可以随意调整为 1 或者 10)
-      revalidate: 1,
+      return {
+        props: {
+          ...sharedPageStaticProps.props,
+          posts: filteredPosts, 
+          widgets: safeWidgets || {},
+        },
+        // 开启 1 秒增量更新
+        revalidate: 1,
+      }
+    } catch (e) {
+      console.error('Home page data fetch error:', e)
+      return {
+        props: {
+          ...sharedPageStaticProps.props,
+          posts: [],
+          widgets: {},
+        },
+        revalidate: 1,
+      }
     }
   }
 )
