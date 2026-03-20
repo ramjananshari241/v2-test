@@ -10,7 +10,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
   const { ARCHIVE } = CONFIG.DEFAULT_SPECIAL_PAGES
 
   return (
-    // 🟢 调整容器宽度，max-w-7xl 约 1280px，解决两侧留白过宽
+    // 容器宽度保持 max-w-7xl (1280px)
     <div className="mx-auto block max-w-7xl px-4 md:px-8 lg:px-12">
       
       {/* 1. 顶部双栏 */}
@@ -32,7 +32,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
         </Link>
       </div>
 
-      {/* 3. 核心列表：严格 1行4列 */}
+      {/* 3. 核心列表：1行4列 */}
       {displayPosts.length === 0 ? (
         <div className="py-24 text-center opacity-20 font-black uppercase tracking-widest">No Content Found</div>
       ) : (
@@ -41,14 +41,14 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
             <Link key={post.id} href={`/post/${post.slug}`} className="group flex flex-col h-full">
               <div className="relative flex flex-col h-full overflow-hidden rounded-[1.5rem] bg-white dark:bg-[#111] border border-neutral-100 dark:border-neutral-800 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:-translate-y-1.5">
                 
-                {/* 封面图：Touchgal 比例 */}
+                {/* 封面图 */}
                 <div className="aspect-[16/10] relative overflow-hidden bg-neutral-100 dark:bg-neutral-800">
                   {post.cover?.light?.src ? (
                     <img src={post.cover.light.src} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-300 font-black text-4xl">P</div>
                   )}
-                  {/* 分类标签：更紧凑 */}
+                  {/* 分类标签 */}
                   <div className="absolute top-3 left-3 px-2 py-0.5 bg-blue-600 text-[10px] text-white font-black rounded-md shadow-lg shadow-blue-500/30 uppercase">
                     {post.category?.name || 'Post'}
                   </div>
@@ -57,16 +57,15 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
                 {/* 内容区域 */}
                 <div className="p-4 flex flex-col justify-between flex-1">
                   <div>
-                    {/* 🟢 标题字号调大 */}
                     <h4 className="text-[16px] font-bold line-clamp-2 mb-3 leading-[1.4] text-neutral-800 dark:text-neutral-100 group-hover:text-blue-500 transition-colors min-h-[44px]">
                       {post.title}
                     </h4>
                     
-                    {/* 🟢 增加标签显示：模仿 Touchgal */}
+                    {/* 🟢 标签区域修正：紫色显示且去掉 # */}
                     <div className="flex flex-wrap gap-1.5 mb-4">
                       {post.tags?.slice(0, 2).map(tag => (
-                        <span key={tag.id} className="text-[10px] px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 rounded-md font-medium">
-                          #{tag.name}
+                        <span key={tag.id} className="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-500 dark:text-purple-400 rounded-md font-bold tracking-tight">
+                          {tag.name}
                         </span>
                       ))}
                     </div>
@@ -83,9 +82,8 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
         </div>
       )}
 
-      {/* 4. 底部引流区：鲜艳撞色设计 */}
+      {/* 4. 底部引流区：紫橙撞色 */}
       <div className="bg-neutral-100 dark:bg-neutral-900 rounded-[2.5rem] p-12 border border-neutral-200 dark:border-neutral-800 mb-16 text-center relative overflow-hidden">
-         {/* 装饰色块 */}
          <div className="absolute -left-20 -top-20 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl"></div>
          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-orange-600/10 rounded-full blur-3xl"></div>
          
@@ -93,11 +91,9 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
             Resource Center
          </div>
          
-         {/* 🟢 修改大字 */}
          <h4 className="text-3xl font-black mb-10 tracking-tighter text-neutral-800 dark:text-white">需要更多精彩资源？</h4>
          
          <div className="flex flex-wrap justify-center gap-6 relative z-10">
-            {/* 按钮 1：贩售机 (紫色系) */}
             <button 
               onClick={() => window.open('https://van.pro-plus.top/dashboard', '_blank')} 
               className="px-10 py-4 bg-[#A855F7] text-white rounded-2xl text-sm font-black hover:bg-[#9333EA] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/40 flex items-center gap-2"
@@ -105,7 +101,6 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
               <span>🛒</span> 前往贩售机
             </button>
             
-            {/* 按钮 2：资源介绍 (橙色系) */}
             <Link 
               href="/about"
               className="px-10 py-4 bg-[#F97316] text-white rounded-2xl text-sm font-black hover:bg-[#EA580C] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-orange-500/40 flex items-center gap-2"
