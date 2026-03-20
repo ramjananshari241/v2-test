@@ -308,59 +308,50 @@ const NotionView = ({ blocks }) => {
 // 5. 主组件
 // ==========================================
 export default function AdminDashboard() {
+  // 🟢 最终修复版的主题切换逻辑
   const [isThemeLoading, setIsThemeLoading] = useState(false);
 
   const handleThemeChange = async (version) => {
-    // 1. 从已加载的 posts 状态中精准查找配置页
-    // 注意：即便在“已发布”标签页，只要接口返回了所有数据，这里就能找到
+    // 1. 在 posts 数组中查找配置项
     const configItem = posts.find(p => p.slug === 'theme-config');
 
     if (!configItem) {
-      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。\n请确保 Notion 中已创建该页面，且 Slug 设为 theme-config。");
+      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。\n提示：请确保 Notion 中已创建该页面且设为 Published。");
       return;
     }
 
     setIsThemeLoading(true);
     try {
-      // 2. 构建符合后端 api/admin/post 预期的完整 payload
       const payload = {
-        ...configItem,           // 继承该页面的所有原始属性（关键：包含 Notion 内部 id）
-        id: configItem.id,       // 显式指定 ID
-        excerpt: version,        // 写入 v1 或 v2
-        status: 'Published',     // 强制设为发布状态
-        type: 'Page',            // 明确类型为 Page
-        content: configItem.content || '' // 保持原有内容
+        id: configItem.id,
+        title: configItem.title || '主题配置',
+        slug: 'theme-config',
+        excerpt: version,       // 写入 v1 或 v2
+        category: configItem.category || '网站信息',
+        status: 'Published',
+        type: 'Page',
+        content: ''             // 🔴 传空字符串，触发后端的“仅更新属性”逻辑，速度极快
       };
 
       const res = await fetch('/api/admin/post', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      // 3. 安全处理响应，防止 JSON 解析报错
-      const responseText = await res.text();
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        responseData = { error: responseText };
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '服务器同步失败');
       }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || responseData.message || '服务器响应错误');
-      }
-
-      alert(`✅ 模式切换成功：${version === 'v1' ? '经典 (V1)' : '极客 (V2)'}\n数据已同步至 Notion，请点击上方“绿色循环图标”触发部署。`);
+      alert(`✅ 模式切换成功：已改为 ${version === 'v1' ? '经典 (V1)' : '极客 (V2)'}。\n请点击上方“绿色循环图标”推送部署。`);
       
-      // 4. 重新抓取数据以刷新 UI 状态
+      // 刷新列表显示
       if (typeof fetchPosts === 'function') fetchPosts();
 
     } catch (err) {
-      console.error('Theme Sync Error:', err);
-      // 这里的 err.message 就是上面 throw 的内容，不会再出现 [object Object]
+      console.error(err);
       alert("同步失败：" + err.message);
     } finally {
       setIsThemeLoading(false);
