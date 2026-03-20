@@ -66,7 +66,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
                       <div className="w-full h-full flex items-center justify-center text-neutral-300 font-black text-4xl">P</div>
                     )}
                     {/* 分类标签 */}
-                    <div className="absolute top-3 left-3 px-2 py-0.5 bg-blue-600 text-[10px] text-white font-black rounded-md shadow-lg shadow-blue-500/30 uppercase">
+                    <div className="absolute top-3 left-3 px-2 py-0.5 bg-amber-500 text-[10px] text-white font-black rounded-md shadow-lg shadow-amber-500/30 uppercase">
                       {post.category?.name || 'Post'}
                     </div>
                   </div>
