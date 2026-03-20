@@ -7,24 +7,14 @@ import { formatPosts } from '../lib/blog/format/post'
 import { formatWidgets, preFormatWidgets } from '../lib/blog/format/widget'
 import getBlogStats from '../lib/blog/getBlogStats'
 import { withNavFooterStaticProps } from '../lib/blog/withNavFooterStaticProps'
-import { getWidgets } from '../lib/notion/getBlogData'
-import { getLimitPosts } from '../lib/notion/getDatabase'
-
+import { getWidgets, getPosts } from '../lib/notion/getBlogData' // 🟢 改为导入 getPosts
 import { MainPostsCollection } from '../components/section/MainPostsCollection'
 import { MorePostsCollection } from '../components/section/MorePostsCollection'
 import { Post, SharedNavFooterStaticProps } from '../types/blog'
 import { ApiScope } from '../types/notion'
-
-// 🟢 导入 Touchgal 主题布局 (请确保对应的文件名是 TouchgalLayout.tsx)
 import { TouchgalLayout } from '../components/section/TouchgalLayout'
 
-const Home: NextPage<{
-  posts: Post[]
-  widgets: {
-    [key: string]: any
-  }
-}> = ({ posts, widgets }) => {
-  // 🟢 核心主题分流逻辑
+const Home: NextPage<{ posts: Post[]; widgets: { [key: string]: any } }> = ({ posts, widgets }) => {
   const theme = process.env.NEXT_PUBLIC_THEME || 'anzifan'
   const isTouchgal = theme.toLowerCase() === 'touchgal'
 
@@ -32,7 +22,6 @@ const Home: NextPage<{
     return <TouchgalLayout posts={posts} widgets={widgets} />
   }
 
-  // 默认 ANZIFAN 布局保持原封不动
   return (
     <>
       <ContainerLayout>
@@ -52,12 +41,11 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     sharedPageStaticProps: SharedNavFooterStaticProps
   ) => {
     try {
-      const { LARGE, MEDIUM, SMALL, MORE } = CONFIG.HOME_POSTS_COUNT
-      const sum = LARGE + MEDIUM + SMALL + MORE + 5
-
-      const postsRaw = await getLimitPosts(sum, ApiScope.Home)
+      // 🟢 修复点：使用 getPosts(ApiScope.Archive) 抓取全量已发布文章，确保列表不为空
+      const postsRaw = await getPosts(ApiScope.Archive)
       const allFormattedPosts = await formatPosts(postsRaw)
 
+      // 逻辑处理
       const announcementPost = allFormattedPosts.find(p => p.slug === 'announcement') || null
       const filteredPosts = allFormattedPosts.filter(p => p.slug !== 'announcement')
 
@@ -66,37 +54,25 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       const preFormattedWidgets = await preFormatWidgets(rawWidgets)
       const formattedWidgets = await formatWidgets(preFormattedWidgets, blogStats)
 
-      // 🛡️ 核心修复：使用 (as any) 强制转换，消除 TS 报红
       const safeWidgets = formattedWidgets as any
       if (safeWidgets && safeWidgets.profile) {
-          // 检查并补全 links，防止序列化报错
-          if (safeWidgets.profile.links === undefined) {
-              safeWidgets.profile.links = null;
-          }
+        if (safeWidgets.profile.links === undefined) safeWidgets.profile.links = null
       }
-      
-      // 注入拦截下来的公告数据
-      if (safeWidgets) {
-          safeWidgets.announcement = announcementPost;
-      }
+      if (safeWidgets) safeWidgets.announcement = announcementPost
 
       return {
         props: {
           ...sharedPageStaticProps.props,
-          posts: filteredPosts, 
+          // 🟢 只取最新的 20 篇显示在首页
+          posts: filteredPosts.slice(0, 20), 
           widgets: safeWidgets || {},
         },
-        // 开启 1 秒增量更新
         revalidate: 1,
       }
     } catch (e) {
-      console.error('Home page data fetch error:', e)
+      console.error('Data fetch error:', e)
       return {
-        props: {
-          ...sharedPageStaticProps.props,
-          posts: [],
-          widgets: {},
-        },
+        props: { ...sharedPageStaticProps.props, posts: [], widgets: {} },
         revalidate: 1,
       }
     }
@@ -104,5 +80,4 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 )
 
 const withNavPage = withNavFooter(Home, undefined, true)
-
 export default withNavPage
