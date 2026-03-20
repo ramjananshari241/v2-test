@@ -308,11 +308,14 @@ const NotionView = ({ blocks }) => {
 // 5. 主组件
 // ==========================================
 export default function AdminDashboard() {
-  // 🟢 第一步：必须先把所有 useState 放在函数的最顶部定义
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [posts, setPosts] = useState([]); // posts 现在定义在最前面了，下面可以使用它
+  const [posts, setPosts] = useState([]);
   const [isThemeLoading, setIsThemeLoading] = useState(false);
+  
+  // 🟢 增加一个本地状态，用于即时控制按钮的高亮
+  const [activeThemeLocal, setActiveThemeLocal] = useState(null);
+
   const [view, setView] = useState('list');
   const [viewMode, setViewMode] = useState('covered');
   const [options, setOptions] = useState({ categories: [], tags: [] });
@@ -329,39 +332,49 @@ export default function AdminDashboard() {
   const [editorBlocks, setEditorBlocks] = useState([]);
   const [isDeploying, setIsDeploying] = useState(false);
 
-  // 🟢 第二步：定义 fetchPosts 函数（因为它要在下面的处理函数里被调用）
+  // 🟢 计算逻辑：优先使用本地状态，没有则从 posts 查找
+  const themeConfig = posts?.find(p => p.slug === 'theme-config');
+  const currentActiveTheme = activeThemeLocal || themeConfig?.excerpt?.trim() || 'v1';
+
+  // 🟢 只有在 posts 第一次加载成功时，同步一次本地状态
+  useEffect(() => {
+    if (posts.length > 0 && !activeThemeLocal) {
+      const remote = posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
+      if (remote) setActiveThemeLocal(remote);
+    }
+  }, [posts]);
+
   async function fetchPosts() {
     setLoading(true); 
     try { 
        const r = await fetch('/api/admin/posts');
        if (!r.ok) throw new Error(`API Error: ${r.status}`);
        const d = await r.json(); 
-       if (d.success) { setPosts(d.posts || []); setOptions(d.options || { categories: [], tags: [] }); }
-       
-       const rConf = await fetch('/api/admin/config');
-       if (rConf.ok) {
-           const dConf = await rConf.json(); 
-           if (dConf.success && dConf.siteInfo) setSiteTitle(dConf.siteInfo.title);
+       if (d.success) { 
+         setPosts(d.posts || []); 
+         setOptions(d.options || { categories: [], tags: [] }); 
+         // 同步最新状态
+         const latest = d.posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
+         if (latest) setActiveThemeLocal(latest);
        }
     } catch(e) { console.warn(e); } 
     finally { setLoading(false); } 
   }
 
-  // 🟢 第三步：在 State 定义完之后，再进行逻辑衍生计算
-  // 使用 ?. 防止 posts 为空时报错
-  const themeConfig = posts?.find(p => p.slug === 'theme-config');
-  const currentActiveTheme = themeConfig?.excerpt?.trim() || 'v1';
-
-  // 🟢 第四步：定义主题切换处理函数
   const handleThemeChange = async (version) => {
-    if (version === currentActiveTheme) return;
-    const configItem = themeConfig;
+    // 如果已经在加载中，或者点击的是当前已选，则跳过
+    if (isThemeLoading || version === activeThemeLocal) return;
+
+    const configItem = themeConfig || posts.find(p => p.slug === 'theme-config');
     if (!configItem) {
-      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。请确保页面已创建且 Slug 为 theme-config。");
+      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。");
       return;
     }
 
     setIsThemeLoading(true);
+    // 🟢 1. 立即改变本地状态（预测性 UI 更新）
+    setActiveThemeLocal(version);
+
     try {
       const payload = {
         id: configItem.id,
@@ -369,7 +382,6 @@ export default function AdminDashboard() {
         slug: 'theme-config',
         excerpt: version,
         titleKey: 'title'
-        // 🔴 这里不发 status，后台局部更新逻辑会自动保留 Hidden 状态
       };
 
       const res = await fetch('/api/admin/post', {
@@ -379,10 +391,15 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        await fetchPosts(); // 切换完立刻刷新列表显示
-        alert(`✅ 模式已切换为 ${version === 'v1' ? '经典' : '极客'}`);
+        // 🟢 2. 同步成功后刷新，确保数据完全一致
+        await fetchPosts();
+        // alert(`✅ 模式已切换为 ${version === 'v1' ? '经典' : '极客'}`);
+      } else {
+        throw new Error("接口返回错误");
       }
     } catch (err) {
+      // 🔴 如果失败，回滚状态
+      setActiveThemeLocal(themeConfig?.excerpt?.trim() || 'v1');
       alert("同步失败：" + err.message);
     } finally {
       setIsThemeLoading(false);
@@ -690,20 +707,19 @@ export default function AdminDashboard() {
       fontWeight: '900',
       borderRadius: '6px',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      cursor: isThemeLoading ? 'not-allowed' : 'pointer',
       border: 'none',
-      // 🔴 状态切换逻辑
+      // 🟢 鼠标效果优化
+      cursor: isThemeLoading ? 'wait' : (currentActiveTheme === 'v1' ? 'default' : 'pointer'),
+      // 🟢 状态切换逻辑
       background: currentActiveTheme === 'v1' ? '#3b82f6' : 'transparent', 
       color: currentActiveTheme === 'v1' ? '#fff' : '#666',
+      opacity: (isThemeLoading && currentActiveTheme !== 'v1') ? 0.5 : 1,
       boxShadow: currentActiveTheme === 'v1' ? 'inset 0 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(59,130,246,0.4)' : 'none',
       transform: currentActiveTheme === 'v1' ? 'translateY(1px)' : 'none'
     }}
   >
-    V1
+    {isThemeLoading && currentActiveTheme === 'v1' ? '...' : 'V1'}
   </button>
-
-  {/* 中间分割线 */}
-  <div style={{ width: '1px', height: '12px', background: '#555', opacity: currentActiveTheme ? 0 : 1 }}></div>
 
   {/* V2 按钮 */}
   <button 
@@ -715,16 +731,18 @@ export default function AdminDashboard() {
       fontWeight: '900',
       borderRadius: '6px',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      cursor: isThemeLoading ? 'not-allowed' : 'pointer',
       border: 'none',
-      // 🔴 状态切换逻辑
+      // 🟢 鼠标效果优化
+      cursor: isThemeLoading ? 'wait' : (currentActiveTheme === 'v2' ? 'default' : 'pointer'),
+      // 🟢 状态切换逻辑
       background: currentActiveTheme === 'v2' ? '#a855f7' : 'transparent',
       color: currentActiveTheme === 'v2' ? '#fff' : '#666',
+      opacity: (isThemeLoading && currentActiveTheme !== 'v2') ? 0.5 : 1,
       boxShadow: currentActiveTheme === 'v2' ? 'inset 0 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(168,85,247,0.4)' : 'none',
       transform: currentActiveTheme === 'v2' ? 'translateY(1px)' : 'none'
     }}
   >
-    V2
+    {isThemeLoading && currentActiveTheme === 'v2' ? '...' : 'V2'}
   </button>
 </div>
               </div>
