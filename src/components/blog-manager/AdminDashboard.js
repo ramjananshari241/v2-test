@@ -309,11 +309,11 @@ const NotionView = ({ blocks }) => {
 // ==========================================
 export default function AdminDashboard() {
     // 🟢 1. 所有的 Hook (useState) 必须严格排在函数最顶部
-  const [mounted, setMounted] = useState(false);
+const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [posts, setPosts] = useState([]); 
+  const [posts, setPosts] = useState([]);
   const [isThemeLoading, setIsThemeLoading] = useState(false);
-  const [activeThemeLocal, setActiveThemeLocal] = useState(null); // 本地状态同步
+  const [activeThemeLocal, setActiveThemeLocal] = useState(null);
 
   const [view, setView] = useState('list');
   const [viewMode, setViewMode] = useState('covered');
@@ -331,25 +331,17 @@ export default function AdminDashboard() {
   const [editorBlocks, setEditorBlocks] = useState([]);
   const [isDeploying, setIsDeploying] = useState(false);
 
-  // 🟢 2. 增强版的表单校验逻辑：增加安全保护，防止 null.trim() 报错导致按钮失效
+  // 🟢 2. 增强表单校验逻辑：安全处理空值
   const isFormValid = 
     (form?.title?.trim() || '') !== '' && 
     (form?.category?.trim() || '') !== '' && 
     (form?.date || '') !== '';
 
-  // 🟢 3. 主题状态衍生计算
+  // 🟢 3. 主题状态计算
   const themeConfig = posts?.find(p => p.slug === 'theme-config');
   const currentActiveTheme = activeThemeLocal || themeConfig?.excerpt?.trim() || 'v1';
 
-  // 初次加载数据后同步一次本地主题状态
-  useEffect(() => {
-    if (posts.length > 0 && !activeThemeLocal) {
-      const remote = posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
-      if (remote) setActiveThemeLocal(remote);
-    }
-  }, [posts]);
-
-  // 🟢 4. 数据获取函数
+  // 🟢 4. 数据拉取函数 (提前定义)
   async function fetchPosts() {
     setLoading(true); 
     try { 
@@ -359,9 +351,8 @@ export default function AdminDashboard() {
        if (d.success) { 
          setPosts(d.posts || []); 
          setOptions(d.options || { categories: [], tags: [] });
-         // 自动同步当前主题代号
-         const latestTheme = d.posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
-         if (latestTheme) setActiveThemeLocal(latestTheme);
+         const remote = d.posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
+         if (remote) setActiveThemeLocal(remote);
        }
        const rConf = await fetch('/api/admin/config');
        if (rConf.ok) {
@@ -372,57 +363,29 @@ export default function AdminDashboard() {
     finally { setLoading(false); } 
   }
 
-  // 🟢 5. 主题切换处理函数
+  // 🟢 5. 处理函数
   const handleThemeChange = async (version) => {
     if (isThemeLoading || version === activeThemeLocal) return;
-
     const configItem = themeConfig || posts.find(p => p.slug === 'theme-config');
-    if (!configItem) {
-      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。");
-      return;
-    }
-
+    if (!configItem) { alert("未找到配置页"); return; }
     setIsThemeLoading(true);
-    setActiveThemeLocal(version); // 立即反馈 UI
-
+    setActiveThemeLocal(version);
     try {
-      const payload = {
-        id: configItem.id,
-        title: configItem.title || '主题配置',
-        slug: 'theme-config',
-        excerpt: version,
-        titleKey: 'title',
-        type: 'Page'
-        // 🔴 绝不传 status，确保 Hidden 状态不被修改
-      };
-
+      const payload = { id: configItem.id, title: configItem.title || '主题配置', slug: 'theme-config', excerpt: version };
       const res = await fetch('/api/admin/post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
-      if (res.ok) {
-        await fetchPosts(); // 刷新以确保数据一致
-      } else {
-        throw new Error("同步请求未成功");
-      }
+      if (res.ok) await fetchPosts();
     } catch (err) {
-      setActiveThemeLocal(themeConfig?.excerpt?.trim() || 'v1'); // 失败回滚
-      alert("同步失败：" + err.message);
-    } finally {
-      setIsThemeLoading(false);
-    }
+      setActiveThemeLocal(themeConfig?.excerpt?.trim() || 'v1');
+      alert("切换失败");
+    } finally { setIsThemeLoading(false); }
   };
 
-  // 🟢 6. 生命周期钩子
-  useEffect(() => { 
-    setMounted(true); 
-    const link = document.createElement('link');
-    link.rel = 'icon'; link.href = '/favicon.ico';
-    document.head.appendChild(link);
-  }, []);
-
+  // 🟢 6. useEffect 挂载
+  useEffect(() => { setMounted(true); }, []);
   useEffect(() => { if (mounted) fetchPosts(); }, [mounted]);
 
   useEffect(() => {

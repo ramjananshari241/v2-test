@@ -8,7 +8,7 @@ const n2m = new NotionToMarkdown({ notionClient: notion });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// === 1. 解析器 (保留所有核心逻辑) ===
+// === 1. 解析器 (保留洗链、视频/图片、代码块逻辑) ===
 function parseLinesToChildren(text) {
   const lines = text.split(/\r?\n/);
   const blocks = [];
@@ -46,13 +46,9 @@ function mdToBlocks(markdown) {
   for (let chunk of rawChunks) {
     const t = chunk.trim();
     if (!t) continue;
-    if (!isLocking && t.startsWith(':::lock')) {
-      if (t.endsWith(':::')) mergedChunks.push(t);
-      else { isLocking = true; buffer = t; }
-    } else if (isLocking) {
-      buffer += "\n\n" + t;
-      if (t.endsWith(':::')) { isLocking = false; mergedChunks.push(buffer); buffer = ""; }
-    } else { mergedChunks.push(t); }
+    if (!isLocking && t.startsWith(':::lock')) { if (t.endsWith(':::')) mergedChunks.push(t); else { isLocking = true; buffer = t; } } 
+    else if (isLocking) { buffer += "\n\n" + t; if (t.endsWith(':::')) { isLocking = false; mergedChunks.push(buffer); buffer = ""; } } 
+    else { mergedChunks.push(t); }
   }
   if (buffer) mergedChunks.push(buffer);
   for (let content of mergedChunks) {
@@ -95,20 +91,37 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const { id, title, content, slug, excerpt, category, tags, status, date, type, cover } = body;
+
+      // 1. 获取目标页面属性，用于动态判定类型
+      let targetProps = {};
+      if (id) {
+          const page = await notion.pages.retrieve({ page_id: id });
+          targetProps = page.properties;
+      } else {
+          const db = await notion.databases.retrieve({ database_id: databaseId });
+          targetProps = db.properties;
+      }
+
+      // 2. 智能构建属性
       const props = {};
       
-      if (title !== undefined) {
-         const titleKey = body.titleKey || 'title';
-         props[titleKey] = { title: [{ text: { content: title || "无标题" } }] };
-      }
+      // 标题兼容性
+      const titleKey = targetProps['title'] ? 'title' : (targetProps['Page'] ? 'Page' : 'title');
+      if (title !== undefined) props[titleKey] = { title: [{ text: { content: title || "无标题" } }] };
+      
       if (slug !== undefined) props["slug"] = { rich_text: [{ text: { content: slug } }] };
       if (excerpt !== undefined) props["excerpt"] = { rich_text: [{ text: { content: excerpt || "" } }] };
       if (category !== undefined) props["category"] = category ? { select: { name: category } } : { select: null };
       if (tags !== undefined) props["tags"] = { multi_select: (tags || "").split(',').filter(t => t.trim()).map(t => ({ name: t.trim() })) };
       
-      // 只有当前端明确发送了 status 时才更新，切换主题时 payload 中不含 status，从而保留原有 Hidden
+      // 🔴 智能状态修复逻辑
       if (status !== undefined && status !== null) {
-          props["status"] = { select: { name: status } };
+          const statusType = targetProps['status']?.type || 'select';
+          if (statusType === 'status') {
+             props["status"] = { status: { name: status } }; // 适配 Status 类型
+          } else {
+             props["status"] = { select: { name: status } }; // 适配 Select 类型
+          }
       }
       
       if (type !== undefined) props["type"] = { select: { name: type } };
@@ -116,17 +129,7 @@ export default async function handler(req, res) {
       if (cover !== undefined && cover.startsWith('http')) props["cover"] = { url: cover };
 
       if (id) {
-        try {
-          const currentPage = await notion.pages.retrieve({ page_id: id });
-          const currentProps = currentPage.properties;
-          if (props['status'] && currentProps['status']?.type === 'status') {
-             const sVal = props['status'].select.name;
-             props['status'] = { status: { name: sVal } };
-          }
-        } catch (e) {}
-
         await notion.pages.update({ page_id: id, properties: props });
-
         if (content !== undefined && content !== null && content.trim().length > 0) {
             const children = await notion.blocks.children.list({ block_id: id });
             if (children.results.length > 0) {
