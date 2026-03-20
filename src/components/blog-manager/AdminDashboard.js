@@ -308,10 +308,9 @@ const NotionView = ({ blocks }) => {
 // 5. 主组件
 // ==========================================
 export default function AdminDashboard() {
-  // 🟢 最终修复版的主题切换逻辑
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [posts, setPosts] = useState([]); // 确保 posts 在这里定义
+  const [posts, setPosts] = useState([]); // 🔴 这里定义 posts
   const [isThemeLoading, setIsThemeLoading] = useState(false);
   const [view, setView] = useState('list');
   const [viewMode, setViewMode] = useState('covered');
@@ -329,11 +328,11 @@ export default function AdminDashboard() {
   const [editorBlocks, setEditorBlocks] = useState([]);
   const [isDeploying, setIsDeploying] = useState(false);
 
-  // 🟢 2. 在 state 定义完之后，再进行逻辑计算
+  // 🟢 2. 计算逻辑必须写在 useState 之后
   const themeConfig = posts?.find(p => p.slug === 'theme-config');
   const currentActiveTheme = themeConfig?.excerpt?.trim() || 'v1';
 
-  // 🟢 3. 定义处理函数
+  // 🟢 3. 处理函数
   const handleThemeChange = async (version) => {
     if (version === currentActiveTheme) return;
     const configItem = themeConfig;
@@ -350,7 +349,7 @@ export default function AdminDashboard() {
         slug: 'theme-config',
         excerpt: version,
         titleKey: 'title'
-        // 🔴 这里绝不传 status，后台就不会修改它
+        // 🔴 这里绝不传 status
       };
 
       const res = await fetch('/api/admin/post', {
