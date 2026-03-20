@@ -308,9 +308,10 @@ const NotionView = ({ blocks }) => {
 // 5. 主组件
 // ==========================================
 export default function AdminDashboard() {
+  // 🟢 第一步：必须先把所有 useState 放在函数的最顶部定义
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [posts, setPosts] = useState([]); // 🔴 这里定义 posts
+  const [posts, setPosts] = useState([]); // posts 现在定义在最前面了，下面可以使用它
   const [isThemeLoading, setIsThemeLoading] = useState(false);
   const [view, setView] = useState('list');
   const [viewMode, setViewMode] = useState('covered');
@@ -328,16 +329,35 @@ export default function AdminDashboard() {
   const [editorBlocks, setEditorBlocks] = useState([]);
   const [isDeploying, setIsDeploying] = useState(false);
 
-  // 🟢 2. 计算逻辑必须写在 useState 之后
+  // 🟢 第二步：定义 fetchPosts 函数（因为它要在下面的处理函数里被调用）
+  async function fetchPosts() {
+    setLoading(true); 
+    try { 
+       const r = await fetch('/api/admin/posts');
+       if (!r.ok) throw new Error(`API Error: ${r.status}`);
+       const d = await r.json(); 
+       if (d.success) { setPosts(d.posts || []); setOptions(d.options || { categories: [], tags: [] }); }
+       
+       const rConf = await fetch('/api/admin/config');
+       if (rConf.ok) {
+           const dConf = await rConf.json(); 
+           if (dConf.success && dConf.siteInfo) setSiteTitle(dConf.siteInfo.title);
+       }
+    } catch(e) { console.warn(e); } 
+    finally { setLoading(false); } 
+  }
+
+  // 🟢 第三步：在 State 定义完之后，再进行逻辑衍生计算
+  // 使用 ?. 防止 posts 为空时报错
   const themeConfig = posts?.find(p => p.slug === 'theme-config');
   const currentActiveTheme = themeConfig?.excerpt?.trim() || 'v1';
 
-  // 🟢 3. 处理函数
+  // 🟢 第四步：定义主题切换处理函数
   const handleThemeChange = async (version) => {
     if (version === currentActiveTheme) return;
     const configItem = themeConfig;
     if (!configItem) {
-      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。");
+      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。请确保页面已创建且 Slug 为 theme-config。");
       return;
     }
 
@@ -349,7 +369,7 @@ export default function AdminDashboard() {
         slug: 'theme-config',
         excerpt: version,
         titleKey: 'title'
-        // 🔴 这里绝不传 status
+        // 🔴 这里不发 status，后台局部更新逻辑会自动保留 Hidden 状态
       };
 
       const res = await fetch('/api/admin/post', {
@@ -359,7 +379,7 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        fetchPosts(); 
+        await fetchPosts(); // 切换完立刻刷新列表显示
         alert(`✅ 模式已切换为 ${version === 'v1' ? '经典' : '极客'}`);
       }
     } catch (err) {
@@ -368,6 +388,14 @@ export default function AdminDashboard() {
       setIsThemeLoading(false);
     }
   };
+
+  // 🟢 第五步：接下来接 useEffect ...
+  useEffect(() => { setMounted(true); 
+    const link = document.createElement('link');
+    link.rel = 'icon'; link.href = '/favicon.ico';
+    document.head.appendChild(link);
+  }, []);
+
   useEffect(() => { if (mounted) fetchPosts(); }, [mounted]);
 
   useEffect(() => {
