@@ -308,13 +308,12 @@ const NotionView = ({ blocks }) => {
 // 5. 主组件
 // ==========================================
 export default function AdminDashboard() {
+    // 🟢 1. 所有的 Hook (useState) 必须严格排在函数最顶部
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState([]); 
   const [isThemeLoading, setIsThemeLoading] = useState(false);
-  
-  // 🟢 增加一个本地状态，用于即时控制按钮的高亮
-  const [activeThemeLocal, setActiveThemeLocal] = useState(null);
+  const [activeThemeLocal, setActiveThemeLocal] = useState(null); // 本地状态同步
 
   const [view, setView] = useState('list');
   const [viewMode, setViewMode] = useState('covered');
@@ -332,11 +331,17 @@ export default function AdminDashboard() {
   const [editorBlocks, setEditorBlocks] = useState([]);
   const [isDeploying, setIsDeploying] = useState(false);
 
-  // 🟢 计算逻辑：优先使用本地状态，没有则从 posts 查找
+  // 🟢 2. 增强版的表单校验逻辑：增加安全保护，防止 null.trim() 报错导致按钮失效
+  const isFormValid = 
+    (form?.title?.trim() || '') !== '' && 
+    (form?.category?.trim() || '') !== '' && 
+    (form?.date || '') !== '';
+
+  // 🟢 3. 主题状态衍生计算
   const themeConfig = posts?.find(p => p.slug === 'theme-config');
   const currentActiveTheme = activeThemeLocal || themeConfig?.excerpt?.trim() || 'v1';
 
-  // 🟢 只有在 posts 第一次加载成功时，同步一次本地状态
+  // 初次加载数据后同步一次本地主题状态
   useEffect(() => {
     if (posts.length > 0 && !activeThemeLocal) {
       const remote = posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
@@ -344,6 +349,7 @@ export default function AdminDashboard() {
     }
   }, [posts]);
 
+  // 🟢 4. 数据获取函数
   async function fetchPosts() {
     setLoading(true); 
     try { 
@@ -352,17 +358,22 @@ export default function AdminDashboard() {
        const d = await r.json(); 
        if (d.success) { 
          setPosts(d.posts || []); 
-         setOptions(d.options || { categories: [], tags: [] }); 
-         // 同步最新状态
-         const latest = d.posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
-         if (latest) setActiveThemeLocal(latest);
+         setOptions(d.options || { categories: [], tags: [] });
+         // 自动同步当前主题代号
+         const latestTheme = d.posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
+         if (latestTheme) setActiveThemeLocal(latestTheme);
+       }
+       const rConf = await fetch('/api/admin/config');
+       if (rConf.ok) {
+           const dConf = await rConf.json(); 
+           if (dConf.success && dConf.siteInfo) setSiteTitle(dConf.siteInfo.title);
        }
     } catch(e) { console.warn(e); } 
     finally { setLoading(false); } 
   }
 
+  // 🟢 5. 主题切换处理函数
   const handleThemeChange = async (version) => {
-    // 如果已经在加载中，或者点击的是当前已选，则跳过
     if (isThemeLoading || version === activeThemeLocal) return;
 
     const configItem = themeConfig || posts.find(p => p.slug === 'theme-config');
@@ -372,8 +383,7 @@ export default function AdminDashboard() {
     }
 
     setIsThemeLoading(true);
-    // 🟢 1. 立即改变本地状态（预测性 UI 更新）
-    setActiveThemeLocal(version);
+    setActiveThemeLocal(version); // 立即反馈 UI
 
     try {
       const payload = {
@@ -381,7 +391,9 @@ export default function AdminDashboard() {
         title: configItem.title || '主题配置',
         slug: 'theme-config',
         excerpt: version,
-        titleKey: 'title'
+        titleKey: 'title',
+        type: 'Page'
+        // 🔴 绝不传 status，确保 Hidden 状态不被修改
       };
 
       const res = await fetch('/api/admin/post', {
@@ -391,23 +403,21 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        // 🟢 2. 同步成功后刷新，确保数据完全一致
-        await fetchPosts();
-        // alert(`✅ 模式已切换为 ${version === 'v1' ? '经典' : '极客'}`);
+        await fetchPosts(); // 刷新以确保数据一致
       } else {
-        throw new Error("接口返回错误");
+        throw new Error("同步请求未成功");
       }
     } catch (err) {
-      // 🔴 如果失败，回滚状态
-      setActiveThemeLocal(themeConfig?.excerpt?.trim() || 'v1');
+      setActiveThemeLocal(themeConfig?.excerpt?.trim() || 'v1'); // 失败回滚
       alert("同步失败：" + err.message);
     } finally {
       setIsThemeLoading(false);
     }
   };
 
-  // 🟢 第五步：接下来接 useEffect ...
-  useEffect(() => { setMounted(true); 
+  // 🟢 6. 生命周期钩子
+  useEffect(() => { 
+    setMounted(true); 
     const link = document.createElement('link');
     link.rel = 'icon'; link.href = '/favicon.ico';
     document.head.appendChild(link);
