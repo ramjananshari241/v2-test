@@ -309,25 +309,48 @@ const NotionView = ({ blocks }) => {
 // ==========================================
 export default function AdminDashboard() {
   const [isThemeLoading, setIsThemeLoading] = useState(false);
+
   const handleThemeChange = async (version) => {
+    // 1. 在当前已加载的列表中找到 theme-config 这一行的真实 ID
+    const configItem = posts.find(p => p.slug === 'theme-config');
+    
+    if (!configItem) {
+      alert("错误：未能在页面列表中找到 slug 为 theme-config 的项。请确保你已经创建了该页面并设为 Published。");
+      return;
+    }
+
     setIsThemeLoading(true);
     try {
+      // 2. 发送请求，必须带上 configItem.id
       const res = await fetch('/api/admin/post', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: configItem.id,      // 🔴 关键：必须传这个 ID，Notion 才知道更新哪一行
+          title: configItem.title || '主题配置',
           slug: 'theme-config',
-          type: 'Page', // 确保 Notion 逻辑识别为 Page 类型
-          properties: {
-            excerpt: {
-              rich_text: [{ text: { content: version } }]
-            }
-          }
+          type: 'Page',
+          status: 'Published',
+          excerpt: version,       // 这里传 v1 或 v2
+          category: configItem.category || '网站信息', // 保持原有分类
+          content: ''             // 配置页通常不需要正文内容
         })
       });
-      if (res.ok) alert(`系统模式已切换至 ${version === 'v1' ? '经典' : '极客'}，请点击推送进行部署。`);
+      
+      if (res.ok) {
+        alert(`同步成功！已将模式改为 ${version === 'v1' ? '经典' : '极客'}。\nNotion 数据已更新，请点击上方“绿色循环图标”推送部署。`);
+        // 刷新一下列表，确保界面显示的 excerpt 也同步更新
+        fetchPosts(); 
+      } else {
+        const errorData = await res.json();
+        alert("同步失败：" + (errorData.error || '未知错误'));
+      }
     } catch (err) {
-      alert('切换失败');
-    } finally { setIsThemeLoading(false); }
+      console.error(err);
+      alert('网络请求失败，请检查网络连接');
+    } finally {
+      setIsThemeLoading(false);
+    }
   };
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
