@@ -309,30 +309,30 @@ const NotionView = ({ blocks }) => {
 // ==========================================
 export default function AdminDashboard() {
   // 🟢 最终修复版的主题切换逻辑
+  const themeConfig = posts.find(p => p.slug === 'theme-config');
+  // 如果 Notion 里没写，或者还没部署出来，默认显示 v1
+  const currentActiveTheme = themeConfig?.excerpt?.trim() || 'v1';
+
   const [isThemeLoading, setIsThemeLoading] = useState(false);
 
   const handleThemeChange = async (version) => {
-    // 1. 精准查找 theme-config 页面
-    const configItem = posts.find(p => p.slug === 'theme-config');
+    // 如果点击的是当前已经选中的主题，直接返回，避免浪费请求
+    if (version === currentActiveTheme) return;
 
+    const configItem = themeConfig;
     if (!configItem) {
-      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。\n提示：请确保该页面已创建并设为 Published 状态。");
+      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。");
       return;
     }
 
     setIsThemeLoading(true);
     try {
-      // 2. 构造极其纯净的 payload，避免触发 Notion 的关联/人员类型误判
       const payload = {
         id: configItem.id,
         title: configItem.title || '主题配置',
         slug: 'theme-config',
-        excerpt: version,        // 核心更新：v1 或 v2
-        category: configItem.category || '网站信息',
-        status: 'Published',
-        type: 'Page',
-        content: '',             // 传空，触发后台“仅更新属性”逻辑
-        titleKey: 'title'        // 显式告知标题键名
+        excerpt: version, // 更新为 v1 或 v2
+        titleKey: 'title'
       };
 
       const res = await fetch('/api/admin/post', {
@@ -341,18 +341,12 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Notion API 校验未通过');
+      if (res.ok) {
+        // 🟢 2. 切换成功后立即刷新列表，按钮状态会随之自动改变
+        fetchPosts(); 
+        alert(`✅ 模式已切换为 ${version === 'v1' ? '经典' : '极客'}，数据已同步。`);
       }
-
-      alert(`✅ 主题切换成功：已改为 ${version === 'v1' ? '经典 (V1)' : '极客 (V2)'}。\n请点击上方绿色图标推送更新。`);
-      
-      if (typeof fetchPosts === 'function') fetchPosts();
-
     } catch (err) {
-      console.error(err);
       alert("同步失败：" + err.message);
     } finally {
       setIsThemeLoading(false);
@@ -686,23 +680,55 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* 2. 🟢 模式切换按钮 (V1/V2) */}
-                <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid #444' }}>
-                  <button
-                    disabled={isThemeLoading}
-                    onClick={() => handleThemeChange('v1')}
-                    style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '900', color: isThemeLoading ? '#333' : '#888', background: 'none', border: 'none', cursor: 'pointer' }}
-                  >
-                    V1
-                  </button>
-                  <div style={{ width: '1px', height: '10px', background: '#444' }}></div>
-                  <button
-                    disabled={isThemeLoading}
-                    onClick={() => handleThemeChange('v2')}
-                    style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '900', color: isThemeLoading ? '#333' : '#888', background: 'none', border: 'none', cursor: 'pointer' }}
-                  >
-                    V2
-                  </button>
-                </div>
+                <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px', padding: '4px', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', border: '1px solid #444' }}>
+  
+  {/* V1 按钮 */}
+  <button 
+    disabled={isThemeLoading}
+    onClick={() => handleThemeChange('v1')}
+    style={{
+      padding: '4px 14px',
+      fontSize: '11px',
+      fontWeight: '900',
+      borderRadius: '6px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      cursor: isThemeLoading ? 'not-allowed' : 'pointer',
+      border: 'none',
+      // 🔴 状态切换逻辑
+      background: currentActiveTheme === 'v1' ? '#3b82f6' : 'transparent', 
+      color: currentActiveTheme === 'v1' ? '#fff' : '#666',
+      boxShadow: currentActiveTheme === 'v1' ? 'inset 0 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(59,130,246,0.4)' : 'none',
+      transform: currentActiveTheme === 'v1' ? 'translateY(1px)' : 'none'
+    }}
+  >
+    V1
+  </button>
+
+  {/* 中间分割线 */}
+  <div style={{ width: '1px', height: '12px', background: '#555', opacity: currentActiveTheme ? 0 : 1 }}></div>
+
+  {/* V2 按钮 */}
+  <button 
+    disabled={isThemeLoading}
+    onClick={() => handleThemeChange('v2')}
+    style={{
+      padding: '4px 14px',
+      fontSize: '11px',
+      fontWeight: '900',
+      borderRadius: '6px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      cursor: isThemeLoading ? 'not-allowed' : 'pointer',
+      border: 'none',
+      // 🔴 状态切换逻辑
+      background: currentActiveTheme === 'v2' ? '#a855f7' : 'transparent',
+      color: currentActiveTheme === 'v2' ? '#fff' : '#666',
+      boxShadow: currentActiveTheme === 'v2' ? 'inset 0 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(168,85,247,0.4)' : 'none',
+      transform: currentActiveTheme === 'v2' ? 'translateY(1px)' : 'none'
+    }}
+  >
+    V2
+  </button>
+</div>
               </div>
 
               {/* 3. 右侧滑动导航 */}

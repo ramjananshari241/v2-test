@@ -15,11 +15,9 @@ function parseLinesToChildren(text) {
   for (let line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-
     const mdMatch = trimmed.match(/^!\[.*?\]\((.*?)\)$/) || trimmed.match(/^\[.*?\]\((.*?)\)$/);
     let potentialUrl = mdMatch ? mdMatch[1] : trimmed;
     const urlMatch = potentialUrl.match(/https?:\/\/[^\s"']+/);
-
     if (urlMatch) {
       let safeUrl = urlMatch[0];
       if (/[\[\]]/.test(safeUrl)) {
@@ -27,7 +25,6 @@ function parseLinesToChildren(text) {
       }
       const isVideo = safeUrl.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i);
       const isImage = safeUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
-
       if (isVideo) {
         blocks.push({ object: 'block', type: 'video', video: { type: 'external', external: { url: safeUrl } } });
       } else if (isImage) {
@@ -37,7 +34,6 @@ function parseLinesToChildren(text) {
       }
       continue;
     }
-
     if (trimmed.startsWith('# ')) { blocks.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: [{ text: { content: trimmed.replace('# ', '') } }] } }); continue; } 
     if (trimmed.startsWith('`') && trimmed.endsWith('`') && trimmed.length > 1) { blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed.slice(1, -1) }, annotations: { code: true, color: 'red' } }] } }); continue; }
     blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed } }] } });
@@ -45,7 +41,7 @@ function parseLinesToChildren(text) {
   return blocks;
 }
 
-// === 2. 转换器 (保留原有锁逻辑) ===
+// === 2. 转换器 (保留原有功能) ===
 function mdToBlocks(markdown) {
   if (!markdown) return [];
   const rawChunks = markdown.split(/\n{2,}/);
@@ -53,7 +49,6 @@ function mdToBlocks(markdown) {
   let mergedChunks = [];
   let buffer = "";
   let isLocking = false;
-
   for (let chunk of rawChunks) {
     const t = chunk.trim();
     if (!t) continue;
@@ -66,26 +61,14 @@ function mdToBlocks(markdown) {
     } else { mergedChunks.push(t); }
   }
   if (buffer) mergedChunks.push(buffer);
-
   for (let content of mergedChunks) {
     if (content.startsWith(':::lock')) {
         const firstLineEnd = content.indexOf('\n');
         const header = content.substring(0, firstLineEnd > -1 ? firstLineEnd : content.length);
         let pwd = header.replace(':::lock', '').replace(/[>*\s🔒]/g, '').trim(); 
         const body = content.replace(/^:::lock.*?\n/, '').replace(/\n:::$/, '').trim();
-        blocks.push({ 
-          object: 'block', 
-          type: 'callout', 
-          callout: { 
-            rich_text: [{ text: { content: `LOCK:${pwd}` }, annotations: { bold: true } }], 
-            icon: { type: "emoji", emoji: "🔒" }, 
-            color: "gray_background", 
-            children: [ { object: 'block', type: 'divider', divider: {} }, ...parseLinesToChildren(body) ] 
-          } 
-        });
-    } else {
-        blocks.push(...parseLinesToChildren(content));
-    }
+        blocks.push({ object: 'block', type: 'callout', callout: { rich_text: [{ text: { content: `LOCK:${pwd}` }, annotations: { bold: true } }], icon: { type: "emoji", emoji: "🔒" }, color: "gray_background", children: [ { object: 'block', type: 'divider', divider: {} }, ...parseLinesToChildren(body) ] } });
+    } else { blocks.push(...parseLinesToChildren(content)); }
   }
   return blocks;
 }
@@ -119,49 +102,52 @@ export default async function handler(req, res) {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const { id, title, content, slug, excerpt, category, tags, status, date, type, cover } = body;
 
-      // 🟢 核心修复：兼容主标题列的不同命名 (title 或 Page)
       const props = {};
-      const titleKey = body.titleKey || 'title'; 
-      props[titleKey] = { title: [{ text: { content: title || "无标题" } }] };
       
-      if (slug) props["slug"] = { rich_text: [{ text: { content: slug } }] };
-      if (excerpt !== undefined) props["excerpt"] = { rich_text: [{ text: { content: excerpt || "" } }] };
-      
-      // 兼容分类属性
-      if (category) props["category"] = { select: { name: category } };
-      
-      if (tags !== undefined) props["tags"] = { multi_select: (tags || "").split(',').filter(t => t.trim()).map(t => ({ name: t.trim() })) };
-      
-      // 🟢 修复：兼容状态属性的两种类型 (status 或 select)
-      if (status) {
-         props["status"] = { select: { name: status } }; // 默认尝试 select，如果报错会回退
+      // 🟢 属性处理逻辑：只有在 body 中存在的字段才会被加入 props，实现局部更新
+      if (title !== undefined) {
+         const titleKey = body.titleKey || 'title';
+         props[titleKey] = { title: [{ text: { content: title || "无标题" } }] };
       }
       
-      if (type) props["type"] = { select: { name: type } };
-      if (date) props["date"] = { date: { start: date } };
-      if (cover && cover.startsWith('http')) props["cover"] = { url: cover };
+      if (slug !== undefined) props["slug"] = { rich_text: [{ text: { content: slug } }] };
+      if (excerpt !== undefined) props["excerpt"] = { rich_text: [{ text: { content: excerpt || "" } }] };
+      if (category !== undefined) props["category"] = category ? { select: { name: category } } : { select: null };
+      if (tags !== undefined) props["tags"] = { multi_select: (tags || "").split(',').filter(t => t.trim()).map(t => ({ name: t.trim() })) };
+      
+      // 🟢 关键修改：只有明确传了 status，才会更新状态属性
+      if (status !== undefined && status !== null) {
+          props["status"] = { select: { name: status } };
+      }
+      
+      if (type !== undefined) props["type"] = { select: { name: type } };
+      if (date !== undefined) props["date"] = date ? { date: { start: date } } : null;
+      if (cover !== undefined && cover.startsWith('http')) props["cover"] = { url: cover };
 
       if (id) {
-        // 先获取一次页面，确定状态列和标题列的真实类型
+        // 获取页面元数据用于校准类型
         try {
           const currentPage = await notion.pages.retrieve({ page_id: id });
           const currentProps = currentPage.properties;
           
           // 动态校准标题键名
-          if (!currentProps['title'] && currentProps['Page']) {
+          if (props['title'] && !currentProps['title'] && currentProps['Page']) {
+             const tVal = props['title'].title;
              delete props['title'];
-             props['Page'] = { title: [{ text: { content: title || "无标题" } }] };
+             props['Page'] = { title: tVal };
           }
           
-          // 动态校准状态类型
-          if (currentProps['status']?.type === 'status') {
-             props['status'] = { status: { name: status || "Published" } };
+          // 动态校准状态类型 (新版 Notion status vs 旧版 select)
+          if (props['status'] && currentProps['status']?.type === 'status') {
+             const sVal = props['status'].select.name;
+             props['status'] = { status: { name: sVal } };
           }
         } catch (e) { console.warn("属性校准跳过", e); }
 
         await notion.pages.update({ page_id: id, properties: props });
 
-        if (content && content.trim().length > 0) {
+        // 只有当 content 有具体内容时才更新正文块，防止清空正文
+        if (content !== undefined && content !== null && content.trim().length > 0) {
             const children = await notion.blocks.children.list({ block_id: id });
             if (children.results.length > 0) {
                 const chunks = [];
