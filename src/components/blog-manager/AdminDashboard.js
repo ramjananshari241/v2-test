@@ -309,16 +309,33 @@ const NotionView = ({ blocks }) => {
 // ==========================================
 export default function AdminDashboard() {
   // 🟢 最终修复版的主题切换逻辑
-  const themeConfig = posts.find(p => p.slug === 'theme-config');
-  // 如果 Notion 里没写，或者还没部署出来，默认显示 v1
+  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [posts, setPosts] = useState([]); // 确保 posts 在这里定义
+  const [isThemeLoading, setIsThemeLoading] = useState(false);
+  const [view, setView] = useState('list');
+  const [viewMode, setViewMode] = useState('covered');
+  const [options, setOptions] = useState({ categories: [], tags: [] });
+  const [activeTab, setActiveTab] = useState('Post');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAllTags, setShowAllTags] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
+  const [form, setForm] = useState({ title: '', slug: '', excerpt: '', content: '', category: '', tags: '', cover: '', status: 'Published', type: 'Post', date: '' });
+  const [currentId, setCurrentId] = useState(null);
+  const [siteTitle, setSiteTitle] = useState('PROBLOG');
+  const [navIdx, setNavIdx] = useState(1); 
+  const [expandedStep, setExpandedStep] = useState(1);
+  const [editorBlocks, setEditorBlocks] = useState([]);
+  const [isDeploying, setIsDeploying] = useState(false);
+
+  // 🟢 2. 在 state 定义完之后，再进行逻辑计算
+  const themeConfig = posts?.find(p => p.slug === 'theme-config');
   const currentActiveTheme = themeConfig?.excerpt?.trim() || 'v1';
 
-  const [isThemeLoading, setIsThemeLoading] = useState(false);
-
+  // 🟢 3. 定义处理函数
   const handleThemeChange = async (version) => {
-    // 如果点击的是当前已经选中的主题，直接返回，避免浪费请求
     if (version === currentActiveTheme) return;
-
     const configItem = themeConfig;
     if (!configItem) {
       alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。");
@@ -331,8 +348,9 @@ export default function AdminDashboard() {
         id: configItem.id,
         title: configItem.title || '主题配置',
         slug: 'theme-config',
-        excerpt: version, // 更新为 v1 或 v2
+        excerpt: version,
         titleKey: 'title'
+        // 🔴 这里绝不传 status，后台就不会修改它
       };
 
       const res = await fetch('/api/admin/post', {
@@ -342,9 +360,8 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        // 🟢 2. 切换成功后立即刷新列表，按钮状态会随之自动改变
         fetchPosts(); 
-        alert(`✅ 模式已切换为 ${version === 'v1' ? '经典' : '极客'}，数据已同步。`);
+        alert(`✅ 模式已切换为 ${version === 'v1' ? '经典' : '极客'}`);
       }
     } catch (err) {
       alert("同步失败：" + err.message);
@@ -352,52 +369,6 @@ export default function AdminDashboard() {
       setIsThemeLoading(false);
     }
   };
-  const [mounted, setMounted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [view, setView] = useState('list');
-  const [viewMode, setViewMode] = useState('covered');
-  const [posts, setPosts] = useState([]);
-  const [options, setOptions] = useState({ categories: [], tags: [] });
-  const [activeTab, setActiveTab] = useState('Post');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showAllTags, setShowAllTags] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState(null);
-  const [previewData, setPreviewData] = useState(null);
-  
-  const [form, setForm] = useState({ title: '', slug: '', excerpt: '', content: '', category: '', tags: '', cover: '', status: 'Published', type: 'Post', date: '' }), [currentId, setCurrentId] = useState(null);
-  const [siteTitle, setSiteTitle] = useState('PROBLOG');
-  const [navIdx, setNavIdx] = useState(1); 
-  const [expandedStep, setExpandedStep] = useState(1);
-  const [editorBlocks, setEditorBlocks] = useState([]);
-  
-  const [isDeploying, setIsDeploying] = useState(false);
-  
-
-  useEffect(() => { setMounted(true); 
-    // 🟢 注入 Logo
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.href = '/favicon.ico';
-    document.head.appendChild(link);
-  }, []);
-  const isFormValid = form.title.trim() !== '' && form.category.trim() !== '' && form.date !== '';
-
-  async function fetchPosts() {
-    setLoading(true); 
-    try { 
-       const r = await fetch('/api/admin/posts');
-       if (!r.ok) throw new Error(`API Error: ${r.status}`);
-       const d = await r.json(); 
-       if (d.success) { setPosts(d.posts || []); setOptions(d.options || { categories: [], tags: [] }); }
-       
-       const rConf = await fetch('/api/admin/config');
-       if (rConf.ok) {
-           const dConf = await rConf.json(); 
-           if (dConf.success && dConf.siteInfo) setSiteTitle(dConf.siteInfo.title);
-       }
-    } catch(e) { console.warn(e); } 
-    finally { setLoading(false); } 
-  }
   useEffect(() => { if (mounted) fetchPosts(); }, [mounted]);
 
   useEffect(() => {
