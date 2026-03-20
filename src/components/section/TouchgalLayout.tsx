@@ -44,7 +44,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
           <div className="h-[2px] flex-1 bg-gradient-to-r from-neutral-200 to-transparent dark:from-neutral-800"></div>
         </div>
         <Link href={`/${ARCHIVE}/1`} className="ml-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 group">
-          归档文章 <span className="group-hover:translate-x-1 transition-transform">→</span>
+          全部归档 <span className="group-hover:translate-x-1 transition-transform">→</span>
         </Link>
       </div>
 
@@ -144,24 +144,24 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-orange-600/10 rounded-full blur-3xl"></div>
          
          <div className="inline-block px-4 py-1 bg-gradient-to-r from-purple-600 to-orange-600 text-white text-[10px] font-black rounded-full mb-6 uppercase tracking-widest shadow-xl shadow-purple-500/20">
-            Resource Center
+            作品购买
          </div>
          
-         <h4 className="text-3xl font-black mb-10 tracking-tighter text-neutral-800 dark:text-white">需要更多精彩资源？</h4>
+         <h4 className="text-3xl font-black mb-10 tracking-tighter text-neutral-800 dark:text-white">立即前往贩售机购买我的作品吧！</h4>
          
          <div className="flex flex-wrap justify-center gap-6 relative z-10">
             <button 
-              onClick={() => window.open('https://van.pro-plus.top/dashboard', '_blank')} 
+              onClick={() => window.open('https://van.pro-plus.top/buy', '_blank')} 
               className="px-10 py-4 bg-[#A855F7] text-white rounded-2xl text-sm font-black hover:bg-[#9333EA] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/40 flex items-center gap-2"
             >
               <span>🛒</span> 前往贩售机
             </button>
             
             <Link 
-              href="/about"
+              href="/vending"
               className="px-10 py-4 bg-[#F97316] text-white rounded-2xl text-sm font-black hover:bg-[#EA580C] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-orange-500/40 flex items-center gap-2"
             >
-              <span>👑</span> 资源介绍
+              <span>👑</span> 贩售机使用说明
             </Link>
          </div>
       </div>
