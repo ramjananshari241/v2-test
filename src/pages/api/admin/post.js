@@ -8,26 +8,36 @@ const n2m = new NotionToMarkdown({ notionClient: notion });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// === 1. 解析器 ===
+// === 1. 解析器 (保留原有功能) ===
 function parseLinesToChildren(text) {
   const lines = text.split(/\r?\n/);
   const blocks = [];
   for (let line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+
     const mdMatch = trimmed.match(/^!\[.*?\]\((.*?)\)$/) || trimmed.match(/^\[.*?\]\((.*?)\)$/);
     let potentialUrl = mdMatch ? mdMatch[1] : trimmed;
     const urlMatch = potentialUrl.match(/https?:\/\/[^\s"']+/);
+
     if (urlMatch) {
       let safeUrl = urlMatch[0];
-      if (/[\[\]]/.test(safeUrl)) { try { safeUrl = encodeURI(decodeURI(safeUrl)); } catch (e) { safeUrl = encodeURI(safeUrl); } }
+      if (/[\[\]]/.test(safeUrl)) {
+        try { safeUrl = encodeURI(decodeURI(safeUrl)); } catch (e) { safeUrl = encodeURI(safeUrl); }
+      }
       const isVideo = safeUrl.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i);
       const isImage = safeUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
-      if (isVideo) { blocks.push({ object: 'block', type: 'video', video: { type: 'external', external: { url: safeUrl } } }); } 
-      else if (isImage) { blocks.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: safeUrl } } }); } 
-      else { blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed, link: { url: safeUrl } } }] } }); }
+
+      if (isVideo) {
+        blocks.push({ object: 'block', type: 'video', video: { type: 'external', external: { url: safeUrl } } });
+      } else if (isImage) {
+        blocks.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: safeUrl } } });
+      } else {
+        blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed, link: { url: safeUrl } } }] } });
+      }
       continue;
     }
+
     if (trimmed.startsWith('# ')) { blocks.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: [{ text: { content: trimmed.replace('# ', '') } }] } }); continue; } 
     if (trimmed.startsWith('`') && trimmed.endsWith('`') && trimmed.length > 1) { blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed.slice(1, -1) }, annotations: { code: true, color: 'red' } }] } }); continue; }
     blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed } }] } });
@@ -35,7 +45,7 @@ function parseLinesToChildren(text) {
   return blocks;
 }
 
-// === 2. 转换器 ===
+// === 2. 转换器 (保留原有锁逻辑) ===
 function mdToBlocks(markdown) {
   if (!markdown) return [];
   const rawChunks = markdown.split(/\n{2,}/);
@@ -43,22 +53,39 @@ function mdToBlocks(markdown) {
   let mergedChunks = [];
   let buffer = "";
   let isLocking = false;
+
   for (let chunk of rawChunks) {
     const t = chunk.trim();
     if (!t) continue;
-    if (!isLocking && t.startsWith(':::lock')) { if (t.endsWith(':::')) mergedChunks.push(t); else { isLocking = true; buffer = t; } } 
-    else if (isLocking) { buffer += "\n\n" + t; if (t.endsWith(':::')) { isLocking = false; mergedChunks.push(buffer); buffer = ""; } } 
-    else { mergedChunks.push(t); }
+    if (!isLocking && t.startsWith(':::lock')) {
+      if (t.endsWith(':::')) mergedChunks.push(t);
+      else { isLocking = true; buffer = t; }
+    } else if (isLocking) {
+      buffer += "\n\n" + t;
+      if (t.endsWith(':::')) { isLocking = false; mergedChunks.push(buffer); buffer = ""; }
+    } else { mergedChunks.push(t); }
   }
   if (buffer) mergedChunks.push(buffer);
+
   for (let content of mergedChunks) {
     if (content.startsWith(':::lock')) {
         const firstLineEnd = content.indexOf('\n');
         const header = content.substring(0, firstLineEnd > -1 ? firstLineEnd : content.length);
         let pwd = header.replace(':::lock', '').replace(/[>*\s🔒]/g, '').trim(); 
         const body = content.replace(/^:::lock.*?\n/, '').replace(/\n:::$/, '').trim();
-        blocks.push({ object: 'block', type: 'callout', callout: { rich_text: [{ text: { content: `LOCK:${pwd}` }, annotations: { bold: true } }], icon: { type: "emoji", emoji: "🔒" }, color: "gray_background", children: [ { object: 'block', type: 'divider', divider: {} }, ...parseLinesToChildren(body) ] } });
-    } else { blocks.push(...parseLinesToChildren(content)); }
+        blocks.push({ 
+          object: 'block', 
+          type: 'callout', 
+          callout: { 
+            rich_text: [{ text: { content: `LOCK:${pwd}` }, annotations: { bold: true } }], 
+            icon: { type: "emoji", emoji: "🔒" }, 
+            color: "gray_background", 
+            children: [ { object: 'block', type: 'divider', divider: {} }, ...parseLinesToChildren(body) ] 
+          } 
+        });
+    } else {
+        blocks.push(...parseLinesToChildren(content));
+    }
   }
   return blocks;
 }
@@ -85,29 +112,55 @@ export default async function handler(req, res) {
       const cleanContent = n2m.toMarkdownString(mdblocks).parent.trim();
       let rawBlocks = [];
       try { const blocksRes = await notion.blocks.children.list({ block_id: queryId }); rawBlocks = blocksRes.results; } catch (e) {}
-      return res.status(200).json({ success: true, post: { id: page.id, title: p.title?.title?.[0]?.plain_text || '无标题', slug: p.slug?.rich_text?.[0]?.plain_text || '', excerpt: p.excerpt?.rich_text?.[0]?.plain_text || '', category: p.category?.select?.name || '', tags: (p.tags?.multi_select || []).map(t => t.name).join(','), status: p.status?.status?.name || p.status?.select?.name || 'Published', type: p.type?.select?.name || 'Post', date: p.date?.date?.start || '', cover: p.cover?.url || p.cover?.file?.url || p.cover?.external?.url || '', content: cleanContent, rawBlocks: rawBlocks } });
+      return res.status(200).json({ success: true, post: { id: page.id, title: p.title?.title?.[0]?.plain_text || p.Page?.title?.[0]?.plain_text || '无标题', slug: p.slug?.rich_text?.[0]?.plain_text || '', excerpt: p.excerpt?.rich_text?.[0]?.plain_text || '', category: p.category?.select?.name || '', tags: (p.tags?.multi_select || []).map(t => t.name).join(','), status: p.status?.status?.name || p.status?.select?.name || 'Published', type: p.type?.select?.name || 'Post', date: p.date?.date?.start || '', cover: p.cover?.url || p.cover?.file?.url || p.cover?.external?.url || '', content: cleanContent, rawBlocks: rawBlocks } });
     }
 
     if (req.method === 'POST') {
-      // 🔴 核心修复：Next.js 自动解析 JSON，不需要 JSON.parse(req.body)
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const { id, title, content, slug, excerpt, category, tags, status, date, type, cover } = body;
 
-      const props = {
-        "title": { title: [{ text: { content: title || "无标题" } }] },
-        "slug": { rich_text: [{ text: { content: slug } }] },
-        "excerpt": { rich_text: [{ text: { content: excerpt || "" } }] },
-        "category": category ? { select: { name: category } } : { select: null },
-        "tags": { multi_select: (tags || "").split(',').filter(t => t.trim()).map(t => ({ name: t.trim() })) },
-        "status": { status: { name: status || "Published" } },
-        "type": { select: { name: type || "Post" } },
-        "date": date ? { date: { start: date } } : null
-      };
+      // 🟢 核心修复：兼容主标题列的不同命名 (title 或 Page)
+      const props = {};
+      const titleKey = body.titleKey || 'title'; 
+      props[titleKey] = { title: [{ text: { content: title || "无标题" } }] };
+      
+      if (slug) props["slug"] = { rich_text: [{ text: { content: slug } }] };
+      if (excerpt !== undefined) props["excerpt"] = { rich_text: [{ text: { content: excerpt || "" } }] };
+      
+      // 兼容分类属性
+      if (category) props["category"] = { select: { name: category } };
+      
+      if (tags !== undefined) props["tags"] = { multi_select: (tags || "").split(',').filter(t => t.trim()).map(t => ({ name: t.trim() })) };
+      
+      // 🟢 修复：兼容状态属性的两种类型 (status 或 select)
+      if (status) {
+         props["status"] = { select: { name: status } }; // 默认尝试 select，如果报错会回退
+      }
+      
+      if (type) props["type"] = { select: { name: type } };
+      if (date) props["date"] = { date: { start: date } };
       if (cover && cover.startsWith('http')) props["cover"] = { url: cover };
 
       if (id) {
+        // 先获取一次页面，确定状态列和标题列的真实类型
+        try {
+          const currentPage = await notion.pages.retrieve({ page_id: id });
+          const currentProps = currentPage.properties;
+          
+          // 动态校准标题键名
+          if (!currentProps['title'] && currentProps['Page']) {
+             delete props['title'];
+             props['Page'] = { title: [{ text: { content: title || "无标题" } }] };
+          }
+          
+          // 动态校准状态类型
+          if (currentProps['status']?.type === 'status') {
+             props['status'] = { status: { name: status || "Published" } };
+          }
+        } catch (e) { console.warn("属性校准跳过", e); }
+
         await notion.pages.update({ page_id: id, properties: props });
-        // 🟢 优化：只有当 content 存在且不为空时，才执行耗时的块更新逻辑
+
         if (content && content.trim().length > 0) {
             const children = await notion.blocks.children.list({ block_id: id });
             if (children.results.length > 0) {

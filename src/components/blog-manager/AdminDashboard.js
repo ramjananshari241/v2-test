@@ -312,25 +312,27 @@ export default function AdminDashboard() {
   const [isThemeLoading, setIsThemeLoading] = useState(false);
 
   const handleThemeChange = async (version) => {
-    // 1. 在 posts 数组中查找配置项
+    // 1. 精准查找 theme-config 页面
     const configItem = posts.find(p => p.slug === 'theme-config');
 
     if (!configItem) {
-      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。\n提示：请确保 Notion 中已创建该页面且设为 Published。");
+      alert("同步失败：未在列表中找到 slug 为 theme-config 的页面。\n提示：请确保该页面已在 Notion 中创建并设为 Published 状态。");
       return;
     }
 
     setIsThemeLoading(true);
     try {
+      // 2. 构造极其纯净的 payload，避免触发 Notion 的关联/人员类型误判
       const payload = {
         id: configItem.id,
         title: configItem.title || '主题配置',
         slug: 'theme-config',
-        excerpt: version,       // 写入 v1 或 v2
+        excerpt: version,        // 核心更新：v1 或 v2
         category: configItem.category || '网站信息',
         status: 'Published',
         type: 'Page',
-        content: ''             // 🔴 传空字符串，触发后端的“仅更新属性”逻辑，速度极快
+        content: '',             // 传空，触发后台“仅更新属性”逻辑
+        titleKey: 'title'        // 显式告知标题键名
       };
 
       const res = await fetch('/api/admin/post', {
@@ -342,12 +344,11 @@ export default function AdminDashboard() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || '服务器同步失败');
+        throw new Error(data.error || 'Notion API 校验未通过');
       }
 
-      alert(`✅ 模式切换成功：已改为 ${version === 'v1' ? '经典 (V1)' : '极客 (V2)'}。\n请点击上方“绿色循环图标”推送部署。`);
+      alert(`✅ 模式切换成功：已改为 ${version === 'v1' ? '经典 (V1)' : '极客 (V2)'}。\n数据已保存，请点击上方绿色图标推送部署。`);
       
-      // 刷新列表显示
       if (typeof fetchPosts === 'function') fetchPosts();
 
     } catch (err) {
