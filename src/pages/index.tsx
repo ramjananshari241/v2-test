@@ -7,7 +7,7 @@ import { formatPosts } from '../lib/blog/format/post'
 import { formatWidgets, preFormatWidgets } from '../lib/blog/format/widget'
 import getBlogStats from '../lib/blog/getBlogStats'
 import { withNavFooterStaticProps } from '../lib/blog/withNavFooterStaticProps'
-import { getWidgets, getPosts } from '../lib/notion/getBlogData' // 🟢 改为导入 getPosts
+import { getWidgets, getPosts } from '../lib/notion/getBlogData' 
 import { MainPostsCollection } from '../components/section/MainPostsCollection'
 import { MorePostsCollection } from '../components/section/MorePostsCollection'
 import { Post, SharedNavFooterStaticProps } from '../types/blog'
@@ -41,14 +41,22 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     sharedPageStaticProps: SharedNavFooterStaticProps
   ) => {
     try {
-      // 🟢 修复点：使用 getPosts(ApiScope.Archive) 抓取全量已发布文章，确保列表不为空
+      // 1. 尝试通过 Archive 作用域抓取全量文章
       const postsRaw = await getPosts(ApiScope.Archive)
-      const allFormattedPosts = await formatPosts(postsRaw)
+      let allFormattedPosts = await formatPosts(postsRaw)
 
-      // 逻辑处理
+      // 🛡️ 容错逻辑：如果全量抓取为空，尝试从共享的 navPages 备份中提取 Post 类型的文章
+      if (!allFormattedPosts || allFormattedPosts.length === 0) {
+          const backupPosts = (sharedPageStaticProps.props.navPages as any[]) || []
+          allFormattedPosts = backupPosts.filter(p => p.type === 'Post')
+      }
+
+      // 2. 逻辑处理 (公告拦截)
       const announcementPost = allFormattedPosts.find(p => p.slug === 'announcement') || null
+      // 🟢 修改：放宽过滤条件，不再检查 status，因为 getPosts(ApiScope.Archive) 已经保证了是已发布的
       const filteredPosts = allFormattedPosts.filter(p => p.slug !== 'announcement')
 
+      // 3. 获取组件数据
       const blogStats = await getBlogStats()
       const rawWidgets = await getWidgets()
       const preFormattedWidgets = await preFormatWidgets(rawWidgets)
@@ -60,19 +68,21 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       }
       if (safeWidgets) safeWidgets.announcement = announcementPost
 
+      // 4. 打包并脱壳清洗
+      const finalData = JSON.parse(JSON.stringify({
+        ...sharedPageStaticProps.props,
+        posts: filteredPosts.slice(0, 30), // 首页显示前 30 篇
+        widgets: safeWidgets || {},
+      }))
+
       return {
-        props: {
-          ...sharedPageStaticProps.props,
-          // 🟢 只取最新的 20 篇显示在首页
-          posts: filteredPosts.slice(0, 20), 
-          widgets: safeWidgets || {},
-        },
+        props: finalData,
         revalidate: 1,
       }
     } catch (e) {
-      console.error('Data fetch error:', e)
+      console.error('Build Error:', e)
       return {
-        props: { ...sharedPageStaticProps.props, posts: [], widgets: {} },
+        props: JSON.parse(JSON.stringify(sharedPageStaticProps.props)),
         revalidate: 1,
       }
     }
