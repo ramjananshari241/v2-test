@@ -151,7 +151,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
          
          <div className="flex flex-wrap justify-center gap-6 relative z-10">
             <button 
-              onClick={() => window.open('https://van.pro-plus.top/buy', '_blank')} 
+              onClick={() => window.open('https://store.proplus.onl/buy', '_blank')} 
               className="px-10 py-4 bg-[#A855F7] text-white rounded-2xl text-sm font-black hover:bg-[#9333EA] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/40 flex items-center gap-2"
             >
               <span>🛒</span> 前往贩售机
