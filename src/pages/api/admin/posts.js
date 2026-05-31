@@ -48,7 +48,8 @@ export default async function handler(req, res) {
         status: p.status?.status?.name || p.status?.select?.name || 'Published',
         type: p.type?.select?.name || p.Type?.select?.name || 'Post',
         date: p.date?.date?.start || p.Date?.date?.start || '',
-        cover: p.cover?.url || p.cover?.file?.url || p.cover?.external?.url || ''
+        cover: p.cover?.url || p.cover?.file?.url || p.cover?.external?.url || '',
+        download: p.download?.url || ''
       };
     });
 

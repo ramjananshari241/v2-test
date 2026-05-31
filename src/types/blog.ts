@@ -95,6 +95,7 @@ export type Post = {
     colorTitle: ApiColor[]
     originalCover: boolean
     repost: string
+    download: string
   }
 }
 

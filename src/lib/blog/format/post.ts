@@ -33,7 +33,7 @@ const formatPost = async (post: PageObjectResponse): Promise<Post> => {
     tags,
     ...options
   } = properties
-  const { color_title, original_cover, repost } = options
+  const { color_title, original_cover, repost, download } = options
 
   const postTitle = title.type === 'title' && title.title[0]?.plain_text
   const postStatus =
@@ -117,6 +117,8 @@ const formatPost = async (post: PageObjectResponse): Promise<Post> => {
     originalCover:
       original_cover.type === 'checkbox' && original_cover.checkbox,
     repost: repost.type === 'url' && repost.url,
+    // 下载链接：用于后续主题(如 gallery)在卡片上直接提供下载入口；属性缺失时安全降级为空串
+    download: (download && download.type === 'url' && download.url) || '',
   }
 
   const formattedPost = {
@@ -149,6 +151,7 @@ const formatPost = async (post: PageObjectResponse): Promise<Post> => {
       colorTitle: postOptions.colorTitle ?? [],
       originalCover: postOptions.originalCover ?? false,
       repost: postOptions.repost ?? '',
+      download: postOptions.download ?? '',
     },
   } as Post
   return formattedPost

@@ -92,6 +92,15 @@ const GlobalStyle = () => (
     .fab-btn { width: 45px; height: 45px; background: greenyellow; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s; }
     .fab-btn:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(173, 255, 47, 0.4); }
     .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+    .img-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 160px; border: 2px dashed #555; border-radius: 10px; background: #202024; cursor: pointer; transition: 0.2s; padding: 18px; text-align: center; color: #888; }
+    .img-drop:hover { border-color: greenyellow; color: greenyellow; background: #1f261b; }
+    .img-drop.err { border-color: #ff4d4f; }
+    .img-preview { max-width: 100%; max-height: 360px; border-radius: 8px; object-fit: contain; }
+    .img-url { font-size: 11px; color: #666; margin-top: 8px; word-break: break-all; font-family: monospace; }
+    .img-uploading { display: flex; flex-direction: column; align-items: center; gap: 12px; color: greenyellow; }
+    .img-spin { width: 32px; height: 32px; border: 3px solid #333; border-top-color: greenyellow; border-radius: 50%; animation: imgspin 0.8s linear infinite; }
+    @keyframes imgspin { to { transform: rotate(360deg); } }
+    .img-err { color: #ff4d4f; font-size: 12px; margin-top: 8px; }
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #202024; }
     ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
@@ -185,6 +194,70 @@ const cleanAndFormat = (input) => {
   return lines.filter(l=>l).join('\n');
 };
 
+// 工具函数：判断某一行是否为「纯图片」(markdown 图片或裸图片链接)，是则返回 URL
+const extractImageUrl = (str) => {
+  if (!str) return null;
+  let s = str.trim();
+  const md = s.match(/^!\[.*?\]\((.*?)\)$/);
+  if (md) s = md[1].trim();
+  const um = s.match(/^https?:\/\/[^\s"']+$/);
+  if (!um) return null;
+  const url = um[0];
+  return /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(url) ? url : null;
+};
+
+// Notion 文字颜色 -> 编辑器预览用的 CSS 色值
+const NOTION_TEXT_COLORS = [
+  { key: 'default', label: '默认', css: '#e1e1e3' },
+  { key: 'gray', label: '灰', css: '#9b9b9b' },
+  { key: 'brown', label: '棕', css: '#b08968' },
+  { key: 'orange', label: '橙', css: '#e9954e' },
+  { key: 'yellow', label: '黄', css: '#d4b53d' },
+  { key: 'green', label: '绿', css: '#4dab6d' },
+  { key: 'blue', label: '蓝', css: '#5b9bd5' },
+  { key: 'purple', label: '紫', css: '#9a6dd7' },
+  { key: 'pink', label: '粉', css: '#e255a1' },
+  { key: 'red', label: '红', css: '#ff6b6b' },
+];
+const colorCss = (key) => (NOTION_TEXT_COLORS.find(c => c.key === key) || NOTION_TEXT_COLORS[0]).css;
+const btnSpinStyle = { width: '13px', height: '13px', border: '2px solid rgba(0,0,0,0.25)', borderTopColor: '#000', borderRadius: '50%', display: 'inline-block', animation: 'imgspin 0.8s linear infinite', verticalAlign: 'middle' };
+// 可选主题列表（目前用现有的 v1/v2 排版作为主题，后续上新主题往这里加即可）
+const ADMIN_THEMES = [
+  { id: 'v1', label: 'Standard V1', color: '#3b82f6', desc: '标准排版 · 经典风格' },
+  { id: 'v2', label: 'Standard V2', color: '#a855f7', desc: '标准排版 · 现代风格' },
+];
+const lightSpinStyle = { width: '13px', height: '13px', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'imgspin 0.8s linear infinite', verticalAlign: 'middle' };
+const fmtStyle = (b) => ({
+  fontWeight: b.bold ? 'bold' : 'normal',
+  fontStyle: b.italic ? 'italic' : 'normal',
+  color: colorCss(b.color),
+});
+
+// 块内文字格式工具条 (整块加粗/斜体/颜色)
+const FormatBar = ({ b, onChange }) => (
+  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+    <button onClick={() => onChange('bold', !b.bold)} title="加粗" style={{ width: '30px', height: '28px', borderRadius: '6px', cursor: 'pointer', border: '1px solid', borderColor: b.bold ? 'greenyellow' : '#444', background: b.bold ? 'greenyellow' : '#2a2a2e', color: b.bold ? '#000' : '#ccc', fontWeight: 'bold' }}>B</button>
+    <button onClick={() => onChange('italic', !b.italic)} title="斜体" style={{ width: '30px', height: '28px', borderRadius: '6px', cursor: 'pointer', border: '1px solid', borderColor: b.italic ? 'greenyellow' : '#444', background: b.italic ? 'greenyellow' : '#2a2a2e', color: b.italic ? '#000' : '#ccc', fontStyle: 'italic' }}>I</button>
+    <div style={{ width: '1px', height: '20px', background: '#444', margin: '0 4px' }} />
+    {NOTION_TEXT_COLORS.map(c => (
+      <div key={c.key} onClick={() => onChange('color', c.key)} title={c.label}
+        style={{ width: '18px', height: '18px', borderRadius: '50%', background: c.css, cursor: 'pointer', border: (b.color || 'default') === c.key ? '2px solid greenyellow' : '2px solid #333', boxSizing: 'border-box' }} />
+    ))}
+  </div>
+);
+
+// 工具函数：把加密块正文拆成「纯文本」与「图片URL数组」两部分
+const splitLockBody = (body) => {
+  const images = [];
+  const textLines = [];
+  (body || '').split(/\r?\n/).forEach((line) => {
+    const u = extractImageUrl(line.trim());
+    if (u) images.push(u);
+    else textLines.push(line);
+  });
+  return { text: textLines.join('\n').trim(), images };
+};
+
 // ==========================================
 // 4. 积木编辑器
 // ==========================================
@@ -200,11 +273,115 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
 
   const addBlock = (type) => {
     const newId = Date.now() + Math.random();
-    setBlocks([...blocks, { id: newId, type, content: '', pwd: '' }]);
+    setBlocks([...blocks, { id: newId, type, content: '', pwd: '', url: '', images: [], bold: false, italic: false, color: 'default' }]);
     scrollToBlock(newId);
   };
   const updateBlock = (id, val, key='content') => { setBlocks(blocks.map(b => b.id === id ? { ...b, [key]: val } : b)); };
   const removeBlock = (id) => { setBlocks(blocks.filter(b => b.id !== id)); };
+
+  // === 🖼️ 图片上传逻辑 (兰空中转代理) ===
+  const newImageBlock = () => ({ id: Date.now() + Math.random(), type: 'image', content: '', pwd: '', uploading: false, error: '' });
+
+  const uploadOne = async (file) => {
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      headers: {
+        'content-type': file.type || 'application/octet-stream',
+        'x-file-name': encodeURIComponent(file.name || 'image.png'),
+      },
+      body: file,
+    });
+    const d = await res.json();
+    if (!d.success) throw new Error(d.error || '上传失败');
+    return d.url;
+  };
+
+  // 上传单个文件并把结果写进指定块 (使用函数式更新，避免异步闭包拿到旧 state)
+  const uploadInto = async (blockId, file) => {
+    setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, uploading: true, error: '' } : b));
+    try {
+      const url = await uploadOne(file);
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, content: url, uploading: false, error: '' } : b));
+    } catch (e) {
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, uploading: false, error: e.message } : b));
+    }
+  };
+
+  // 针对某个图片块的拖拽/选择：第一张填入当前块，多余的自动新建图片块
+  const handleFilesForBlock = (blockId, fileList) => {
+    const files = Array.from(fileList || []).filter(f => /^(image|video)\//i.test(f.type));
+    if (!files.length) return;
+    const [first, ...rest] = files;
+    const restBlocks = rest.map(newImageBlock);
+    if (restBlocks.length) {
+      setBlocks(prev => {
+        const idx = prev.findIndex(b => b.id === blockId);
+        const next = [...prev];
+        next.splice(idx === -1 ? next.length : idx + 1, 0, ...restBlocks);
+        return next;
+      });
+    }
+    uploadInto(blockId, first);
+    restBlocks.forEach((blk, i) => uploadInto(blk.id, rest[i]));
+  };
+
+  // 截图粘贴：在末尾批量新建图片块并上传
+  const appendAndUpload = (fileList) => {
+    const files = Array.from(fileList || []).filter(f => /^image\//i.test(f.type));
+    if (!files.length) return;
+    const created = files.map(newImageBlock);
+    setBlocks(prev => [...prev, ...created]);
+    created.forEach((blk, i) => uploadInto(blk.id, files[i]));
+    scrollToBlock(created[created.length - 1].id);
+  };
+
+  // 加密块专用：所有图片都收进同一个加密块的 images 数组，不另建块
+  const uploadIntoLock = async (blockId, fileList) => {
+    const files = Array.from(fileList || []).filter(f => /^image\//i.test(f.type));
+    if (!files.length) return;
+    setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, lockUploading: true, error: '' } : b));
+    for (const file of files) {
+      try {
+        const url = await uploadOne(file);
+        setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, images: [...(b.images || []), url] } : b));
+      } catch (e) {
+        setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, error: e.message } : b));
+      }
+    }
+    setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, lockUploading: false } : b));
+  };
+
+  const removeLockImage = (blockId, idx) => {
+    setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, images: (b.images || []).filter((_, i) => i !== idx) } : b));
+  };
+
+  // 全局监听：Ctrl+V 粘贴截图直接上传；并阻止误拖到空白处导致浏览器打开图片
+  useEffect(() => {
+    const onPaste = (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      const imgs = [];
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.kind === 'file' && /^image\//i.test(it.type)) {
+          const f = it.getAsFile();
+          if (f) imgs.push(f);
+        }
+      }
+      if (!imgs.length) return;
+      e.preventDefault();
+      appendAndUpload(imgs);
+    };
+    const prevent = (e) => { e.preventDefault(); };
+    document.addEventListener('paste', onPaste);
+    window.addEventListener('dragover', prevent);
+    window.addEventListener('drop', prevent);
+    return () => {
+      document.removeEventListener('paste', onPaste);
+      window.removeEventListener('dragover', prevent);
+      window.removeEventListener('drop', prevent);
+    };
+  }, []);
 
   const moveBlock = (index, direction) => {
     if (direction === -1 && index === 0) return;
@@ -244,6 +421,9 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
       if (type === 'h1') return 'H1 标题';
       if (type === 'lock') return '🔒 加密块';
       if (type === 'note') return '💬 注释块';
+      if (type === 'image') return '🖼️ 图片块';
+      if (type === 'quote') return '❝ 引用';
+      if (type === 'link') return '🔗 超链文字';
       return '📄 内容块';
   };
   return (
@@ -251,6 +431,9 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
       <div style={{display:'flex', gap:'15px', marginBottom:'25px', justifyContent:'center', flexWrap:'wrap'}}>
           <div className="neo-btn" onClick={()=>addBlock('h1')}>H1 标题</div>
           <div className="neo-btn" onClick={()=>addBlock('text')}>📝 内容块</div>
+          <div className="neo-btn" onClick={()=>addBlock('image')}>🖼️ 图片块</div>
+          <div className="neo-btn" onClick={()=>addBlock('quote')}>❝ 引用</div>
+          <div className="neo-btn" onClick={()=>addBlock('link')}>🔗 超链文字</div>
           <div className="neo-btn" onClick={()=>addBlock('note')}>💬 注释块</div>
           <div className="neo-btn" onClick={()=>addBlock('lock')}>🔒 加密块</div>
       </div>
@@ -264,14 +447,68 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                <div className="move-btn" onClick={() => moveToBottom(index)} title="置底"><Icons.Bottom /></div>
             </div>
             <div className="block-label">{getBlockLabel(b.type)}</div>
-            {b.type === 'h1' && <input className="glow-input" placeholder="输入大标题..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{fontSize:'20px', fontWeight:'bold'}} />}
-            {b.type === 'text' && <textarea className="glow-input" placeholder="输入正文，直接粘贴多行链接..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'200px'}} />}
-            {b.type === 'note' && <textarea className="glow-input" placeholder="输入注释内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'80px', color: '#ff6b6b', fontFamily: 'monospace', fontSize: '13px'}} />}
+            {b.type !== 'image' && <FormatBar b={b} onChange={(key, val) => updateBlock(b.id, val, key)} />}
+            {b.type === 'h1' && <input className="glow-input" placeholder="输入大标题..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{fontSize:'20px', ...fmtStyle(b), fontWeight:'bold'}} />}
+            {b.type === 'text' && <textarea className="glow-input" placeholder="输入正文，直接粘贴多行链接..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'200px', ...fmtStyle(b)}} />}
+            {b.type === 'note' && <textarea className="glow-input" placeholder="输入注释内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'80px', fontFamily: 'monospace', fontSize: '13px', ...fmtStyle(b), color: (b.color && b.color !== 'default') ? colorCss(b.color) : '#ff6b6b'}} />}
+            {b.type === 'quote' && <textarea className="glow-input" placeholder="输入引用内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'90px', borderLeft:'4px solid greenyellow', paddingLeft:'12px', ...fmtStyle(b)}} />}
+            {b.type === 'link' && (
+               <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+                 <input className="glow-input" placeholder="显示文字（如：点此查看官网）" value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{...fmtStyle(b)}} />
+                 <input className="glow-input" placeholder="链接地址 https://..." value={b.url || ''} onChange={e=>updateBlock(b.id, e.target.value, 'url')} style={{fontSize:'13px', color:'#7cb3ff'}} />
+               </div>
+            )}
             {b.type === 'lock' && (
                <div style={{background:'#202024', padding:'10px', borderRadius:'8px'}}>
                  <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px'}}><span>🔑</span><input className="glow-input" placeholder="留空则无密码" value={b.pwd} onChange={e=>updateBlock(b.id, e.target.value, 'pwd')} style={{width:'150px'}} /></div>
-                 <textarea className="glow-input" placeholder="输入被加密内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'200px', border:'1px dashed #555'}} />
+                 <textarea className="glow-input" placeholder="输入被加密的文本内容（可选）..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'140px', border:'1px dashed #555'}} />
+                 {(b.images && b.images.length > 0) && (
+                    <div style={{display:'flex', flexWrap:'wrap', gap:'8px', marginTop:'12px'}}>
+                      {b.images.map((url, idx) => (
+                         <div key={idx} style={{position:'relative', width:'72px', height:'72px', borderRadius:'6px', overflow:'hidden', border:'1px solid #444'}}>
+                           <img src={url} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
+                           <div onClick={()=>removeLockImage(b.id, idx)} style={{position:'absolute', top:'2px', right:'2px', background:'#ff4d4f', color:'#fff', width:'16px', height:'16px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', cursor:'pointer', lineHeight:1}}>×</div>
+                         </div>
+                      ))}
+                    </div>
+                 )}
+                 <label className="img-drop" style={{minHeight:'72px', marginTop:'12px', padding:'12px'}}
+                   onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                   onDrop={e => { e.preventDefault(); e.stopPropagation(); uploadIntoLock(b.id, e.dataTransfer.files); }}>
+                   <input type="file" accept="image/*" multiple style={{display:'none'}} onChange={e => { uploadIntoLock(b.id, e.target.files); e.target.value=''; }} />
+                   {b.lockUploading
+                     ? <div className="img-uploading"><div className="img-spin"></div><div style={{fontSize:'12px'}}>上传中...</div></div>
+                     : <div style={{pointerEvents:'none', fontSize:'13px'}}>🔒 拖拽 / 点击 添加加密图片（可多张，全部收进本块）</div>}
+                 </label>
+                 {b.error && <div className="img-err">⚠ {b.error}</div>}
                </div>
+            )}
+            {b.type === 'image' && (
+               <label
+                 className={`img-drop ${b.error ? 'err' : ''}`}
+                 onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                 onDrop={e => { e.preventDefault(); e.stopPropagation(); handleFilesForBlock(b.id, e.dataTransfer.files); }}
+               >
+                 <input type="file" accept="image/*,video/*" multiple style={{display:'none'}} onChange={e => { handleFilesForBlock(b.id, e.target.files); e.target.value=''; }} />
+                 {b.uploading ? (
+                    <div className="img-uploading"><div className="img-spin"></div><div>上传中...</div></div>
+                 ) : b.content ? (
+                    <>
+                      {/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i.test(b.content)
+                        ? <video src={b.content} controls className="img-preview" />
+                        : <img src={b.content} className="img-preview" alt="" />}
+                      <div className="img-url">{b.content}</div>
+                      <div style={{fontSize:'11px', color:'greenyellow', marginTop:'6px'}}>点击 / 拖拽 以更换</div>
+                    </>
+                 ) : (
+                    <div style={{pointerEvents:'none'}}>
+                      <div style={{fontSize:'34px', marginBottom:'8px'}}>🖼️</div>
+                      <div style={{fontWeight:'bold', color:'#ccc'}}>拖拽图片到此 · 点击选择 · 直接粘贴</div>
+                      <div style={{fontSize:'12px', marginTop:'4px'}}>自动上传至图床，无需手动外链</div>
+                    </div>
+                 )}
+                 {b.error && <div className="img-err">⚠ {b.error}</div>}
+               </label>
             )}
             <div className="block-del" onClick={()=>removeBlock(b.id)}><Icons.Trash /></div>
           </div>
@@ -282,18 +519,47 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   );
 };
 
+const NOTION_COLOR_CSS = {
+  default: '#e1e1e3', gray: '#9b9b9b', brown: '#b08968', orange: '#e9954e', yellow: '#d4b53d',
+  green: '#4dab6d', blue: '#5b9bd5', purple: '#9a6dd7', pink: '#e255a1', red: '#ff6b6b',
+};
+const richStyle = (ann) => {
+  const s = {};
+  if (!ann) return s;
+  if (ann.bold) s.fontWeight = 'bold';
+  if (ann.italic) s.fontStyle = 'italic';
+  const deco = [];
+  if (ann.strikethrough) deco.push('line-through');
+  if (ann.underline) deco.push('underline');
+  if (deco.length) s.textDecoration = deco.join(' ');
+  if (ann.color && ann.color !== 'default') {
+    if (ann.color.endsWith('_background')) s.background = NOTION_COLOR_CSS[ann.color.replace('_background', '')] || 'transparent';
+    else s.color = NOTION_COLOR_CSS[ann.color] || ann.color;
+  }
+  return s;
+};
+const RichText = ({ rich }) => (
+  <>{(rich || []).map((r, j) => {
+    const content = r.plain_text || r.text?.content || '';
+    const url = r.text?.link?.url || r.href;
+    const ann = r.annotations || {};
+    const style = { ...richStyle(ann), ...(ann.code ? { fontFamily: 'monospace', background: '#333', padding: '1px 5px', borderRadius: '4px' } : {}) };
+    if (url) return <a key={j} href={url} target="_blank" rel="noreferrer" style={{ ...style, color: style.color || '#7cb3ff', textDecoration: 'underline' }}>{content}</a>;
+    return <span key={j} style={style}>{content}</span>;
+  })}</>
+);
+
 const NotionView = ({ blocks }) => {
   if (!blocks || !Array.isArray(blocks)) return <div style={{padding:20, color:'#666'}}>暂无预览内容</div>;
   return (
     <div style={{color:'#e1e1e3', fontSize:'15px', lineHeight:'1.8'}}>
       {blocks.map((b, i) => {
         const type = b.type; const data = b[type]; const text = data?.rich_text?.[0]?.plain_text || "";
-        if(type==='heading_1') return <h1 key={i} style={{fontSize:'1.8em', borderBottom:'1px solid #333', paddingBottom:'8px', margin:'24px 0 12px'}}>{text}</h1>;
-        if(type==='paragraph') {
-            const richText = data?.rich_text?.[0];
-            if (richText?.annotations?.code) return <div key={i} style={{margin:'10px 0', borderLeft:'3px solid #ff6b6b', paddingLeft:'10px'}}><span style={{color:'#ff6b6b', fontFamily:'monospace', fontSize:'0.95em'}}>{text}</span></div>;
-            return <p key={i} style={{margin:'10px 0', minHeight:'1em'}}>{text}</p>;
-        }
+        if(type==='heading_1') return <h1 key={i} style={{fontSize:'1.8em', borderBottom:'1px solid #333', paddingBottom:'8px', margin:'24px 0 12px'}}><RichText rich={data?.rich_text} /></h1>;
+        if(type==='heading_2') return <h2 key={i} style={{fontSize:'1.4em', margin:'20px 0 10px'}}><RichText rich={data?.rich_text} /></h2>;
+        if(type==='heading_3') return <h3 key={i} style={{fontSize:'1.2em', margin:'18px 0 8px'}}><RichText rich={data?.rich_text} /></h3>;
+        if(type==='paragraph') return <p key={i} style={{margin:'10px 0', minHeight:'1em'}}><RichText rich={data?.rich_text} /></p>;
+        if(type==='quote') return <blockquote key={i} style={{margin:'16px 0', padding:'8px 0 8px 16px', borderLeft:'4px solid greenyellow', color:'#cfcfcf', fontStyle:'italic'}}><RichText rich={data?.rich_text} /></blockquote>;
         if(type==='divider') return <hr key={i} style={{border:'none', borderTop:'1px solid #444', margin:'24px 0'}} />;
         if(type==='image') { const url = data?.file?.url || data?.external?.url; if (!url) return null; const isVideo = url.match(/\.(mp4|mov|webm|ogg)(\?|$)/i); if(isVideo) return <div key={i} style={{display:'flex', justifyContent:'center', margin:'20px 0'}}><div style={{width:'100%', maxHeight:'500px', borderRadius:'8px', background:'#000', display:'flex', justifyContent:'center'}}><video src={url} controls preload="metadata" style={{maxWidth:'100%', maxHeight:'100%'}} /></div></div>; return <div key={i} style={{display:'flex', justifyContent:'center', margin:'20px 0'}}><div style={{width: '100%', height: '500px', background: '#000', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden'}}><img src={url} style={{maxWidth: '100%', maxHeight: '100%', objectFit: 'contain'}} alt="" /></div></div>; }
         if(type==='video' || type==='embed') { let url = data?.file?.url || data?.external?.url || data?.url; if(!url) return null; const isY = url.includes('youtube')||url.includes('youtu.be'); if(isY){if(url.includes('watch?v='))url=url.replace('watch?v=','embed/');if(url.includes('youtu.be/'))url=url.replace('youtu.be/','www.youtube.com/embed/');} return <div key={i} style={{display:'flex', justifyContent:'center', margin:'20px 0'}}>{(type==='embed'||isY)?<iframe src={url} style={{width:'100%',maxWidth:'800px',height:'450px',border:'none',borderRadius:'8px',background:'#000'}} allowFullScreen />:<video src={url} controls style={{width:'100%',maxHeight:'500px',borderRadius:'8px',background:'#000'}}/>}</div>; }
@@ -314,6 +580,7 @@ const [mounted, setMounted] = useState(false);
   const [posts, setPosts] = useState([]);
   const [isThemeLoading, setIsThemeLoading] = useState(false);
   const [activeThemeLocal, setActiveThemeLocal] = useState(null);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
 
   const [view, setView] = useState('list');
   const [viewMode, setViewMode] = useState('covered');
@@ -330,16 +597,26 @@ const [mounted, setMounted] = useState(false);
   const [expandedStep, setExpandedStep] = useState(1);
   const [editorBlocks, setEditorBlocks] = useState([]);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [tagDraft, setTagDraft] = useState('');
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendDraft, setFriendDraft] = useState({ name: '', url: '', avatar: '' });
+  const [friendDraftUploading, setFriendDraftUploading] = useState(false);
+  const [friendBtnStatus, setFriendBtnStatus] = useState({}); // { [id|'draft']: 'saving' | 'done' }
+  const [coverUploading, setCoverUploading] = useState(false);
 
   // 🟢 2. 增强表单校验逻辑：安全处理空值
-  const isFormValid = 
-    (form?.title?.trim() || '') !== '' && 
-    (form?.category?.trim() || '') !== '' && 
-    (form?.date || '') !== '';
+  const isFormValid = (form?.type === 'Widget')
+    ? (form?.title?.trim() || '') !== ''
+    : ((form?.title?.trim() || '') !== '' &&
+       (form?.category?.trim() || '') !== '' &&
+       (form?.date || '') !== '');
 
   // 🟢 3. 主题状态计算
   const themeConfig = posts?.find(p => p.slug === 'theme-config');
   const currentActiveTheme = activeThemeLocal || themeConfig?.excerpt?.trim() || 'v1';
+  const currentTheme = ADMIN_THEMES.find(t => t.id === currentActiveTheme) || ADMIN_THEMES[0];
 
   // 🟢 4. 数据拉取函数 (提前定义)
   async function fetchPosts() {
@@ -443,14 +720,16 @@ const [mounted, setMounted] = useState(false);
         if (lockMode === 'explicit' && trimmed === ':::') {
            isLocking = false;
            const joinedLock = lockBuffer.map(stripMd).join('\n').trim();
-           res.push({ id: Date.now() + Math.random(), type: 'lock', pwd: lockPwd, content: joinedLock });
+           const lb = splitLockBody(joinedLock);
+           res.push({ id: Date.now() + Math.random(), type: 'lock', pwd: lockPwd, content: lb.text, images: lb.images });
            lockBuffer = [];
            continue;
         }
         if (lockMode === 'implicit' && !trimmed.startsWith('>') && trimmed !== '') {
            isLocking = false;
            const joinedLock = lockBuffer.join('\n').trim();
-           res.push({ id: Date.now() + Math.random(), type: 'lock', pwd: lockPwd, content: joinedLock });
+           const lb = splitLockBody(joinedLock);
+           res.push({ id: Date.now() + Math.random(), type: 'lock', pwd: lockPwd, content: lb.text, images: lb.images });
            lockBuffer = [];
            i--;
            continue;
@@ -468,43 +747,207 @@ const [mounted, setMounted] = useState(false);
       }
 
       if (trimmed.startsWith('# ')) { flushBuffer(); res.push({ id: Date.now() + Math.random(), type: 'h1', content: trimmed.replace('# ', '') }); continue; }
+      const imgUrl = extractImageUrl(trimmed);
+      if (imgUrl) { flushBuffer(); res.push({ id: Date.now() + Math.random(), type: 'image', content: imgUrl }); continue; }
       if (!trimmed) { flushBuffer(); continue; }
       buffer.push(line);
     }
     
     if (isLocking) {
         const joinedLock = lockMode === 'implicit' ? lockBuffer.join('\n').trim() : lockBuffer.map(stripMd).join('\n').trim();
-        res.push({ id: Date.now() + Math.random(), type: 'lock', pwd: lockPwd, content: joinedLock });
+        const lb = splitLockBody(joinedLock);
+        res.push({ id: Date.now() + Math.random(), type: 'lock', pwd: lockPwd, content: lb.text, images: lb.images });
     } else {
         flushBuffer();
     }
     return res;
   };
 
-  const handlePreview = (p) => { setLoading(true); fetch('/api/admin/post?id='+p.id).then(r=>r.json()).then(d=>{ if(d.success && d.post && d.post.rawBlocks) setPreviewData(d.post); }).finally(()=>setLoading(false)); };
-  const handleEdit = (p) => { setLoading(true); fetch('/api/admin/post?id='+p.id).then(r=>r.json()).then(d=>{ if (d.success) { setForm(d.post); setEditorBlocks(parseContentToBlocks(d.post.content)); setCurrentId(p.id); setView('edit'); setExpandedStep(1); } }).finally(()=>setLoading(false)); };
+  // 🟢 带自动重试的取数：规避 dev 模式 API 路由「首次访问即时编译」导致的首点失败
+  const fetchPostById = async (id) => {
+    let lastErr;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await fetch('/api/admin/post?id=' + id);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error || '加载失败');
+        return d.post;
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) await new Promise(res => setTimeout(res, 400));
+      }
+    }
+    throw lastErr;
+  };
+
+  const handlePreview = async (p) => {
+    setLoading(true);
+    try {
+      const post = await fetchPostById(p.id);
+      if (post && post.rawBlocks) setPreviewData(post);
+    } catch (e) {
+      alert('加载预览失败：' + e.message);
+    } finally { setLoading(false); }
+  };
+
+  const handleEdit = async (p) => {
+    setLoading(true);
+    try {
+      const post = await fetchPostById(p.id);
+      if (post) {
+        setForm(post);
+        // 优先使用后端按 Notion 原生块重建的结构化块(保留格式)，否则回退到 Markdown 解析
+        const eb = (Array.isArray(post.editorBlocks) && post.editorBlocks.length)
+          ? post.editorBlocks.map((b, i) => ({ ...b, id: Date.now() + i + Math.random() }))
+          : parseContentToBlocks(post.content);
+        setEditorBlocks(eb);
+        setCurrentId(p.id);
+        setView('edit');
+        setExpandedStep(1);
+      }
+    } catch (e) {
+      alert('加载文章失败：' + e.message);
+    } finally { setLoading(false); }
+  };
   
   // 🟢 修复：新建时默认 Published
   const handleCreate = () => { setForm({ title: '', slug: 'p-'+Date.now().toString(36), excerpt:'', content:'', category:'', tags:'', cover:'', status:'Published', type: 'Post', date: new Date().toISOString().split('T')[0] }); setEditorBlocks([]); setCurrentId(null); setView('edit'); setExpandedStep(1); };
+
+  // === 🔗 友链管理 ===
+  const uploadAvatarFile = async (file) => {
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      headers: { 'content-type': file.type || 'application/octet-stream', 'x-file-name': encodeURIComponent(file.name || 'avatar.png') },
+      body: file,
+    });
+    const d = await res.json();
+    if (!d.success) throw new Error(d.error || '上传失败');
+    return d.url;
+  };
+  const loadFriends = async () => {
+    setFriendsLoading(true);
+    try {
+      const r = await fetch('/api/admin/friends');
+      const d = await r.json();
+      if (d.success) setFriends(d.friends || []);
+      else alert('加载友链失败：' + (d.error || '未知错误'));
+    } catch (e) { alert('加载友链失败：' + e.message); }
+    finally { setFriendsLoading(false); }
+  };
+  const openFriends = () => { setView('friends'); loadFriends(); };
+  const updateFriendField = (id, key, val) => setFriends(prev => prev.map(f => f.id === id ? { ...f, [key]: val } : f));
+  const clearFriendBtn = (key) => setFriendBtnStatus(prev => { const n = { ...prev }; delete n[key]; return n; });
+  const saveFriend = async (friend) => {
+    if (!friend.name || !friend.name.trim()) return alert('请填写站点名称');
+    if (!friend.url || !friend.url.trim()) return alert('请填写站点链接');
+    const key = friend.id || 'draft';
+    setFriendBtnStatus(prev => ({ ...prev, [key]: 'saving' }));
+    try {
+      const r = await fetch('/api/admin/friends', { method: 'POST', body: JSON.stringify({ id: friend.id, name: friend.name, url: friend.url, avatar: friend.avatar }) });
+      const d = await r.json();
+      if (!d.success) { alert('保存失败：' + (d.error || '未知错误')); clearFriendBtn(key); return; }
+      if (!friend.id) setFriendDraft({ name: '', url: '', avatar: '' });
+      await loadFriends();
+      setFriendBtnStatus(prev => ({ ...prev, [key]: 'done' }));
+      setTimeout(() => clearFriendBtn(key), 1600);
+    } catch (e) { alert('保存失败：' + e.message); clearFriendBtn(key); }
+  };
+  const deleteFriend = async (id) => {
+    if (!confirm('确定删除该友链？')) return;
+    setFriendsLoading(true);
+    try {
+      const r = await fetch('/api/admin/friends?id=' + id, { method: 'DELETE' });
+      const d = await r.json();
+      if (!d.success) alert('删除失败：' + (d.error || '未知错误'));
+      await loadFriends();
+    } catch (e) { alert('删除失败：' + e.message); }
+    finally { setFriendsLoading(false); }
+  };
+  const uploadFriendAvatar = async (id, file) => {
+    if (!file) return;
+    updateFriendField(id, '_uploading', true);
+    try { const url = await uploadAvatarFile(file); updateFriendField(id, 'avatar', url); }
+    catch (e) { alert('头像上传失败：' + e.message); }
+    finally { updateFriendField(id, '_uploading', false); }
+  };
+  const uploadDraftAvatar = async (file) => {
+    if (!file) return;
+    setFriendDraftUploading(true);
+    try { const url = await uploadAvatarFile(file); setFriendDraft(prev => ({ ...prev, avatar: url })); }
+    catch (e) { alert('头像上传失败：' + e.message); }
+    finally { setFriendDraftUploading(false); }
+  };
+  // 组件头像(cover)上传
+  const uploadCover = async (file) => {
+    if (!file) return;
+    setCoverUploading(true);
+    try { const url = await uploadAvatarFile(file); setForm(prev => ({ ...prev, cover: url })); }
+    catch (e) { alert('头像上传失败：' + e.message); }
+    finally { setCoverUploading(false); }
+  };
   
   const handleSave = async () => {
     if (isDeploying) return alert("请等待更新完成...");
+
+    // 🧩 组件(Widget)：仅更新 标题/摘要/头像(cover)，不触碰正文块，避免误改导致部署失败
+    if (form.type === 'Widget') {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/admin/post', {
+          method: 'POST',
+          body: JSON.stringify({ id: currentId, title: form.title, excerpt: form.excerpt, cover: form.cover || '', type: 'Widget', status: form.status || 'Published' })
+        });
+        const d = await res.json();
+        if (!d.success) alert(`❌ 保存失败！\n\n错误信息:\n${d.error}`);
+        else { alert("✅ 保存成功！"); setView('list'); fetchPosts(); }
+      } catch (e) { alert('网络错误: ' + e.message); }
+      finally { setLoading(false); }
+      return;
+    }
+
     setLoading(true);
     const fullContent = editorBlocks.map(b => {
       if (b.type === 'h1') return `# ${b.content}`;
       if (b.type === 'note') return `\`${b.content}\``;
-      if (b.type === 'lock') return `:::lock ${b.pwd}\n${b.content}\n:::`;
+      if (b.type === 'quote') return (b.content || '').split(/\r?\n/).map(l => `> ${l}`).join('\n');
+      if (b.type === 'link') return b.url ? `[${b.content || b.url}](${b.url})` : (b.content || '');
+      if (b.type === 'lock') {
+        const imgLines = (b.images || []).map(u => `![](${u})`);
+        const parts = [];
+        if (b.content && b.content.trim()) parts.push(b.content);
+        imgLines.forEach(l => parts.push(l));
+        return `:::lock ${b.pwd}\n${parts.join('\n')}\n:::`;
+      }
+      if (b.type === 'image') return b.content ? `![](${b.content})` : '';
       return b.content;
-    }).join('\n\n');
+    }).filter(s => s !== '').join('\n\n');
+
+    // 🟢 结构化数据(带整块格式)，后端优先用它来生成 Notion 块；Markdown 作为兜底
+    const blocksData = editorBlocks.map(b => ({
+      type: b.type,
+      content: b.content || '',
+      pwd: b.pwd || '',
+      url: b.url || '',
+      images: b.images || [],
+      bold: !!b.bold,
+      italic: !!b.italic,
+      color: b.color || 'default',
+    }));
+
+    // 🟢 封面自动化：取正文中第一个图片块作为封面；无图片块则留空(前端显示默认封面)
+    const autoCover = editorBlocks.find(b => b.type === 'image' && b.content)?.content || '';
 
     try {
       const res = await fetch('/api/admin/post', {
         method: 'POST',
         body: JSON.stringify({ 
           ...form, 
+          cover: autoCover,
           // 🟢 修复：强制提交 Published 状态
           status: 'Published', 
           content: fullContent, 
+          blocksData,
           id: currentId,
           type: form.type || 'Post' 
         })
@@ -576,6 +1019,9 @@ const [mounted, setMounted] = useState(false);
   };
   const filtered = getFilteredPosts();
   const displayTags = (options.tags && options.tags.length > 0) ? (showAllTags ? options.tags : options.tags.slice(0, 12)) : [];
+  const selectedTags = (form.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  const addTag = (name) => { const n = (name || '').trim(); if (!n || selectedTags.includes(n)) return; setForm({ ...form, tags: [...selectedTags, n].join(',') }); };
+  const removeTag = (name) => { setForm({ ...form, tags: selectedTags.filter(t => t !== name).join(',') }); };
 
   if (!mounted) return null;
 
@@ -602,31 +1048,6 @@ const [mounted, setMounted] = useState(false);
              <button onClick={handleManualDeploy} style={{background:'#424242', border: isDeploying ? '1px solid #555' : '1px solid greenyellow', opacity: isDeploying ? 0.5 : 1, padding:'10px', borderRadius:'8px', color: isDeploying ? '#888' : 'greenyellow', cursor: isDeploying ? 'not-allowed' : 'pointer'}} title="立即更新博客前端">
                <Icons.Refresh />
              </button>
-
-
-
-                           {/* 新增：网盘按钮 */}
-              <button 
-                onClick={() => window.open('https://x1file.top', '_blank')} 
-                style={{
-                  background: '#271f5c', //
-                  border: 'none', 
-                  padding: '10px 20px', 
-                  borderRadius: '8px', 
-                  color: '#fff', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '5px', 
-                  fontWeight: 'bold', 
-                  fontSize: '14px'
-                }} 
-                className="btn-ia"
-              >
-                <span style={{fontSize: '16px'}}>☁️</span>
-              </button>
-
-             <button onClick={() => window.open('https://k00.fr/blogcreator', '_blank')} style={{background:'#a855f7', border:'none', padding:'10px 20px', borderRadius:'8px', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', fontWeight:'bold', fontSize:'14px'}} className="btn-ia"><Icons.Tutorial /> 教程</button>
              {view === 'list' ? <AnimatedBtn text="发布新内容" onClick={handleCreate} /> : <AnimatedBtn text="返回列表" onClick={() => setView('list')} />}
            </div>
         </header>
@@ -648,57 +1069,46 @@ const [mounted, setMounted] = useState(false);
                   ))}
                 </div>
 
-                {/* 2. 🟢 模式切换按钮 (V1/V2) */}
-                <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px', padding: '4px', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', border: '1px solid #444' }}>
-  
-  {/* V1 按钮 */}
-  <button 
-    disabled={isThemeLoading}
-    onClick={() => handleThemeChange('v1')}
-    style={{
-      padding: '4px 14px',
-      fontSize: '11px',
-      fontWeight: '900',
-      borderRadius: '6px',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      border: 'none',
-      // 🟢 鼠标效果优化
-      cursor: isThemeLoading ? 'wait' : (currentActiveTheme === 'v1' ? 'default' : 'pointer'),
-      // 🟢 状态切换逻辑
-      background: currentActiveTheme === 'v1' ? '#3b82f6' : 'transparent', 
-      color: currentActiveTheme === 'v1' ? '#fff' : '#666',
-      opacity: (isThemeLoading && currentActiveTheme !== 'v1') ? 0.5 : 1,
-      boxShadow: currentActiveTheme === 'v1' ? 'inset 0 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(59,130,246,0.4)' : 'none',
-      transform: currentActiveTheme === 'v1' ? 'translateY(1px)' : 'none'
-    }}
-  >
-    {isThemeLoading && currentActiveTheme === 'v1' ? '...' : 'V1'}
-  </button>
-
-  {/* V2 按钮 */}
-  <button 
-    disabled={isThemeLoading}
-    onClick={() => handleThemeChange('v2')}
-    style={{
-      padding: '4px 14px',
-      fontSize: '11px',
-      fontWeight: '900',
-      borderRadius: '6px',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      border: 'none',
-      // 🟢 鼠标效果优化
-      cursor: isThemeLoading ? 'wait' : (currentActiveTheme === 'v2' ? 'default' : 'pointer'),
-      // 🟢 状态切换逻辑
-      background: currentActiveTheme === 'v2' ? '#a855f7' : 'transparent',
-      color: currentActiveTheme === 'v2' ? '#fff' : '#666',
-      opacity: (isThemeLoading && currentActiveTheme !== 'v2') ? 0.5 : 1,
-      boxShadow: currentActiveTheme === 'v2' ? 'inset 0 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(168,85,247,0.4)' : 'none',
-      transform: currentActiveTheme === 'v2' ? 'translateY(1px)' : 'none'
-    }}
-  >
-    {isThemeLoading && currentActiveTheme === 'v2' ? '...' : 'V2'}
-  </button>
-</div>
+                {/* 2. 🎨 主题切换器 */}
+                <div style={{ marginLeft: '16px', position: 'relative' }}>
+                  <button
+                    disabled={isThemeLoading}
+                    onClick={() => setThemeMenuOpen(o => !o)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '10px', border: `1px solid ${currentTheme.color}`, background: 'rgba(0,0,0,0.3)', color: '#eee', cursor: isThemeLoading ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                  >
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentTheme.color, boxShadow: `0 0 8px ${currentTheme.color}`, flexShrink: 0 }} />
+                    {isThemeLoading
+                      ? <><span style={lightSpinStyle}></span>切换中...</>
+                      : <>主题：{currentTheme.label}</>}
+                    <span style={{ fontSize: '10px', color: '#999', transform: themeMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
+                  </button>
+                  {themeMenuOpen && (
+                    <>
+                      <div onClick={() => setThemeMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                      <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: '240px', background: '#2a2a2e', border: '1px solid #555', borderRadius: '12px', padding: '8px', zIndex: 50, boxShadow: '0 12px 32px rgba(0,0,0,0.55)' }}>
+                        <div style={{ fontSize: '10px', color: '#777', padding: '6px 10px 8px', letterSpacing: '0.5px' }}>选择主题</div>
+                        {ADMIN_THEMES.map(t => {
+                          const active = currentActiveTheme === t.id;
+                          return (
+                            <div key={t.id}
+                              onClick={() => { setThemeMenuOpen(false); if (!active) handleThemeChange(t.id); }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '8px', cursor: active ? 'default' : 'pointer', background: active ? 'rgba(255,255,255,0.06)' : 'transparent', border: `1px solid ${active ? t.color : 'transparent'}`, marginBottom: '4px' }}
+                              onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                              onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: t.color, flexShrink: 0, boxShadow: active ? `0 0 8px ${t.color}` : 'none' }} />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff' }}>{t.label}</div>
+                                <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{t.desc}</div>
+                              </div>
+                              {active && <span style={{ color: t.color, fontSize: '11px', fontWeight: 'bold', flexShrink: 0 }}>● 生效中</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* 3. 右侧滑动导航 */}
@@ -707,6 +1117,16 @@ const [mounted, setMounted] = useState(false);
 
             {/* 4. 列表渲染区域 */}
             <div style={viewMode === 'gallery' || viewMode === 'folder' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' } : {}}>
+              {activeTab === 'Page' && viewMode !== 'folder' && (
+                <div onClick={openFriends} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid greenyellow', cursor: 'pointer' }}>
+                  <div style={{ fontSize: '28px' }}>🔗</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>友链管理</div>
+                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>添加 / 编辑 / 删除友情链接</div>
+                  </div>
+                  <div style={{ color: 'greenyellow', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
+                </div>
+              )}
               {viewMode === 'folder' && options.categories.map(cat => (
                 <div key={cat} onClick={() => { setSelectedFolder(cat); handleNavClick(1); }} style={{ padding: '15px', background: '#424242', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #555', cursor: 'pointer' }} className="btn-ia">
                   <Icons.FolderIcon />{cat}
@@ -714,6 +1134,22 @@ const [mounted, setMounted] = useState(false);
               ))}
               {viewMode !== 'folder' && filtered.map(p => {
                 const st = (p.status === 'Draft') ? { borderColor: '#f97316', color: '#f97316', label: '📝 草稿' } : { borderColor: 'transparent', color: 'greenyellow', label: '🚀 已发布' };
+                // 自定义页面：用横幅样式(与「友链管理」一致)，不依赖封面图，避免 cover 为图标路径(如 me.svg)时的破图
+                if (activeTab === 'Page') {
+                  return (
+                    <div key={p.id} onClick={() => handlePreview(p)} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: `1px solid ${st.borderColor}`, cursor: 'pointer' }}>
+                      <div style={{ fontSize: '28px' }}>📄</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>{p.title}</div>
+                        <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ border: `1px solid ${st.color}`, color: st.color, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{st.label}</span>
+                          <span>/{p.slug}{p.date ? ` · ${p.date}` : ''}</span>
+                        </div>
+                      </div>
+                      <div className="drawer"><div onClick={(e) => { e.stopPropagation(); handleEdit(p); }} style={{ background: 'greenyellow', color: '#000' }} className="dr-btn"><Icons.Edit /></div><div onClick={(e) => { e.stopPropagation(); if (confirm('彻底删除？')) { setLoading(true); fetch('/api/admin/post?id=' + p.id, { method: 'DELETE' }).then(() => fetchPosts()) } }} style={{ background: '#ff4d4f' }} className="dr-btn"><Icons.Trash /></div></div>
+                    </div>
+                  );
+                }
                 return (
                   <div key={p.id} onClick={() => handlePreview(p)} className="card-item" style={{ ...(viewMode === 'text' ? { display: 'flex', alignItems: 'center', padding: '16px 20px' } : viewMode === 'gallery' ? { display: 'flex', flexDirection: 'column', height: 'auto' } : {}), background: '#424242', borderRadius: '12px', marginBottom: '8px', border: `1px solid ${st.borderColor}` }}>
                     {viewMode === 'covered' && <><div style={{ width: '160px', flexShrink: 0, background: '#303030', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.cover ? <img src={p.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '28px', color: '#444' }}>{activeTab[0]}</div>}</div><div style={{ padding: '20px 35px', flex: 1 }}><div style={{ fontWeight: 'bold', fontSize: '20px', color: '#fff', marginBottom: '8px' }}>{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ border: `1px solid ${st.color}`, color: st.color, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{st.label}</span>{p.category} · {p.date}</div></div></>}
@@ -725,6 +1161,97 @@ const [mounted, setMounted] = useState(false);
               })}
             </div>
           </main>
+        ) : view === 'friends' ? (
+          <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
+              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>🔗 友链管理</div>
+              <div style={{fontSize:'12px', color:'#888'}}>共 {friends.length} 个友链</div>
+            </div>
+
+            {/* 添加新友链 */}
+            <div style={{background:'#333', padding:'20px', borderRadius:'12px', marginBottom:'25px'}}>
+              <div style={{fontSize:'13px', color:'greenyellow', marginBottom:'14px', fontWeight:'bold'}}>＋ 添加新友链</div>
+              <div style={{display:'flex', gap:'16px', alignItems:'flex-start', flexWrap:'wrap'}}>
+                <label className="img-drop" style={{width:'88px', height:'88px', minHeight:'88px', flexShrink:0, padding:0, borderRadius:'50%', overflow:'hidden'}}
+                  onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
+                  onDrop={e=>{e.preventDefault(); e.stopPropagation(); uploadDraftAvatar(e.dataTransfer.files[0]);}}>
+                  <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ uploadDraftAvatar(e.target.files[0]); e.target.value=''; }} />
+                  {friendDraftUploading
+                    ? <div className="img-uploading"><div className="img-spin"></div></div>
+                    : friendDraft.avatar
+                      ? <img src={friendDraft.avatar} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
+                      : <div style={{pointerEvents:'none', fontSize:'11px', textAlign:'center', color:'#999'}}>拖拽/点击<br/>上传图标</div>}
+                </label>
+                <div style={{flex:1, minWidth:'240px', display:'flex', flexDirection:'column', gap:'10px'}}>
+                  <input className="glow-input" placeholder="站点名称" value={friendDraft.name} onChange={e=>setFriendDraft({...friendDraft, name:e.target.value})} />
+                  <input className="glow-input" placeholder="站点链接 https://..." value={friendDraft.url} onChange={e=>setFriendDraft({...friendDraft, url:e.target.value})} style={{fontSize:'13px'}} />
+                  <div><button onClick={()=>saveFriend(friendDraft)} disabled={friendBtnStatus['draft']==='saving'} style={{background: friendBtnStatus['draft']==='done' ? '#4dab6d' : 'greenyellow', color: friendBtnStatus['draft']==='done' ? '#fff' : '#000', border:'none', padding:'9px 22px', borderRadius:'8px', fontWeight:'bold', cursor: friendBtnStatus['draft']==='saving'?'not-allowed':'pointer', minWidth:'130px', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'8px', transition:'background 0.3s'}}>
+                    {friendBtnStatus['draft']==='saving' ? <><span style={btnSpinStyle}></span>处理中...</> : friendBtnStatus['draft']==='done' ? '✓ 添加成功' : '添加友链'}
+                  </button></div>
+                </div>
+              </div>
+            </div>
+
+            {/* 现有友链列表 */}
+            {friendsLoading && friends.length === 0 && <div style={{color:'#888', textAlign:'center', padding:'20px'}}>加载中...</div>}
+            <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+              {friends.map(f => (
+                <div key={f.id} style={{display:'flex', gap:'14px', alignItems:'center', background:'#333', padding:'14px', borderRadius:'10px'}}>
+                  <label className="img-drop" style={{width:'64px', height:'64px', minHeight:'64px', flexShrink:0, padding:0, borderRadius:'50%', overflow:'hidden'}}
+                    onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
+                    onDrop={e=>{e.preventDefault(); e.stopPropagation(); uploadFriendAvatar(f.id, e.dataTransfer.files[0]);}}>
+                    <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ uploadFriendAvatar(f.id, e.target.files[0]); e.target.value=''; }} />
+                    {f._uploading
+                      ? <div className="img-uploading"><div className="img-spin"></div></div>
+                      : f.avatar
+                        ? <img src={f.avatar} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
+                        : <div style={{pointerEvents:'none', fontSize:'10px', textAlign:'center', color:'#999'}}>无图标</div>}
+                  </label>
+                  <div style={{flex:1, display:'flex', flexDirection:'column', gap:'8px'}}>
+                    <input className="glow-input" value={f.name} onChange={e=>updateFriendField(f.id, 'name', e.target.value)} placeholder="站点名称" />
+                    <input className="glow-input" value={f.url} onChange={e=>updateFriendField(f.id, 'url', e.target.value)} placeholder="站点链接" style={{fontSize:'13px'}} />
+                  </div>
+                  <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                    <button onClick={()=>saveFriend(f)} disabled={friendBtnStatus[f.id]==='saving'} style={{background: friendBtnStatus[f.id]==='done' ? '#4dab6d' : 'greenyellow', color: friendBtnStatus[f.id]==='done' ? '#fff' : '#000', border:'none', padding:'7px 16px', borderRadius:'8px', fontWeight:'bold', cursor: friendBtnStatus[f.id]==='saving'?'not-allowed':'pointer', minWidth:'92px', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'6px', transition:'background 0.3s'}}>
+                      {friendBtnStatus[f.id]==='saving' ? <><span style={btnSpinStyle}></span>保存中</> : friendBtnStatus[f.id]==='done' ? '✓ 已保存' : '保存'}
+                    </button>
+                    <button onClick={()=>deleteFriend(f.id)} style={{background:'#ff4d4f', color:'#fff', border:'none', padding:'7px 16px', borderRadius:'8px', fontWeight:'bold', cursor:'pointer'}}>删除</button>
+                  </div>
+                </div>
+              ))}
+              {!friendsLoading && friends.length === 0 && <div style={{textAlign:'center', color:'#666', padding:'40px', border:'2px dashed #444', borderRadius:'12px'}}>还没有友链，在上方添加吧</div>}
+            </div>
+
+            <div style={{marginTop:'24px', fontSize:'12px', color:'#777', lineHeight:1.7}}>
+              💡 提示：友链保存到 Notion 后，前端 <span style={{color:'#aaa'}}>/friends</span> 页面是静态生成的，需点击右上角的「更新」按钮重新部署，新友链才会显示。
+            </div>
+          </div>
+        ) : form.type === 'Widget' ? (
+          /* 🧩 组件编辑：精简界面，仅 标题 / 摘要 / 头像 */
+          <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
+            <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff', marginBottom:'6px'}}>🧩 网站信息组件</div>
+            <div style={{fontSize:'12px', color:'#888', marginBottom:'26px', lineHeight:1.7}}>该组件用于展示站点头像、标题与简介。</div>
+            <div style={{display:'flex', gap:'26px', alignItems:'flex-start', flexWrap:'wrap'}}>
+              <div>
+                <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'8px'}}>站点头像</label>
+                <label className="img-drop" style={{width:'120px', height:'120px', minHeight:'120px', padding:0, borderRadius:'16px', overflow:'hidden'}}
+                  onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
+                  onDrop={e=>{e.preventDefault(); e.stopPropagation(); uploadCover(e.dataTransfer.files[0]);}}>
+                  <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ uploadCover(e.target.files[0]); e.target.value=''; }} />
+                  {coverUploading
+                    ? <div className="img-uploading"><div className="img-spin"></div></div>
+                    : form.cover
+                      ? <img src={form.cover} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
+                      : <div style={{pointerEvents:'none', fontSize:'12px', textAlign:'center', color:'#999'}}>拖拽 / 点击<br/>上传头像</div>}
+                </label>
+              </div>
+              <div style={{flex:1, minWidth:'260px', display:'flex', flexDirection:'column', gap:'16px'}}>
+                <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>标题 <span style={{color:'#ff4d4f'}}>*</span></label><input className="glow-input" value={form.title} onChange={e=>setForm({...form, title:e.target.value})} placeholder="组件标题..." /></div>
+                <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>摘要</label><textarea className="glow-input" value={form.excerpt} onChange={e=>setForm({...form, excerpt:e.target.value})} placeholder="组件简介..." style={{minHeight:'90px'}} /></div>
+              </div>
+            </div>
+            <button onClick={handleSave} disabled={!isFormValid} style={{width:'100%', padding:'20px', background:isFormValid?'#fff':'#222', color:isFormValid?'#000':'#666', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'16px', marginTop:'40px', cursor:isFormValid?'pointer':'not-allowed', transition:'0.3s'}}>保存修改</button>
+          </div>
         ) : (
           /* 这里是之前的表单编辑代码... */
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
@@ -737,15 +1264,44 @@ const [mounted, setMounted] = useState(false);
                  <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>分类 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" list="cats" value={form.category} onChange={e=>setForm({...form, category:e.target.value})} placeholder="选择或输入分类" /><datalist id="cats">{options.categories.map(o=><option key={o} value={o}/>)}</datalist></div>
                  <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>发布日期 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
                </div>
+               <div style={{marginTop:'20px'}}>
+                 <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>下载链接 (download) <span style={{color:'#777', fontWeight:'normal'}}>· 选填，供后续主题在卡片上提供下载入口</span></label>
+                 <input className="glow-input" value={form.download || ''} onChange={e=>setForm({...form, download:e.target.value})} placeholder="https://... 留空则不显示下载按钮" style={{fontSize:'13px'}} />
+               </div>
             </StepAccordion>
-<StepAccordion step={3} title="标签与封面" isOpen={expandedStep === 3} onToggle={()=>setExpandedStep(expandedStep===3?0:3)}>
-               <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>标签</label><input className="glow-input" value={form.tags} onChange={e=>setForm({...form, tags:e.target.value})} placeholder="多标签请用英文逗号+空格分隔，如标签1, 标签2..." /><div style={{marginTop:'10px', display:'flex', flexWrap:'wrap'}}>{displayTags.map(t => <span key={t} className="tag-chip" onClick={()=>{const cur=form.tags ? form.tags.split(',') : []; if(!cur.includes(t)) setForm({...form, tags:[...cur,t].join(',')})}}>{t}<div className="tag-del" onClick={(e)=>{deleteTagOption(e, t)}}>×</div></span>)}{options.tags.length > 12 && <span onClick={()=>setShowAllTags(!showAllTags)} style={{fontSize:'12px', color:'greenyellow', cursor:'pointer', fontWeight:'bold', marginLeft:'5px'}}>{showAllTags ? '收起' : `...`}</span>}</div></div>
-               <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>封面图 URL (自动清洗)</label><input className="glow-input" value={form.cover} onChange={e=>setForm({...form, cover:e.target.value})} onBlur={e=>{
-                 // 🟢 核心修复：1. 获取清洗后的链接；2. 使用非贪婪正则 .*? 精准剥离 Markdown 壳，不再抹除 URL 内部括号
-                 const cleaned = cleanAndFormat(e.target.value);
-                 const stripped = cleaned.replace(/^!\[.*?\]\((.*?)\)$/, '$1');
-                 setForm({...form, cover: stripped});
-               }} placeholder="粘贴链接，自动去除多余参数..." /></div>
+<StepAccordion step={3} title="标签" isOpen={expandedStep === 3} onToggle={()=>setExpandedStep(expandedStep===3?0:3)}>
+               <div style={{marginBottom:'15px'}}>
+                 <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>标签</label>
+                 <div style={{display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center'}}>
+                   {selectedTags.map(t => (
+                     <span key={t} style={{display:'inline-flex', alignItems:'center', gap:'6px', background:'#333', padding:'6px 10px', borderRadius:'6px', fontSize:'13px', color:'#fff'}}>
+                       {t}
+                       <span onClick={()=>removeTag(t)} style={{cursor:'pointer', color:'#ff7875', fontWeight:'bold'}}>×</span>
+                     </span>
+                   ))}
+                   {showTagInput ? (
+                     <input autoFocus className="glow-input" style={{width:'150px', padding:'6px 10px'}} value={tagDraft}
+                       onChange={e=>setTagDraft(e.target.value)}
+                       onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); addTag(tagDraft); setTagDraft(''); } else if(e.key==='Escape'){ setShowTagInput(false); setTagDraft(''); } }}
+                       onBlur={()=>{ if(tagDraft.trim()) addTag(tagDraft); setTagDraft(''); setShowTagInput(false); }}
+                       placeholder="输入标签后回车" />
+                   ) : (
+                     <span onClick={()=>setShowTagInput(true)} style={{cursor:'pointer', border:'1px dashed #666', color:'greenyellow', padding:'6px 12px', borderRadius:'6px', fontSize:'13px'}}>＋ 添加标签</span>
+                   )}
+                 </div>
+                 {displayTags.filter(t=>!selectedTags.includes(t)).length > 0 && (
+                   <div style={{marginTop:'12px'}}>
+                     <div style={{fontSize:'11px', color:'#777', marginBottom:'6px'}}>点击已有标签快速添加：</div>
+                     <div style={{display:'flex', flexWrap:'wrap', gap:'6px', alignItems:'center'}}>
+                       {displayTags.filter(t=>!selectedTags.includes(t)).map(t => (
+                         <span key={t} onClick={()=>addTag(t)} style={{cursor:'pointer', background:'#2a2a2e', border:'1px solid #444', color:'#bbb', padding:'4px 10px', borderRadius:'6px', fontSize:'12px'}}>{t}</span>
+                       ))}
+                       {options.tags.length > 12 && <span onClick={()=>setShowAllTags(!showAllTags)} style={{fontSize:'12px', color:'greenyellow', cursor:'pointer', fontWeight:'bold'}}>{showAllTags ? '收起' : '更多...'}</span>}
+                     </div>
+                   </div>
+                 )}
+               </div>
+               <div style={{fontSize:'12px', color:'#999', background:'#202024', borderRadius:'8px', padding:'12px 14px', lineHeight:1.7, border:'1px solid #333'}}>🖼️ <b style={{color:'greenyellow'}}>封面已自动化</b>：系统会自动把正文里<b style={{color:'#fff'}}>排在第一位的图片块</b>用作本文封面，无需手动填写。<br/>若全文没有任何图片块（纯文本），则封面留空，前台会自动显示站点默认封面。</div>
             </StepAccordion>
             
             {/* 🟢 修复：移除了 Step 4 发布状态选择 */}

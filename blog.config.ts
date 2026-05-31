@@ -85,7 +85,7 @@ const CONFIG: BlogConfig = {
   NEXT_REVALIDATE_SECONDS: 60,
   FORCE_UPDATE_TIME: 1620000000000,
   DEFAULT_POST_COVER:
-    'https://x1image.top/1764328294147.jpg',
+    'https://img.x1file.top/disk_r/2026/05/31/6a1bf12f468b6.jpg',
   PROGRESS_BAR_COLOR: '#e5e5e590',
   HOME_POSTS_COUNT: {
     LARGE: 1,

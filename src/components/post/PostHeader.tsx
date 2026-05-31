@@ -1,11 +1,5 @@
-import {
-  ParagraphBlockObjectResponse,
-  TextRichTextItemResponse,
-} from '@notionhq/client/build/src/api-endpoints'
 import { NextPage } from 'next'
 import Link from 'next/link'
-import { FaSpinner } from 'react-icons/fa'
-import { readingTime } from 'reading-time-estimator'
 import { colorMap } from '../../lib/colors'
 import { classNames, formatDate } from '../../lib/util'
 import { BlockDataType, Post } from '../../types/blog'
@@ -16,24 +10,8 @@ import { Share } from './Share'
 
 const PostHeader: NextPage<{ post: Post; blocks: BlockDataType[] }> = ({
   post,
-  blocks,
 }) => {
   const { title, excerpt, date, cover, category, options } = post
-
-  const plainText = blocks
-    .map((b: BlockDataType) =>
-      (b as ParagraphBlockObjectResponse).paragraph?.rich_text?.map(
-        (t) => (t as TextRichTextItemResponse).plain_text
-      )
-    )
-    .join('')
-    .split('')
-    .reduce(
-      (acc, char) => acc + (/[\u4e00-\u9fa5]/.test(char) ? char + ' ' : char),
-      ''
-    )
-
-  const { text } = readingTime(plainText)
 
   return (
     <header>
@@ -61,22 +39,6 @@ const PostHeader: NextPage<{ post: Post; blocks: BlockDataType[] }> = ({
               >
                 {formatDate(date.created)}
               </time>
-              <span>·</span>
-              <p className="flex flex-row shrink-0 gap-x-2 ">
-                <span>{text}</span>
-                <span>·</span>
-              </p>
-              <p className="shrink-0">
-                <span
-                  id="twikoo_visitors"
-                  className='flex flex-row items-center justify-center gap-x-2 after:content-["_Views"]'
-                >
-                  <FaSpinner
-                    className="text-gray-400 animate-spin dark:text-gray-500"
-                    size={12}
-                  />
-                </span>
-              </p>
             </div>
           </div>
           <p
