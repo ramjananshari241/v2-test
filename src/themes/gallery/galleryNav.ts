@@ -22,28 +22,28 @@ const morePath =
   (CONFIG as { GALLERY_MORE_PATH?: string }).GALLERY_MORE_PATH || `/${FREINDS}`
 
 /**
- * Gallery Epic 侧栏结构（见用户标注截图）：
+ * Gallery 侧栏结构：
  * Home → 首页
- * Cosplay/Lists → 分类 | Cosers → 标签 | Parodies → 归档
- * Album/使用说明 → 关于页 | Models → 更多内容
+ * 导航：分类 | 标签 | 归档
+ * 游客：使用指南 | 友链广场
  */
 export const GALLERY_NAV_SECTIONS: GalleryNavSection[] = [
   {
     items: [{ label: 'Home', href: '/', icon: 'home' }],
   },
   {
-    title: 'Cosplay',
+    title: '导航',
     items: [
-      { label: 'Lists', href: `/${CATEGORY}`, icon: 'lists' },
-      { label: 'Cosers', href: `/${TAG}`, icon: 'cosers' },
-      { label: 'Parodies', href: `/${ARCHIVE}/1`, icon: 'parodies' },
+      { label: '分类', href: `/${CATEGORY}`, icon: 'lists' },
+      { label: '标签', href: `/${TAG}`, icon: 'cosers' },
+      { label: '归档', href: `/${ARCHIVE}/1`, icon: 'parodies' },
     ],
   },
   {
-    title: 'Album',
+    title: '游客',
     items: [
-      { label: '使用说明', href: guidePath, icon: 'guide' },
-      { label: 'Models', href: morePath, icon: 'models' },
+      { label: '使用指南', href: guidePath, icon: 'guide' },
+      { label: '友链广场', href: morePath, icon: 'models' },
     ],
   },
 ]
