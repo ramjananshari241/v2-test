@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { GalleryRecommendPost } from '@/src/lib/gallery/galleryRecommendations'
 
-/** Epic 侧边栏：左侧横版缩略图 + 右侧标题/日期 */
-const THUMB_CLASS = 'w-[96px] shrink-0 overflow-hidden rounded-[4px] bg-neutral-100'
+/** Epic 侧边栏：左侧横版缩略图 + 右侧标题/日期（标题顶对齐封面） */
+const THUMB_CLASS = 'w-[108px] shrink-0 overflow-hidden rounded-[4px] bg-neutral-100'
 const COVER_ASPECT = 'aspect-[4/3]'
 
 function formatEpicDate(iso: string) {
@@ -55,17 +55,17 @@ export function GalleryPopularSidebar({
 
   return (
     <aside
-      className={`w-[248px] shrink-0 border-neutral-200 lg:border-l lg:pl-7 ${className}`.trim()}
+      className={`w-[272px] shrink-0 border-neutral-200 lg:border-l lg:pl-8 ${className}`.trim()}
     >
-      <h2 className="mb-4 font-gallery text-[13px] font-normal tracking-wide text-neutral-400">
+      <h2 className="mb-5 font-gallery text-[14px] font-normal tracking-wide text-neutral-400">
         热门推荐
       </h2>
-      <ul className="flex flex-col gap-5">
+      <ul className="flex flex-col gap-6">
         {posts.map((item) => (
           <li key={item.slug}>
             <Link
               href={`/post/${item.slug}`}
-              className="group flex items-center gap-3"
+              className="group flex items-start gap-3.5"
             >
               <div className={THUMB_CLASS}>
                 <div className={`relative ${COVER_ASPECT}`}>
@@ -84,11 +84,11 @@ export function GalleryPopularSidebar({
                 </div>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 font-gallery text-[13px] font-normal leading-[1.35] text-neutral-900 transition-colors group-hover:text-neutral-500">
+                <p className="line-clamp-2 font-gallery text-[14px] font-normal leading-[1.35] text-neutral-900 transition-colors group-hover:text-neutral-500">
                   {item.title}
                 </p>
                 {item.date ? (
-                  <p className="mt-1 font-gallery text-[12px] text-neutral-400">
+                  <p className="mt-1.5 font-gallery text-[13px] text-neutral-400">
                     {formatEpicDate(item.date)}
                   </p>
                 ) : null}

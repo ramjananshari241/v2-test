@@ -2049,44 +2049,31 @@ const [mounted, setMounted] = useState(false);
                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px', alignItems:'start'}}>
                  <div>
                    <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>分类 <span style={{color: '#ff4d4f'}}>*</span></label>
-                   <div style={{display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', marginBottom:'12px'}}>
-                     {form.category ? (
-                       <span style={{display:'inline-flex', alignItems:'center', gap:'6px', background:'#333', padding:'6px 10px', borderRadius:'6px', fontSize:'13px', color:'#fff', border:'1px solid greenyellow'}}>
-                         {form.category}
-                         <span onClick={()=>setForm({...form, category:''})} style={{cursor:'pointer', color:'#ff7875', fontWeight:'bold'}}>×</span>
-                       </span>
+                   <select
+                     className="glow-input"
+                     value={form.category || ''}
+                     onChange={e => setForm({ ...form, category: e.target.value })}
+                     style={{ marginBottom: '10px' }}
+                   >
+                     <option value="">请选择分类</option>
+                     {form.category && !options.categories.includes(form.category) ? (
+                       <option value={form.category}>{form.category}</option>
                      ) : null}
-                     {showCatInput ? (
-                       <input autoFocus className="glow-input" style={{width:'150px', padding:'6px 10px'}} value={catDraft}
+                     {options.categories.map(cat => (
+                       <option key={cat} value={cat}>{cat}</option>
+                     ))}
+                   </select>
+                   {showCatInput ? (
+                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                       <input autoFocus className="glow-input" style={{ flex: 1, padding: '8px 10px', fontSize: '13px' }} value={catDraft}
                          onChange={e=>setCatDraft(e.target.value)}
                          onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); addCategoryFromDraft(); } else if(e.key==='Escape'){ setShowCatInput(false); setCatDraft(''); } }}
-                         onBlur={()=>{ if(catDraft.trim()) addCategoryFromDraft(); else { setShowCatInput(false); setCatDraft(''); } }}
-                         placeholder="输入分类名后回车" />
-                     ) : (
-                       <span onClick={()=>setShowCatInput(true)} style={{cursor:'pointer', border:'1px dashed #666', color:'greenyellow', padding:'6px 12px', borderRadius:'6px', fontSize:'13px'}}>＋ 创建分类</span>
-                     )}
-                   </div>
-                   {options.categories.length > 0 && (
-                     <div>
-                       <div style={{fontSize:'11px', color:'#777', marginBottom:'6px'}}>点击已有分类选择或替换：</div>
-                       <div style={{display:'flex', flexWrap:'wrap', gap:'6px'}}>
-                         {options.categories.map(cat => (
-                           <span
-                             key={cat}
-                             onClick={()=>setCategory(cat)}
-                             style={{
-                               cursor:'pointer',
-                               background: form.category === cat ? 'rgba(173,255,47,0.15)' : '#2a2a2e',
-                               border: form.category === cat ? '1px solid greenyellow' : '1px solid #444',
-                               color: form.category === cat ? 'greenyellow' : '#bbb',
-                               padding:'4px 10px',
-                               borderRadius:'6px',
-                               fontSize:'12px',
-                             }}
-                           >{cat}</span>
-                         ))}
-                       </div>
+                         placeholder="输入新分类名" />
+                       <button type="button" onClick={addCategoryFromDraft} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid greenyellow', background: 'rgba(173,255,47,0.12)', color: 'greenyellow', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>添加</button>
+                       <button type="button" onClick={()=>{ setShowCatInput(false); setCatDraft(''); }} style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid #555', background: 'transparent', color: '#888', fontSize: '12px', cursor: 'pointer' }}>取消</button>
                      </div>
+                   ) : (
+                     <span onClick={()=>setShowCatInput(true)} style={{ display: 'inline-block', cursor:'pointer', border:'1px dashed #666', color:'greenyellow', padding:'6px 12px', borderRadius:'6px', fontSize:'13px' }}>＋ 创建分类</span>
                    )}
                  </div>
                  <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>发布日期 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
