@@ -11,14 +11,7 @@ import { capPostsForBuild } from '@/src/lib/blog/postLimits'
 import { getPosts } from '@/src/lib/notion/getBlogData'
 import { addSubTitle } from '@/src/lib/util'
 import { GalleryPostDownloadPage } from '@/src/themes/gallery/GalleryPostDownloadPage'
-import {
-  buildGalleryRecommendations,
-  GalleryRecommendPost,
-} from '@/src/lib/gallery/galleryRecommendations'
-import {
-  getAllPostStatsMap,
-  getPostStats,
-} from '@/src/lib/gallery/postStats'
+import { getPostStats } from '@/src/lib/gallery/postStats'
 import {
   GalleryAdBanner,
   loadGalleryAdBanner,
@@ -71,14 +64,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
       if (!post) return { notFound: true }
 
-      const statsMap = await getAllPostStatsMap()
       const postStats = await getPostStats(slug)
-      const recommendations = buildGalleryRecommendations(
-        post,
-        allFormattedPosts,
-        undefined,
-        statsMap
-      )
 
       addSubTitle(
         sharedPageStaticProps.props,
@@ -107,7 +93,6 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
           ...sharedPageStaticProps.props,
           post,
           downloadInstructionBlocks,
-          recommendations,
           postStats,
           galleryAdBanner,
         })
@@ -124,7 +109,6 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 const PostDownloadPage: NextPage<{
   post: Post | null
   downloadInstructionBlocks: BlockResponse[]
-  recommendations?: GalleryRecommendPost[]
   postStats?: { viewCount: number; downloadCount: number } | null
   activeTheme?: string
   navPages?: Page[]
@@ -132,7 +116,6 @@ const PostDownloadPage: NextPage<{
 }> = ({
   post,
   downloadInstructionBlocks,
-  recommendations = [],
   postStats = null,
   activeTheme,
   navPages = [],
@@ -145,7 +128,6 @@ const PostDownloadPage: NextPage<{
       <GalleryPostDownloadPage
         post={post}
         downloadInstructionBlocks={downloadInstructionBlocks}
-        recommendations={recommendations}
         postStats={postStats}
         navPages={navPages}
         galleryAdBanner={galleryAdBanner}

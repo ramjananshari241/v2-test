@@ -12,10 +12,10 @@ import {
 } from './galleryConstants'
 import { GalleryNavItem } from './galleryNav'
 
-/** 侧栏导航图标尺寸（与 GallerySidebar 文案略缩小配套） */
-export const GALLERY_NAV_ICON_SIZE = 16
+/** 侧栏导航图标尺寸（与 GallerySidebar 文案配套） */
+export const GALLERY_NAV_ICON_SIZE = 18
 
-const navImgClass = 'h-4 w-4 shrink-0 object-contain'
+const navImgClass = 'h-[18px] w-[18px] shrink-0 object-contain'
 
 function NavIconImg({ src, alt = '' }: { src: string; alt?: string }) {
   return (

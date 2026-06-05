@@ -33,7 +33,7 @@ export const GallerySidebar = () => {
             className={sectionIndex > 0 ? 'mt-6' : ''}
           >
             {section.title ? (
-              <div className="mb-1.5 px-2 text-[14px] font-semibold text-neutral-900">
+              <div className="mb-1.5 px-2 text-[15px] font-semibold text-neutral-900">
                 {section.title}
               </div>
             ) : null}
@@ -46,13 +46,13 @@ export const GallerySidebar = () => {
                   <li key={`${section.title}-${item.label}-${item.href}`}>
                     <Link
                       href={item.href}
-                      className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[14px] transition-colors ${
+                      className={`flex items-center gap-3 rounded-md px-2 py-2 text-[15px] transition-colors ${
                         active
                           ? 'bg-neutral-100 font-semibold text-neutral-900'
                           : 'font-medium text-neutral-800 hover:bg-neutral-50'
                       }`}
                     >
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-black">
+                      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center text-black">
                         <NavIcon />
                       </span>
                       {item.label}
@@ -71,9 +71,9 @@ export const GallerySidebar = () => {
           href={GALLERY_LOGIN_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full rounded-md bg-black py-2 text-center text-[12px] font-bold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] active:bg-neutral-900"
+          className="block w-full rounded-md bg-black py-2.5 text-center text-[13px] font-bold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] active:bg-neutral-900"
         >
-          会员购买
+          贩售机
         </a>
       </div>
     </aside>
