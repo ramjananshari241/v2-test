@@ -99,25 +99,6 @@ LSKY_TOKEN=1|你的兰空token
 | 前台无图库 | 确认全站主题为 Gallery；该 slug 是否已点「保存图库」 |
 | 兰空上传失败 | 检查 `LSKY_TOKEN`；Token 格式可为 `1|xxx` 或 `Bearer 1|xxx`（代码会自动补 Bearer） |
 | 提示「图片大小超出限制」 | **兰空后台**限制，非 Supabase。登录兰空管理端 → **策略 / 用户组 / 储存策略** → 将「单张上传大小」调到 ≥10MB（商用图库建议 20～50MB）；本站可用 `LSKY_MAX_UPLOAD_MB=50` |
-| Vercel 上传报 `Request En... is not valid JSON` | **Vercel 函数请求体上限 4.5MB**，5MB 图经本站代理会被拒。线上 **>3.5MB** 会改用「临时上传 token」直传兰空；若直传失败，需在兰空 Nginx 为博客域名加 CORS（见下方） |
-| 提示 `CSRF token mismatch` | 浏览器用 Bearer 直传兰空会触发 Laravel CSRF。**本地已强制走服务端代理**；线上大图用临时 token，勿在浏览器带 Authorization |
-
-### 兰空 Nginx CORS（Vercel 大图直传需要）
-
-在兰空站点 Nginx 配置中，将 `你的博客域名` 换成 Vercel 域名（如 `https://xxx.vercel.app`）：
-
-```nginx
-location /api/v1/upload {
-    if ($request_method = OPTIONS) {
-        add_header Access-Control-Allow-Origin "你的博客域名";
-        add_header Access-Control-Allow-Headers "Authorization, Accept";
-        add_header Access-Control-Allow-Methods "POST, OPTIONS";
-        return 204;
-    }
-    add_header Access-Control-Allow-Origin "你的博客域名";
-    add_header Access-Control-Allow-Headers "Authorization, Accept";
-    try_files $uri $uri/ /index.php?$query_string;
-}
-```
-
-改完后 `nginx -s reload`，再试上传。
+| Vercel 上传报 `Request En... is not valid JSON` | **Vercel 函数请求体上限 4.5MB**。线上 **>3.5MB** 会自动压缩为 JPEG 后再上传（画质略降，可正常展示） |
+| 提示 `CSRF token mismatch` | 浏览器直传兰空会触发 Laravel CSRF；现已统一走服务端代理，不应再出现 |
+| 提示 `POST method is not supported... DELETE` | 旧版曾调用兰空不存在的 `/api/v1/images/tokens`；已改为压缩+代理，重新部署即可 |
