@@ -1,4 +1,9 @@
 import { Post } from '@/src/types/blog'
+import {
+  pickPopularRecommendations,
+  PostStatsSnapshot,
+  postPopularityScore,
+} from '@/src/lib/gallery/postStats'
 
 export const GALLERY_RECOMMEND_COUNT = 6
 
@@ -33,12 +38,13 @@ function toRecommendPost(post: Post): GalleryRecommendPost {
 }
 
 /**
- * 热门推荐：同 tag → 同 category → 随机补足，最多 6 篇（非浏览量/下载量）
+ * 热门推荐：Supabase 热度优先 → 同 tag → 同 category → 随机补足
  */
 export function buildGalleryRecommendations(
   current: Post,
   allPosts: Post[],
-  limit = GALLERY_RECOMMEND_COUNT
+  limit = GALLERY_RECOMMEND_COUNT,
+  statsMap?: Map<string, PostStatsSnapshot>
 ): GalleryRecommendPost[] {
   const pool = allPosts.filter(
     (p) => p.slug !== current.slug && p.status === 'Published'
@@ -57,6 +63,16 @@ export function buildGalleryRecommendations(
     }
   }
 
+  if (statsMap && statsMap.size > 0) {
+    const popular = pickPopularRecommendations(
+      current,
+      allPosts,
+      statsMap,
+      limit
+    )
+    push(popular.map((r) => pool.find((p) => p.slug === r.slug)).filter(Boolean) as Post[])
+  }
+
   if (tagIds.size > 0) {
     const byTag = pool
       .map((p) => ({
@@ -64,21 +80,40 @@ export function buildGalleryRecommendations(
         score: (p.tags || []).filter((t) => tagIds.has(t.id)).length,
       }))
       .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          postPopularityScore(statsMap?.get(b.p.slug)) -
+            postPopularityScore(statsMap?.get(a.p.slug))
+      )
       .map((x) => x.p)
     push(byTag)
   }
 
   if (picked.length < limit && categoryId) {
-    const byCategory = pool.filter(
-      (p) => p.category?.id === categoryId && !seen.has(p.slug)
-    )
+    const byCategory = pool
+      .filter((p) => p.category?.id === categoryId && !seen.has(p.slug))
+      .sort(
+        (a, b) =>
+          postPopularityScore(statsMap?.get(b.slug)) -
+          postPopularityScore(statsMap?.get(a.slug))
+      )
     push(byCategory)
   }
 
   if (picked.length < limit) {
-    const rest = pool.filter((p) => !seen.has(p.slug))
-    push(seededShuffle(rest, current.slug))
+    const rest = pool
+      .filter((p) => !seen.has(p.slug))
+      .sort(
+        (a, b) =>
+          postPopularityScore(statsMap?.get(b.slug)) -
+          postPopularityScore(statsMap?.get(a.slug))
+      )
+    if (rest.every((p) => postPopularityScore(statsMap?.get(p.slug)) === 0)) {
+      push(seededShuffle(rest, current.slug))
+    } else {
+      push(rest)
+    }
   }
 
   return picked.slice(0, limit).map(toRecommendPost)

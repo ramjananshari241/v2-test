@@ -4,12 +4,14 @@ import CONFIG from '@/blog.config'
 import { getSubTitleInfo } from '@/src/lib/util'
 import { GalleryAdBanner as GalleryAdBannerData } from '@/src/lib/gallery/loadGalleryAdBanner'
 import { GalleryRecommendPost } from '@/src/lib/gallery/galleryRecommendations'
+import { PostStatsSnapshot } from '@/src/lib/gallery/postStats'
 import { GalleryAdBanner } from './GalleryAdBanner'
 import { GalleryBreadcrumb } from './GalleryBreadcrumb'
 import { GalleryPopularSidebar } from './GalleryPopularSidebar'
 import { GalleryPostDownloadButton } from './GalleryPostDownloadButton'
 import { GalleryPostContent } from './GalleryPostContent'
 import { GalleryPostRecommendations } from './GalleryPostRecommendations'
+import { GalleryPostStats } from './GalleryPostStats'
 import {
   galleryPostPreviewLabelClass,
   galleryPostTitleClass,
@@ -19,6 +21,7 @@ type GalleryPostProps = {
   post: Post
   blocks: BlockResponse[]
   recommendations: GalleryRecommendPost[]
+  postStats?: PostStatsSnapshot | null
   galleryAdBanner?: GalleryAdBannerData | null
   navPages?: Page[]
 }
@@ -29,6 +32,7 @@ export const GalleryPost = ({
   post,
   blocks,
   recommendations,
+  postStats = null,
   galleryAdBanner = null,
   navPages = [],
 }: GalleryPostProps) => {
@@ -55,7 +59,7 @@ export const GalleryPost = ({
         ]}
       />
       <main className="flex flex-1 flex-col bg-white px-6 py-6 pb-8 lg:px-10">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-0 lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
+        <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-0 lg:flex-row lg:items-start lg:gap-6 xl:gap-8">
           <article className="min-w-0 flex-1">
             <div className="mb-3 flex items-start justify-between gap-6">
               <h1 className={`min-w-0 flex-1 ${galleryPostTitleClass}`}>
@@ -66,7 +70,14 @@ export const GalleryPost = ({
               </div>
             </div>
 
-            <p className={`mb-6 ${galleryPostPreviewLabelClass}`}>预览</p>
+            <GalleryPostStats
+              postSlug={post.slug}
+              publishedDate={post.date?.updated || post.date?.created}
+              initialStats={postStats}
+              track="view"
+            />
+
+            <p className={`mb-6 ${galleryPostPreviewLabelClass}`}>作品预览：</p>
 
             {post.excerpt ? (
               <p className="mb-8 font-gallery text-sm font-normal leading-relaxed tracking-wide text-neutral-500">
@@ -87,6 +98,7 @@ export const GalleryPost = ({
 
           <GalleryPopularSidebar
             posts={recommendations}
+            excludeSlug={post.slug}
             className="hidden lg:block lg:sticky lg:top-6 lg:self-start"
           />
         </div>

@@ -16,6 +16,10 @@ import {
   GalleryRecommendPost,
 } from '@/src/lib/gallery/galleryRecommendations'
 import {
+  getAllPostStatsMap,
+  getPostStats,
+} from '@/src/lib/gallery/postStats'
+import {
   GalleryAdBanner,
   loadGalleryAdBanner,
 } from '@/src/lib/gallery/loadGalleryAdBanner'
@@ -65,7 +69,14 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
       addSubTitle(sharedPageStaticProps.props, '', { text: post.title, color: 'gray', slug: post.slug }, false)
       const { previousPost, nextPost } = getNavigationInfo(allFormattedPosts, post)
-      const recommendations = buildGalleryRecommendations(post, allFormattedPosts)
+      const statsMap = await getAllPostStatsMap()
+      const postStats = await getPostStats(slug)
+      const recommendations = buildGalleryRecommendations(
+        post,
+        allFormattedPosts,
+        undefined,
+        statsMap
+      )
       const blocks = await getAllBlocks(post.id)
       const formattedBlocks = await formatBlocks(blocks)
 
@@ -83,6 +94,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
             nextPost: nextPost || null,
         },
         recommendations,
+        postStats,
         galleryAdBanner,
       }))
 
@@ -105,10 +117,11 @@ const PostPage: NextPage<{
   blocks: BlockResponse[]
   navigation: { previousPost: PartialPost; nextPost: PartialPost }
   recommendations?: GalleryRecommendPost[]
+  postStats?: { viewCount: number; downloadCount: number } | null
   galleryAdBanner?: GalleryAdBanner | null
   activeTheme?: string
   navPages?: Page[]
-}> = ({ post, blocks, navigation, recommendations = [], galleryAdBanner = null, activeTheme, navPages = [] }) => {
+}> = ({ post, blocks, navigation, recommendations = [], postStats = null, galleryAdBanner = null, activeTheme, navPages = [] }) => {
   if (!post) return <Section404 />
 
   if (activeTheme === 'gallery') {
@@ -117,6 +130,7 @@ const PostPage: NextPage<{
         post={post}
         blocks={blocks}
         recommendations={recommendations}
+        postStats={postStats}
         galleryAdBanner={galleryAdBanner}
         navPages={navPages}
       />

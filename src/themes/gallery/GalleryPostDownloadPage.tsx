@@ -1,6 +1,7 @@
 import { BlockRender } from '@/src/components/blocks/BlockRender'
 import { GalleryAdBanner as GalleryAdBannerData } from '@/src/lib/gallery/loadGalleryAdBanner'
 import { GalleryRecommendPost } from '@/src/lib/gallery/galleryRecommendations'
+import { PostStatsSnapshot } from '@/src/lib/gallery/postStats'
 import { Page, Post } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
 import Link from 'next/link'
@@ -10,12 +11,14 @@ import { GalleryAdBanner } from './GalleryAdBanner'
 import { GalleryBreadcrumb } from './GalleryBreadcrumb'
 import { GalleryPopularSidebar } from './GalleryPopularSidebar'
 import { GalleryPostDownloadActions } from './GalleryPostDownloadActions'
+import { GalleryPostStats } from './GalleryPostStats'
 import { galleryEpicBarTitleClass, galleryProseClass } from './galleryFonts'
 
 type GalleryPostDownloadPageProps = {
   post: Post
   downloadInstructionBlocks: BlockResponse[]
   recommendations?: GalleryRecommendPost[]
+  postStats?: PostStatsSnapshot | null
   navPages?: Page[]
   galleryAdBanner?: GalleryAdBannerData | null
 }
@@ -26,6 +29,7 @@ export function GalleryPostDownloadPage({
   post,
   downloadInstructionBlocks,
   recommendations = [],
+  postStats = null,
   navPages = [],
   galleryAdBanner = null,
 }: GalleryPostDownloadPageProps) {
@@ -59,7 +63,7 @@ export function GalleryPostDownloadPage({
       />
 
       <main className="flex flex-1 flex-col bg-white px-4 py-5 pb-10 sm:px-6 lg:px-10">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
+        <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 lg:flex-row lg:items-start lg:gap-6 xl:gap-8">
           <div className="min-w-0 flex-1">
             <div className="mb-5 flex items-start justify-between gap-4 border-b border-neutral-200 pb-3">
               <h1 className={`min-w-0 flex-1 ${galleryEpicBarTitleClass}`}>
@@ -71,6 +75,13 @@ export function GalleryPostDownloadPage({
                 </span>
               ) : null}
             </div>
+
+            <GalleryPostStats
+              postSlug={post.slug}
+              publishedDate={post.date?.updated || post.date?.created}
+              initialStats={postStats}
+              track={false}
+            />
 
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
               <div className="mx-auto w-full max-w-[380px] shrink-0 lg:mx-0 lg:max-w-[340px] xl:max-w-[380px]">
@@ -107,6 +118,7 @@ export function GalleryPostDownloadPage({
 
                 <section className="mb-8 flex justify-center py-2">
                   <GalleryPostDownloadActions
+                    postSlug={post.slug}
                     postTitle={post.title}
                     downloadContent={downloadValue}
                   />
@@ -133,6 +145,7 @@ export function GalleryPostDownloadPage({
 
           <GalleryPopularSidebar
             posts={recommendations}
+            excludeSlug={post.slug}
             className="hidden lg:block lg:sticky lg:top-6 lg:self-start"
           />
         </div>

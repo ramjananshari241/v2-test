@@ -16,6 +16,10 @@ import {
   GalleryRecommendPost,
 } from '@/src/lib/gallery/galleryRecommendations'
 import {
+  getAllPostStatsMap,
+  getPostStats,
+} from '@/src/lib/gallery/postStats'
+import {
   GalleryAdBanner,
   loadGalleryAdBanner,
 } from '@/src/lib/gallery/loadGalleryAdBanner'
@@ -67,7 +71,14 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
       if (!post) return { notFound: true }
 
-      const recommendations = buildGalleryRecommendations(post, allFormattedPosts)
+      const statsMap = await getAllPostStatsMap()
+      const postStats = await getPostStats(slug)
+      const recommendations = buildGalleryRecommendations(
+        post,
+        allFormattedPosts,
+        undefined,
+        statsMap
+      )
 
       addSubTitle(
         sharedPageStaticProps.props,
@@ -97,6 +108,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
           post,
           downloadInstructionBlocks,
           recommendations,
+          postStats,
           galleryAdBanner,
         })
       )
@@ -113,6 +125,7 @@ const PostDownloadPage: NextPage<{
   post: Post | null
   downloadInstructionBlocks: BlockResponse[]
   recommendations?: GalleryRecommendPost[]
+  postStats?: { viewCount: number; downloadCount: number } | null
   activeTheme?: string
   navPages?: Page[]
   galleryAdBanner?: GalleryAdBanner | null
@@ -120,6 +133,7 @@ const PostDownloadPage: NextPage<{
   post,
   downloadInstructionBlocks,
   recommendations = [],
+  postStats = null,
   activeTheme,
   navPages = [],
   galleryAdBanner = null,
@@ -132,6 +146,7 @@ const PostDownloadPage: NextPage<{
         post={post}
         downloadInstructionBlocks={downloadInstructionBlocks}
         recommendations={recommendations}
+        postStats={postStats}
         navPages={navPages}
         galleryAdBanner={galleryAdBanner}
       />
