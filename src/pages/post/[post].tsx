@@ -11,6 +11,10 @@ import CommentSection from '../../components/section/CommentSection'
 import { Section404 } from '../../components/section/Section404'
 import withNavFooter from '../../components/withNavFooter'
 import { GalleryPost } from '@/src/themes/gallery/GalleryPost'
+import {
+  buildGalleryRecommendations,
+  GalleryRecommendPost,
+} from '@/src/lib/gallery/galleryRecommendations'
 import { formatBlocks } from '../../lib/blog/format/block'
 import { formatPosts, getNavigationInfo } from '../../lib/blog/format/post'
 import { withNavFooterStaticProps } from '../../lib/blog/withNavFooterStaticProps'
@@ -56,6 +60,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
       addSubTitle(sharedPageStaticProps.props, '', { text: post.title, color: 'gray', slug: post.slug }, false)
       const { previousPost, nextPost } = getNavigationInfo(allFormattedPosts, post)
+      const recommendations = buildGalleryRecommendations(post, allFormattedPosts)
       const blocks = await getAllBlocks(post.id)
       const formattedBlocks = await formatBlocks(blocks)
 
@@ -64,10 +69,11 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         ...sharedPageStaticProps.props,
         post,
         blocks: formattedBlocks,
-        navigation: { 
-            previousPost: previousPost || null, 
-            nextPost: nextPost || null 
+        navigation: {
+            previousPost: previousPost || null,
+            nextPost: nextPost || null,
         },
+        recommendations,
       }))
 
       if (safeData.widgets?.profile && safeData.widgets.profile.links === undefined) {
@@ -88,12 +94,19 @@ const PostPage: NextPage<{
   post: Post
   blocks: BlockResponse[]
   navigation: { previousPost: PartialPost; nextPost: PartialPost }
+  recommendations?: GalleryRecommendPost[]
   activeTheme?: string
-}> = ({ post, blocks, navigation, activeTheme }) => {
+}> = ({ post, blocks, navigation, recommendations = [], activeTheme }) => {
   if (!post) return <Section404 />
 
   if (activeTheme === 'gallery') {
-    return <GalleryPost post={post} blocks={blocks} navigation={navigation} />
+    return (
+      <GalleryPost
+        post={post}
+        blocks={blocks}
+        recommendations={recommendations}
+      />
+    )
   }
 
   return (

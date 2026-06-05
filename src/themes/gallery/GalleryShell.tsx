@@ -50,7 +50,7 @@ export const GalleryShell = ({
             </h1>
           </header>
         ) : null}
-        {children}
+        <div className="flex flex-1 flex-col bg-white">{children}</div>
       </div>
     </div>
   )
