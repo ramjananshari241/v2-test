@@ -304,7 +304,7 @@ const CoverMissingModal = ({ open, closing, onConfirm, onCancel }) => {
   );
 };
 
-// 工具函数：清洗 URL
+// 工具函数：清洗 URL1
 // 🟢 修复版：AdminDashboard 顶部的洗链逻辑
 const cleanAndFormat = (input) => {
   if (!input) return "";
