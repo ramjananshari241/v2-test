@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head'; // 🟢 引入 Head 组件控制浏览器标签
 import { GalleryManager } from './GalleryManager';
+import { GalleryStorageBar } from './GalleryStorageBar';
 import {
   flushGalleryUploads,
   revokePendingGalleryItems,
@@ -756,6 +757,9 @@ const [mounted, setMounted] = useState(false);
   const [galleryDirty, setGalleryDirty] = useState(false);
   const [savePhase, setSavePhase] = useState(''); // '' | 'media' | 'post' | 'gallery'
   const [saveProgress, setSaveProgress] = useState(null); // { done, total }
+  const [galleryStorageStats, setGalleryStorageStats] = useState(null);
+  const [galleryStorageLoading, setGalleryStorageLoading] = useState(false);
+  const [galleryStorageError, setGalleryStorageError] = useState('');
 
   const resetGalleryItems = () => {
     setGalleryItems((prev) => {
@@ -800,6 +804,22 @@ const [mounted, setMounted] = useState(false);
   const themeConfig = posts?.find(p => p.slug === 'theme-config');
   const currentActiveTheme = activeThemeLocal || themeConfig?.excerpt?.trim() || 'v1';
   const currentTheme = ADMIN_THEMES.find(t => t.id === currentActiveTheme) || ADMIN_THEMES[0];
+
+  async function loadGalleryStorage() {
+    setGalleryStorageLoading(true);
+    setGalleryStorageError('');
+    try {
+      const r = await fetch('/api/admin/gallery-storage');
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || '读取图库容量失败');
+      setGalleryStorageStats(d);
+    } catch (e) {
+      setGalleryStorageStats(null);
+      setGalleryStorageError(e.message);
+    } finally {
+      setGalleryStorageLoading(false);
+    }
+  }
 
   // 🟢 4. 数据拉取函数 (提前定义)
   async function fetchPosts() {
@@ -847,6 +867,9 @@ const [mounted, setMounted] = useState(false);
   // 🟢 6. useEffect 挂载
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { if (mounted) fetchPosts(); }, [mounted]);
+  useEffect(() => {
+    if (mounted && view === 'list') loadGalleryStorage();
+  }, [mounted, view]);
 
   useEffect(() => {
     if (view === 'edit') {
@@ -1246,6 +1269,7 @@ const [mounted, setMounted] = useState(false);
         resetGalleryItems();
         setView('list');
         fetchPosts();
+        loadGalleryStorage();
       }
     } catch (e) {
       alert('网络错误: ' + e.message);
@@ -1394,6 +1418,11 @@ const [mounted, setMounted] = useState(false);
 
 {view === 'list' ? (
           <main>
+            <GalleryStorageBar
+              stats={galleryStorageStats}
+              loading={galleryStorageLoading}
+              error={galleryStorageError}
+            />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 {/* 1. 分类标签组 */}

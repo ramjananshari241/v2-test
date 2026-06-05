@@ -5,7 +5,7 @@ import {
 
 const UPLOAD_CONCURRENCY = 4
 
-/** @typedef {{ id: string, status: 'remote', url: string }} RemoteGalleryItem */
+/** @typedef {{ id: string, status: 'remote', url: string, fileSize?: number|null }} RemoteGalleryItem */
 /** @typedef {{ id: string, status: 'pending', file: File, previewUrl: string }} PendingGalleryItem */
 /** @typedef {RemoteGalleryItem | PendingGalleryItem} GalleryItem */
 
@@ -14,6 +14,8 @@ export function remoteFromApiImage(img) {
     id: img.id || `remote-${img.url}`,
     status: 'remote',
     url: img.url,
+    fileSize:
+      img.file_size != null && img.file_size > 0 ? Number(img.file_size) : null,
   }
 }
 
@@ -24,6 +26,27 @@ export function createPendingGalleryItem(file) {
     file,
     previewUrl: URL.createObjectURL(file),
   }
+}
+
+export function sumPendingGalleryBytes(items) {
+  return (items || [])
+    .filter((it) => it.status === 'pending' && it.file)
+    .reduce((sum, it) => sum + (it.file.size || 0), 0)
+}
+
+export async function checkGalleryStorageBeforeAdd(pendingBytes) {
+  const q = Math.max(0, Number(pendingBytes) || 0)
+  const r = await fetch(
+    `/api/admin/gallery-storage?pendingBytes=${encodeURIComponent(String(q))}`
+  )
+  const d = await r.json()
+  if (!d.success) {
+    throw new Error(d.error || '无法读取图库容量')
+  }
+  if (!d.canUpload) {
+    throw new Error(d.quotaMessage || '图库容量已满，无法继续添加图片')
+  }
+  return d
 }
 
 export function revokePendingGalleryItems(items) {
@@ -41,7 +64,23 @@ export function galleryPreviewUrl(item) {
   return item.status === 'pending' ? item.previewUrl : item.url
 }
 
-async function persistGalleryUrls({ slug, postTitle, postNotionId, urls }) {
+function imagePayloadFromItem(item, uploaded) {
+  if (item.status === 'remote') {
+    return {
+      url: item.url,
+      file_size: item.fileSize ?? null,
+    }
+  }
+  if (!uploaded?.url) {
+    throw new Error('图库上传未完成，请重试')
+  }
+  return {
+    url: uploaded.url,
+    file_size: uploaded.fileSize ?? null,
+  }
+}
+
+async function persistGalleryImages({ slug, postTitle, postNotionId, images }) {
   const res = await fetch('/api/admin/gallery', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,7 +88,7 @@ async function persistGalleryUrls({ slug, postTitle, postNotionId, urls }) {
       postSlug: slug,
       postNotionId: postNotionId || null,
       title: postTitle || null,
-      images: urls.map((url) => ({ url })),
+      images,
     }),
   })
   const d = await res.json()
@@ -64,17 +103,17 @@ export async function persistGalleryRemote({
   postNotionId,
   items,
 }) {
-  const urls = (items || [])
+  const images = (items || [])
     .filter((it) => it.status === 'remote')
-    .map((it) => it.url)
-  return persistGalleryUrls({ slug, postTitle, postNotionId, urls })
+    .map((it) => ({
+      url: it.url,
+      file_size: it.fileSize ?? null,
+    }))
+  return persistGalleryImages({ slug, postTitle, postNotionId, images })
 }
 
 /**
  * 发布/保存成功后：按当前顺序上传 pending，写入 Supabase，返回全 remote 列表
- * @param {object} params
- * @param {GalleryItem[]} params.items
- * @param {(p: { done: number, total: number }) => void} [params.onProgress]
  */
 export async function flushGalleryUploads({
   slug,
@@ -88,6 +127,11 @@ export async function flushGalleryUploads({
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => item.status === 'pending')
 
+  const pendingBytes = sumPendingGalleryBytes(list)
+  if (pendingBytes > 0) {
+    await checkGalleryStorageBeforeAdd(pendingBytes)
+  }
+
   const uploadResults = new Map()
 
   if (pendingEntries.length > 0) {
@@ -96,23 +140,23 @@ export async function flushGalleryUploads({
       pendingEntries,
       UPLOAD_CONCURRENCY,
       async ({ item, index }) => {
-        const url = await uploadGalleryImageToLsky(item.file)
-        uploadResults.set(index, url)
+        const result = await uploadGalleryImageToLsky(item.file)
+        uploadResults.set(index, result)
         done += 1
         onProgress?.({ done, total: pendingEntries.length })
       }
     )
   }
 
-  const finalUrls = list.map((item, index) => {
-    if (item.status === 'remote') return item.url
-    const url = uploadResults.get(index)
-    if (!url) throw new Error('图库上传未完成，请重试')
-    return url
-  })
+  const images = list.map((item, index) =>
+    imagePayloadFromItem(
+      item,
+      item.status === 'pending' ? uploadResults.get(index) : null
+    )
+  )
 
-  await persistGalleryUrls({ slug, postTitle, postNotionId, urls: finalUrls })
+  await persistGalleryImages({ slug, postTitle, postNotionId, images })
   revokePendingGalleryItems(list)
 
-  return finalUrls.map((url) => remoteFromApiImage({ url }))
+  return images.map((img) => remoteFromApiImage(img))
 }

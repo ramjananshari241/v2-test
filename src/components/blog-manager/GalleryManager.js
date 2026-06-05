@@ -6,6 +6,8 @@ import {
   persistGalleryRemote,
   remoteFromApiImage,
   revokePendingGalleryItems,
+  sumPendingGalleryBytes,
+  checkGalleryStorageBeforeAdd,
 } from '@/src/lib/admin/galleryFlush'
 
 const btnSpinStyle = {
@@ -104,7 +106,7 @@ export function GalleryManager({
     }
   }
 
-  const handleFiles = (fileList) => {
+  const handleFiles = async (fileList) => {
     const files = Array.from(fileList || []).filter((f) =>
       /^image\//i.test(f.type)
     )
@@ -113,7 +115,16 @@ export function GalleryManager({
       alert('缺少文章 slug，无法添加图库')
       return
     }
+    const addBytes = files.reduce((s, f) => s + (f.size || 0), 0)
+    const pendingBytes = sumPendingGalleryBytes(items) + addBytes
     setError('')
+    try {
+      await checkGalleryStorageBeforeAdd(pendingBytes)
+    } catch (e) {
+      setError(e.message)
+      alert(e.message)
+      return
+    }
     const pending = files.map(createPendingGalleryItem)
     onItemsChange((prev) => [...(prev || []), ...pending])
     onGalleryMutated?.()

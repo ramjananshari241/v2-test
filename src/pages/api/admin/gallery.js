@@ -40,6 +40,10 @@ export default async function handler(req, res) {
           url: typeof img === 'string' ? img : img?.url,
           thumb_url:
             typeof img === 'object' && img?.thumb_url ? img.thumb_url : undefined,
+          file_size:
+            typeof img === 'object' && img?.file_size != null
+              ? Number(img.file_size)
+              : undefined,
         })),
       })
       return res.status(200).json({ success: true, ...result })
@@ -49,7 +53,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: '不支持的请求方法' })
   } catch (e) {
     console.error('/api/admin/gallery', e)
-    return res.status(500).json({
+    const status = e?.name === 'GalleryStorageQuotaError' ? 413 : 500
+    return res.status(status).json({
       success: false,
       error: e?.message || '图库操作失败',
     })

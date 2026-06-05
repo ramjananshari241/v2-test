@@ -556,7 +556,9 @@ export async function uploadGalleryImageToLsky(file) {
 
     const prepared = await compressImageForGallery(file)
 
-    return uploadViaProxy(prepared)
+    const url = await uploadViaProxy(prepared)
+
+    return { url, fileSize: prepared.size }
 
   })
 

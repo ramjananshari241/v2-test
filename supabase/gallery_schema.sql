@@ -33,6 +33,8 @@ create table if not exists public.gallery_images (
   created_at timestamptz not null default now()
 );
 
+-- file_size：上传时记录的压缩后字节数，用于后台图库容量统计（默认上限 50GB）
+
 create index if not exists idx_gallery_images_gallery_sort
   on public.gallery_images (gallery_id, sort_order);
 

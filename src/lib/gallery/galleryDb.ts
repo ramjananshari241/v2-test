@@ -1,10 +1,12 @@
 import { getSupabaseAdmin } from '@/src/lib/supabase/admin'
+import { assertGalleryStorageQuota } from '@/src/lib/gallery/galleryStorage'
 
 export type GalleryImageRow = {
   id: string
   url: string
   thumb_url: string | null
   sort_order: number
+  file_size?: number | null
 }
 
 export type GalleryMeta = {
@@ -109,7 +111,7 @@ export async function listAllGalleryImagesForAdmin(
 
   const { data, error } = await sb
     .from('gallery_images')
-    .select('id, url, thumb_url, sort_order')
+    .select('id, url, thumb_url, sort_order, file_size')
     .eq('gallery_id', meta.id)
     .order('sort_order', { ascending: true })
 
@@ -121,7 +123,11 @@ export async function syncGalleryImages(input: {
   postSlug: string
   postNotionId?: string | null
   title?: string | null
-  images: { url: string; thumb_url?: string | null }[]
+  images: {
+    url: string
+    thumb_url?: string | null
+    file_size?: number | null
+  }[]
 }): Promise<{ meta: GalleryMeta; imageCount: number }> {
   const sb = getSupabaseAdmin()
   if (!sb) {
@@ -130,6 +136,11 @@ export async function syncGalleryImages(input: {
 
   const slug = input.postSlug.trim()
   if (!slug) throw new Error('post_slug 不能为空')
+
+  await assertGalleryStorageQuota({
+    postSlug: slug,
+    images: input.images || [],
+  })
 
   const { data: galleryRow, error: upsertError } = await sb
     .from('galleries')
@@ -148,6 +159,16 @@ export async function syncGalleryImages(input: {
 
   const galleryId = galleryRow.id as string
 
+  const { data: existingRows, error: existErr } = await sb
+    .from('gallery_images')
+    .select('url, file_size')
+    .eq('gallery_id', galleryId)
+  if (existErr) throw existErr
+
+  const sizeByUrl = new Map(
+    (existingRows || []).map((r) => [r.url as string, r.file_size as number | null])
+  )
+
   const { error: delError } = await sb
     .from('gallery_images')
     .delete()
@@ -160,6 +181,10 @@ export async function syncGalleryImages(input: {
       url: img.url,
       thumb_url: img.thumb_url || img.url,
       sort_order: index,
+      file_size:
+        img.file_size != null && img.file_size > 0
+          ? Math.round(img.file_size)
+          : sizeByUrl.get(img.url) ?? null,
     }))
     .filter((r) => r.url)
 
