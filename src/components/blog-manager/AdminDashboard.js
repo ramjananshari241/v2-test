@@ -636,7 +636,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                         ? <video src={b.content} controls className="img-preview" />
                         : <img src={b.content} className="img-preview" alt="" />}
                       {isImageBlockPending(b) ? (
-                        <div style={{fontSize:'11px', color:'#f59e0b', marginTop:'6px', fontWeight:'bold'}}>待发布 · 保存后上传至图床</div>
+                        <div style={{fontSize:'11px', color:'#f59e0b', marginTop:'6px', fontWeight:'bold'}}>待发布</div>
                       ) : (
                         <div className="img-url">{b.content}</div>
                       )}
