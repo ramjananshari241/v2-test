@@ -1,4 +1,5 @@
 import { BlogStats, Widget } from '@/src/types/blog'
+import { formatGalleryAdWidget } from './format/widget/galleryAd'
 import { formatProfileWidget } from './format/widget/profile'
 import { formatStatsWidget } from './format/widget/stats'
 
@@ -18,6 +19,10 @@ export const supportedWidgetsMap: {
   },
   stats: {
     formatFn: formatStatsWidget,
+    database: [],
+  },
+  'gallery-ad': {
+    formatFn: formatGalleryAdWidget,
     database: [],
   },
 }

@@ -2,7 +2,9 @@ import { Post } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
 import Link from 'next/link'
 import CONFIG from '@/blog.config'
+import { GalleryAdBanner as GalleryAdBannerData } from '@/src/lib/gallery/loadGalleryAdBanner'
 import { GalleryRecommendPost } from '@/src/lib/gallery/galleryRecommendations'
+import { GalleryAdBanner } from './GalleryAdBanner'
 import { GalleryBreadcrumb } from './GalleryBreadcrumb'
 import { GalleryPostDownloadButton } from './GalleryPostDownloadButton'
 import { GalleryPostContent } from './GalleryPostContent'
@@ -17,12 +19,14 @@ type GalleryPostProps = {
   post: Post
   blocks: BlockResponse[]
   recommendations: GalleryRecommendPost[]
+  galleryAdBanner?: GalleryAdBannerData | null
 }
 
 export const GalleryPost = ({
   post,
   blocks,
   recommendations,
+  galleryAdBanner = null,
 }: GalleryPostProps) => {
   const downloadValue = post.options?.download?.trim() ?? ''
 
@@ -44,7 +48,9 @@ export const GalleryPost = ({
           />
         }
       />
-      <main className="flex flex-1 flex-col bg-white px-6 py-6 pb-20 lg:px-10">
+      <main
+        className={`flex flex-1 flex-col bg-white px-6 py-6 lg:px-10 ${galleryAdBanner ? 'pb-10' : 'pb-8'}`}
+      >
         <article className="mx-auto w-full max-w-[1120px]">
           <h1 className={`mb-3 ${galleryPostTitleClass}`}>{post.title}</h1>
 
@@ -79,6 +85,8 @@ export const GalleryPost = ({
           <GalleryPostContent postSlug={post.slug} blocks={blocks} />
 
           <GalleryPostRecommendations posts={recommendations} />
+
+          {galleryAdBanner ? <GalleryAdBanner banner={galleryAdBanner} /> : null}
         </article>
       </main>
     </>

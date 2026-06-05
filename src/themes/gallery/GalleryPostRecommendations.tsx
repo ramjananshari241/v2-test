@@ -34,7 +34,7 @@ export function GalleryPostRecommendations({
             href={`/post/${item.slug}`}
             className="group block"
           >
-            <div className="aspect-[16/10] overflow-hidden rounded-lg bg-neutral-100">
+            <div className="aspect-[5/2] overflow-hidden rounded-lg bg-neutral-100">
               {item.coverSrc ? (
                 <img
                   src={item.coverSrc}

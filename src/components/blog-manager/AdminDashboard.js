@@ -596,6 +596,10 @@ const [mounted, setMounted] = useState(false);
   const [showTagInput, setShowTagInput] = useState(false);
   const [friends, setFriends] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
+  const [galleryAd, setGalleryAd] = useState({ id: null, url: '', promoText: '', cover: '' });
+  const [galleryAdLoading, setGalleryAdLoading] = useState(false);
+  const [galleryAdSaving, setGalleryAdSaving] = useState(false);
+  const [galleryAdCoverUploading, setGalleryAdCoverUploading] = useState(false);
   const [friendDraft, setFriendDraft] = useState({ name: '', url: '', avatar: '' });
   const [friendDraftUploading, setFriendDraftUploading] = useState(false);
   const [friendBtnStatus, setFriendBtnStatus] = useState({}); // { [id|'draft']: 'saving' | 'done' }
@@ -837,6 +841,67 @@ const [mounted, setMounted] = useState(false);
     finally { setFriendsLoading(false); }
   };
   const openFriends = () => { setView('friends'); loadFriends(); };
+
+  // === 📢 Gallery 广告位 ===
+  const loadGalleryAd = async () => {
+    setGalleryAdLoading(true);
+    try {
+      const r = await fetch('/api/admin/gallery-ad');
+      const d = await r.json();
+      if (d.success) setGalleryAd(d.ad || { id: null, url: '', promoText: '', cover: '' });
+      else alert('加载广告位失败：' + (d.error || '未知错误'));
+    } catch (e) { alert('加载广告位失败：' + e.message); }
+    finally { setGalleryAdLoading(false); }
+  };
+  const openGalleryAd = () => { setView('gallery-ad'); loadGalleryAd(); };
+  const saveGalleryAd = async () => {
+    const url = (galleryAd.url || '').trim();
+    if (!url.startsWith('http')) { alert('请填写有效的广告链接（需以 http 开头）'); return; }
+    setGalleryAdSaving(true);
+    try {
+      const r = await fetch('/api/admin/gallery-ad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: galleryAd.id,
+          url,
+          promoText: (galleryAd.promoText || '').trim(),
+          cover: (galleryAd.cover || '').trim(),
+        }),
+      });
+      const d = await r.json();
+      if (d.success) { alert('✓ 广告位已保存'); await loadGalleryAd(); await fetchPosts(); }
+      else alert('保存失败：' + (d.error || '未知错误'));
+    } catch (e) { alert('保存失败：' + e.message); }
+    finally { setGalleryAdSaving(false); }
+  };
+  const clearGalleryAd = async () => {
+    if (!confirm('确定清空广告位配置？前台将不再显示底部横幅。')) return;
+    setGalleryAdSaving(true);
+    try {
+      const r = await fetch('/api/admin/gallery-ad', { method: 'DELETE' });
+      const d = await r.json();
+      if (d.success) {
+        setGalleryAd({ id: null, url: '', promoText: '', cover: '' });
+        alert('✓ 广告位已清空');
+        await fetchPosts();
+      } else alert('清空失败：' + (d.error || '未知错误'));
+    } catch (e) { alert('清空失败：' + e.message); }
+    finally { setGalleryAdSaving(false); }
+  };
+  const uploadGalleryAdCover = async (file) => {
+    if (!file) return;
+    setGalleryAdCoverUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (d.success && d.url) setGalleryAd(prev => ({ ...prev, cover: d.url }));
+      else alert('封面上传失败：' + (d.error || '未知错误'));
+    } catch (e) { alert('封面上传失败：' + e.message); }
+    finally { setGalleryAdCoverUploading(false); }
+  };
   const updateFriendField = (id, key, val) => setFriends(prev => prev.map(f => f.id === id ? { ...f, [key]: val } : f));
   const clearFriendBtn = (key) => setFriendBtnStatus(prev => { const n = { ...prev }; delete n[key]; return n; });
   const saveFriend = async (friend) => {
@@ -1056,7 +1121,7 @@ const [mounted, setMounted] = useState(false);
         list = ann ? [ann, ...rest] : rest;
      }
      else if (activeTab === 'Widget') {
-        list = list.filter(p => p.type === 'Widget');
+        list = list.filter(p => p.type === 'Widget' && p.slug !== 'gallery-ad');
      }
      else {
         list = list.filter(p => p.type === 'Post' && p.status !== 'Draft' && p.slug !== ANNOUNCEMENT_SLUG);
@@ -1180,6 +1245,16 @@ const [mounted, setMounted] = useState(false);
                   <div style={{ color: 'greenyellow', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
                 </div>
               )}
+              {activeTab === 'Widget' && viewMode !== 'folder' && (
+                <div onClick={openGalleryAd} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #f59e0b', cursor: 'pointer' }}>
+                  <div style={{ fontSize: '28px' }}>📢</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>广告位编辑</div>
+                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>Gallery 主题内页底部横幅（链接预览风格）</div>
+                  </div>
+                  <div style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
+                </div>
+              )}
               {viewMode === 'folder' && options.categories.map(cat => (
                 <div key={cat} onClick={() => { setSelectedFolder(cat); handleNavClick(1); }} style={{ padding: '15px', background: '#424242', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #555', cursor: 'pointer' }} className="btn-ia">
                   <Icons.FolderIcon />{cat}
@@ -1222,6 +1297,59 @@ const [mounted, setMounted] = useState(false);
               })}
             </div>
           </main>
+        ) : view === 'gallery-ad' ? (
+          <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
+              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>📢 广告位编辑</div>
+              <div style={{fontSize:'12px', color:'#888'}}>仅 Gallery 主题内页底部显示</div>
+            </div>
+
+            {galleryAdLoading ? (
+              <div style={{color:'#888', textAlign:'center', padding:'30px'}}>加载中...</div>
+            ) : (
+              <>
+                <div style={{fontSize:'12px', color:'#aaa', marginBottom:'20px', lineHeight:1.8}}>
+                  填写目标链接后，构建时会自动抓取该站的 Hero / OG 图作为横幅背景（类似 Telegram 链接预览）。宣传文字选填；不填则只显示背景图。未配置链接时底部不留空白。
+                </div>
+                <div style={{display:'flex', gap:'24px', alignItems:'flex-start', flexWrap:'wrap'}}>
+                  <div>
+                    <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'8px'}}>自定义封面（选填，覆盖自动抓取）</label>
+                    <label className="img-drop" style={{width:'200px', height:'80px', minHeight:'80px', padding:0, borderRadius:'10px', overflow:'hidden'}}
+                      onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
+                      onDrop={e=>{e.preventDefault(); e.stopPropagation(); uploadGalleryAdCover(e.dataTransfer.files[0]);}}>
+                      <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ uploadGalleryAdCover(e.target.files[0]); e.target.value=''; }} />
+                      {galleryAdCoverUploading
+                        ? <div className="img-uploading"><div className="img-spin"></div></div>
+                        : galleryAd.cover
+                          ? <img src={galleryAd.cover} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
+                          : <div style={{pointerEvents:'none', fontSize:'11px', textAlign:'center', color:'#999', padding:'10px'}}>拖拽 / 点击上传<br/>横版封面</div>}
+                    </label>
+                  </div>
+                  <div style={{flex:1, minWidth:'280px', display:'flex', flexDirection:'column', gap:'16px'}}>
+                    <div>
+                      <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>广告链接 <span style={{color:'#ff4d4f'}}>*</span></label>
+                      <input className="glow-input" value={galleryAd.url} onChange={e=>setGalleryAd({...galleryAd, url: e.target.value})} placeholder="https://example.com" />
+                    </div>
+                    <div>
+                      <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>宣传文字（选填）</label>
+                      <input className="glow-input" value={galleryAd.promoText} onChange={e=>setGalleryAd({...galleryAd, promoText: e.target.value})} placeholder="留空则仅显示链接预览背景图" />
+                    </div>
+                  </div>
+                </div>
+                <div style={{display:'flex', gap:'12px', marginTop:'32px'}}>
+                  <button onClick={saveGalleryAd} disabled={galleryAdSaving} style={{flex:1, padding:'18px', background: galleryAdSaving ? '#333' : '#fff', color: galleryAdSaving ? '#666' : '#000', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'15px', cursor: galleryAdSaving ? 'wait' : 'pointer'}}>
+                    {galleryAdSaving ? '保存中...' : '保存广告位'}
+                  </button>
+                  {galleryAd.id ? (
+                    <button onClick={clearGalleryAd} disabled={galleryAdSaving} style={{padding:'18px 24px', background:'transparent', color:'#ff7875', border:'1px solid #ff7875', borderRadius:'12px', fontWeight:'bold', fontSize:'14px', cursor:'pointer'}}>清空</button>
+                  ) : null}
+                </div>
+                <div style={{marginTop:'20px', fontSize:'12px', color:'#777', lineHeight:1.7}}>
+                  💡 保存后需点击右上角「更新」重新部署，前台 Gallery 内页才会显示新横幅。
+                </div>
+              </>
+            )}
+          </div>
         ) : view === 'friends' ? (
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
