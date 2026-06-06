@@ -205,8 +205,10 @@ const GlobalStyle = () => (
     .nav-glider { position: absolute; top: 5px; bottom: 5px; background: greenyellow; border-radius: 40px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1; }
     .nav-item { position: relative; z-index: 2; padding: 8px 16px; cursor: pointer; color: #888; transition: color 0.3s; display: flex; align-items: center; justify-content: center; width: 40px; }
     .nav-item.active { color: #000; font-weight: bold; }
-    .block-card { background: #2a2a2e; border: 1px solid #333; border-radius: 10px; padding: 15px 15px 15px 55px; margin-bottom: 12px; position: relative; transition: border 0.2s; }
-    .block-card:hover { border-color: greenyellow; }
+    .gallery-only-tag { display: inline; color: #1a1500; font-weight: 600; background: linear-gradient(180deg, #ffe566 0%, #ffd400 100%); padding: 1px 7px; border-radius: 4px; font-size: 10px; letter-spacing: 0.3px; box-shadow: 0 0 0 1px rgba(255, 200, 0, 0.35); vertical-align: baseline; }
+    .block-card-wrap { display: grid; grid-template-columns: 1fr 40px; column-gap: 4px; margin-bottom: 12px; align-items: stretch; }
+    .block-card { background: #2a2a2e; border: 1px solid #333; border-radius: 10px; padding: 15px 15px 15px 55px; margin-bottom: 0; position: relative; transition: border 0.2s; min-width: 0; }
+    .block-card-wrap:hover .block-card { border-color: greenyellow; }
     .block-card.just-moved { animation: moveHighlight 0.6s ease-out; }
     @keyframes moveHighlight { 0% { box-shadow: 0 0 0 0 rgba(173, 255, 47, 0); border-color: #333; } 30% { box-shadow: 0 0 15px 2px rgba(173, 255, 47, 0.4); border-color: greenyellow; background: #2f2f33; } 100% { box-shadow: 0 0 0 0 rgba(173, 255, 47, 0); border-color: #333; background: #2a2a2e; } }
     .block-left-ctrl { position: absolute; left: 0; top: 0; bottom: 0; width: 45px; background: rgba(0,0,0,0.2); border-right: 1px solid #333; border-radius: 10px 0 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
@@ -214,9 +216,8 @@ const GlobalStyle = () => (
     .move-btn:hover { background: greenyellow; color: #000; box-shadow: 0 0 10px greenyellow; }
     .move-btn:active { transform: scale(0.9); }
     .block-label { font-size: 12px; color: greenyellow; margin-bottom: 8px; fontWeight: bold; text-transform: uppercase; letter-spacing: 1px; }
-    .block-del { position: absolute; right: 0; top: 0; bottom: 0; width: 40px; background: #ff4d4f; border-radius: 0 10px 10px 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; cursor: pointer; color: white; }
-    .block-card:hover .block-del { opacity: 1; right: -40px; }
-    .block-card:hover { margin-right: 40px; }
+    .block-del { width: 40px; background: #ff4d4f; border-radius: 10px; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; cursor: pointer; color: white; align-self: stretch; }
+    .block-card-wrap:hover .block-del { opacity: 1; pointer-events: auto; }
     .acc-btn { width: 100%; background: #424242; padding: 15px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #555; color: #fff; margin-bottom: 10px; transition: 0.2s; }
     .acc-btn:hover { border-color: greenyellow; color: greenyellow; }
     .acc-content { overflow: hidden; transition: max-height 0.3s ease; max-height: 0; padding: 0 10px; }
@@ -279,6 +280,10 @@ const SearchInput = ({ value, onChange }) => (
     <svg className="search-icon" aria-hidden="true" viewBox="0 0 24 24"><g><path d="M21.53 20.47l-3.66-3.66C19.195 15.24 20 13.214 20 11c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66c.147.146.34.22.53.22s.385-.073.53-.22c.295-.293.295-.767.002-1.06zM3.5 11c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5-7.5-3.365-7.5-7.5z"></path></g></svg>
     <input placeholder="Search" type="search" className="input" value={value} onChange={onChange} />
   </div>
+);
+
+const GalleryOnlyTag = () => (
+  <span className="gallery-only-tag">(Gallery主题专用)</span>
 );
 
 const StepAccordion = ({ step, title, isOpen, onToggle, children }) => (
@@ -652,6 +657,7 @@ function getGalleryLoaderHint(phase, progress) {
 const FullScreenLoader = ({ phase, progress }) => {
   const isTheme = phase === 'theme';
   const meta = SAVE_PHASE_META[phase];
+  const hasProgress = progress && progress.total > 0;
   const title = isTheme
     ? (hasProgress && progress?.step === 2
         ? ''
@@ -662,7 +668,6 @@ const FullScreenLoader = ({ phase, progress }) => {
   const hint = isTheme
     ? (hasProgress && progress?.step === 2 ? '' : (progress?.hint || ''))
     : getGalleryLoaderHint(phase, progress);
-  const hasProgress = progress && progress.total > 0;
   const pct = hasProgress
     ? Math.min(100, Math.round((progress.done / progress.total) * 100))
     : 0;
@@ -1125,7 +1130,8 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
       </div>
       <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
         {blocks.map((b, index) => (
-          <div key={b.id} id={`block-${b.id}`} className={`block-card ${movingId === b.id ? 'just-moved' : ''}`}>
+          <div key={b.id} className="block-card-wrap">
+          <div id={`block-${b.id}`} className={`block-card ${movingId === b.id ? 'just-moved' : ''}`}>
             <div className="block-left-ctrl">
                <div className="move-btn" onClick={() => moveToTop(index)} title="置顶"><Icons.Top /></div>
                <div className="move-btn" onClick={() => moveBlock(index, -1)}><Icons.ArrowUp /></div>
@@ -1237,7 +1243,8 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                  {b.error && <div className="img-err">⚠ {b.error}</div>}
                </label>
             )}
-            <div className="block-del" onClick={()=>removeBlock(b.id)}><Icons.Trash /></div>
+            </div>
+            <div className="block-del" onClick={()=>removeBlock(b.id)} title="删除此块"><Icons.Trash /></div>
           </div>
         ))}
         {blocks.length === 0 && <div style={{textAlign:'center', color:'#666', padding:'40px', border:'2px dashed #444', borderRadius:'12px'}}>👋 正文暂无内容，请点击上方按钮添加模块，首个图片块将被作为本篇封面</div>}
@@ -2538,11 +2545,11 @@ const [mounted, setMounted] = useState(false);
                <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>摘要</label><input className="glow-input" value={form.excerpt} onChange={e=>setForm({...form, excerpt:e.target.value})} placeholder="输入摘要" /></div>
                {!editingSimplePage ? (
                <div style={{marginTop:'4px', paddingTop:'16px', borderTop:'1px solid #333'}}>
-                 <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载信息 <span style={{color:'#777', fontWeight:'normal'}}>(Gallery主题专用)</span></label>
+                 <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载信息 <GalleryOnlyTag /></label>
                  <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>Gallery 主题会展示下载按钮，对应此处填写内容。可写说明 + 链接，例如：下载链接：https://xxx.xxpan.com</p>
                  <input className="glow-input" value={form.download || ''} onChange={e=>setForm({...form, download:e.target.value})} placeholder="输入下载链接，留空则显示「暂无下载」" style={{fontSize:'13px'}} />
                  <div style={{marginTop:'12px'}}>
-                   <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>资源包大小 <span style={{color:'#777', fontWeight:'normal'}}>(Gallery主题专用)</span></label>
+                   <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>资源包大小 <GalleryOnlyTag /></label>
                    <input className="glow-input" value={form.download_size || ''} onChange={e=>setForm({...form, download_size:e.target.value})} placeholder="例如：639 MB、1.2 GB" style={{fontSize:'13px'}} />
                    <p style={{fontSize:'11px', color:'#777', margin:'6px 0 0', lineHeight:1.5}}>填写后显示在下载页标题栏右侧，留空则不显示。</p>
                </div>
@@ -2613,7 +2620,7 @@ const [mounted, setMounted] = useState(false);
 ) : null}
 
             {!editingSimplePage ? (
-            <StepAccordion step={4} title="图库（Gallery主题专用）" isOpen={expandedStep === 4} onToggle={()=>setExpandedStep(expandedStep===4?0:4)}>
+            <StepAccordion step={4} title={<>图库 <GalleryOnlyTag /></>} isOpen={expandedStep === 4} onToggle={()=>setExpandedStep(expandedStep===4?0:4)}>
               <GalleryManager
                 postSlug={form.slug}
                 postTitle={form.title}

@@ -27,42 +27,47 @@ function findThemeConfigPage(
   )
 }
 
-async function fetchRemoteThemeFromNotion(): Promise<string | null> {
-  const posts = await getPosts(ApiScope.Archive)
-  let themeConfigPage = posts.find(
-    (page) => readRichTextPlain(page.properties['slug']) === THEME_CONFIG_SLUG
+function filterPagesByType(
+  objects: PageObjectResponse[],
+  typeName: string
+): PageObjectResponse[] {
+  return objects.filter(
+    (object) =>
+      object.properties['type'].type === 'select' &&
+      object.properties['type'].select?.name === typeName
   )
+}
 
-  if (!themeConfigPage) {
-    const draftPosts = await getPosts(ApiScope.Draft)
-    themeConfigPage = draftPosts.find(
-      (page) => readRichTextPlain(page.properties['slug']) === THEME_CONFIG_SLUG
-    )
+async function fetchRemoteThemeFromNotion(): Promise<string | null> {
+  const scopes: ApiScope[] = [
+    ApiScope.Archive,
+    ApiScope.Draft,
+    ApiScope.Home,
+    ApiScope.Page,
+  ]
+
+  for (const scope of scopes) {
+    const objects = await getAll(scope)
+    let themeConfigPage: PageObjectResponse | undefined
+
+    if (scope === ApiScope.Page) {
+      themeConfigPage = findThemeConfigPage(filterPagesByType(objects, 'Page'))
+      if (!themeConfigPage) {
+        themeConfigPage = findThemeConfigPage(objects)
+      }
+    } else if (scope === ApiScope.Home) {
+      themeConfigPage = findThemeConfigPage(filterPagesByType(objects, 'Widget'))
+    } else {
+      themeConfigPage = findThemeConfigPage(filterPagesByType(objects, 'Post'))
+    }
+
+    if (themeConfigPage) {
+      const excerpt = readRichTextPlain(themeConfigPage.properties['excerpt'])
+      return excerpt || null
+    }
   }
 
-  if (!themeConfigPage) {
-    const widgets = await getWidgets()
-    themeConfigPage = widgets.find(
-      (page) => readRichTextPlain(page.properties['slug']) === THEME_CONFIG_SLUG
-    )
-  }
-
-  if (!themeConfigPage) {
-    const pages = await getPages()
-    themeConfigPage = findThemeConfigPage(pages)
-  }
-
-  if (!themeConfigPage) {
-    const allPageScope = await getAll(ApiScope.Page)
-    themeConfigPage = findThemeConfigPage(
-      allPageScope.filter(
-        (o): o is PageObjectResponse => o.object === 'page'
-      ) as PageObjectResponse[]
-    )
-  }
-
-  const excerpt = readRichTextPlain(themeConfigPage?.properties['excerpt'])
-  return excerpt || null
+  return null
 }
 
 /**
