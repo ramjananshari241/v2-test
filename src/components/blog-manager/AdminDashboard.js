@@ -225,14 +225,16 @@ const GlobalStyle = () => (
     .block-view-btn:hover:not(.active) { border-color: #777; color: #ddd; }
     .block-view-hint { font-size: 11px; color: #888; line-height: 1.5; }
     .block-minimap { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 14px; background: #252528; border: 1px solid #333; border-radius: 12px; max-height: min(72vh, 680px); overflow-y: auto; align-content: start; }
-    .block-minimap-item { position: relative; display: flex; flex-direction: column; min-height: 118px; border: 1px solid #444; border-radius: 8px; background: #1c1c1f; overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s; user-select: none; }
+    .block-minimap-item { position: relative; display: flex; flex-direction: column; min-height: 118px; border: 1px solid #444; border-radius: 8px; background: #1c1c1f; overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s; user-select: none; cursor: grab; touch-action: none; }
+    .block-minimap-item:active { cursor: grabbing; }
     .block-minimap-item:hover { border-color: #666; }
-    .block-minimap-item.is-dragging { opacity: 0.45; transform: scale(0.97); }
-    .block-minimap-item.is-drop-target { border-color: greenyellow; box-shadow: 0 0 0 2px rgba(173,255,47,0.25); }
+    .block-minimap-item.is-dragging { opacity: 0.45; transform: scale(0.97); cursor: grabbing; }
+    .block-minimap-item.is-drop-before { border-color: greenyellow; box-shadow: inset 3px 0 0 0 greenyellow, 0 0 0 1px rgba(173,255,47,0.35); }
+    .block-minimap-item.is-drop-after { border-color: greenyellow; box-shadow: inset -3px 0 0 0 greenyellow, 0 0 0 1px rgba(173,255,47,0.35); }
     .block-minimap-item.is-cover { border-color: rgba(173,255,47,0.55); }
+    .block-minimap-item.is-cover.is-drop-before, .block-minimap-item.is-cover.is-drop-after { border-color: greenyellow; }
     .block-minimap-item.just-moved { animation: moveHighlight 0.6s ease-out; }
-    .block-minimap-main { flex: 1; min-height: 0; padding: 8px 8px 6px; cursor: pointer; transition: background 0.15s; display: flex; flex-direction: column; gap: 6px; }
-    .block-minimap-main:hover { background: rgba(255,255,255,0.03); }
+    .block-minimap-main { flex: 1; min-height: 0; padding: 8px 8px 8px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
     .block-minimap-index { position: absolute; top: 6px; left: 6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 4px; background: rgba(0,0,0,0.65); color: greenyellow; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; z-index: 1; }
     .block-minimap-type-row { display: flex; align-items: center; gap: 5px; margin-top: 18px; flex-wrap: wrap; min-height: 16px; }
     .block-minimap-type { font-size: 10px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -243,9 +245,7 @@ const GlobalStyle = () => (
     .block-minimap-preview.is-note { font-family: monospace; font-size: 10px; color: #ff8a8a; }
     .block-minimap-preview.is-empty { color: #666; font-style: italic; }
     .block-minimap-thumb { flex: 1; min-height: 48px; max-height: 72px; border-radius: 4px; overflow: hidden; background: #111; display: flex; align-items: center; justify-content: center; }
-    .block-minimap-thumb img, .block-minimap-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .block-minimap-drag { flex-shrink: 0; height: 22px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.28); border-top: 1px solid #333; color: #666; font-size: 12px; letter-spacing: 2px; cursor: grab; touch-action: none; }
-    .block-minimap-drag:active { cursor: grabbing; color: greenyellow; }
+    .block-minimap-thumb img, .block-minimap-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
     .block-minimap-del { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: #ff4d4f; color: #fff; border: none; opacity: 0; pointer-events: none; z-index: 2; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; font-weight: 700; transition: opacity 0.15s, transform 0.15s; box-shadow: 0 2px 6px rgba(0,0,0,0.35); padding: 0; }
     .block-minimap-item:hover .block-minimap-del { opacity: 1; pointer-events: auto; }
     .block-minimap-del:hover { transform: scale(1.08); background: #ff7875; }
@@ -976,13 +976,14 @@ const BlockMinimapItem = ({
   index,
   isCover,
   isDragging,
-  isDropTarget,
+  isDropBefore,
+  isDropAfter,
   justMoved,
   onDragStart,
   onDragOver,
   onDrop,
   onDragEnd,
-  onSelect,
+  onClick,
   onRemove,
 }) => {
   const previewText = (() => {
@@ -1008,49 +1009,42 @@ const BlockMinimapItem = ({
 
   return (
     <div
-      className={`block-minimap-item ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? 'is-drop-target' : ''} ${isCover ? 'is-cover' : ''} ${justMoved ? 'just-moved' : ''}`}
+      className={`block-minimap-item ${isDragging ? 'is-dragging' : ''} ${isDropBefore ? 'is-drop-before' : ''} ${isDropAfter ? 'is-drop-after' : ''} ${isCover ? 'is-cover' : ''} ${justMoved ? 'just-moved' : ''}`}
+      draggable
+      onDragStart={(e) => onDragStart(e, index)}
       onDragOver={(e) => onDragOver(e, index)}
       onDrop={(e) => onDrop(e, index)}
+      onDragEnd={onDragEnd}
+      onClick={(e) => {
+        if (e.target.closest('.block-minimap-del')) return;
+        onClick(block.id);
+      }}
+      title={`第 ${index + 1} 块 · 拖拽排序 · 点击放大编辑`}
     >
       <span className="block-minimap-index">{index + 1}</span>
       <button
         type="button"
         className="block-minimap-del"
+        draggable={false}
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onRemove(block.id); }}
         title="删除此块"
         aria-label="删除此块"
       >
         ×
       </button>
-      <div
-        className="block-minimap-main"
-        onClick={() => onSelect(block.id)}
-        title="点击放大并定位到该块"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(block.id); } }}
-      >
+      <div className="block-minimap-main">
         <div className="block-minimap-type-row">
           <span className="block-minimap-type">{BLOCK_TYPE_SHORT[block.type] || block.type}</span>
           {isCover ? <span className="block-minimap-cover">封面</span> : null}
         </div>
         {thumbUrl ? (
           <div className="block-minimap-thumb">
-            {isVideoThumb ? <video src={thumbUrl} muted playsInline /> : <img src={thumbUrl} alt="" draggable={false} />}
+            {isVideoThumb ? <video src={thumbUrl} muted playsInline draggable={false} /> : <img src={thumbUrl} alt="" draggable={false} />}
           </div>
         ) : (
           <div className={previewClass}>{previewText || '（空）'}</div>
         )}
-      </div>
-      <div
-        className="block-minimap-drag"
-        draggable
-        onDragStart={(e) => onDragStart(e, index)}
-        onDragEnd={onDragEnd}
-        title="拖拽调整顺序"
-        aria-label="拖拽调整顺序"
-      >
-        ⋮⋮
       </div>
     </div>
   );
@@ -1061,6 +1055,8 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   const [blockViewMode, setBlockViewMode] = useState('expanded');
   const [dragIndex, setDragIndex] = useState(null);
   const [dropIndex, setDropIndex] = useState(null);
+  const [dropPosition, setDropPosition] = useState(null);
+  const minimapDragMovedRef = useRef(false);
   const coverImageBlockId = findCoverImageBlock(blocks)?.id ?? null;
 
   const scrollToBlock = (id, delay = 100) => {
@@ -1261,43 +1257,94 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
     scrollToBlock(item.id);
   };
 
-  const reorderBlocks = (fromIndex, toIndex) => {
-    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+  const reorderBlocks = (fromIndex, insertAt) => {
+    if (fromIndex < 0 || insertAt < 0 || insertAt > blocks.length) return;
+    if (fromIndex === insertAt || fromIndex + 1 === insertAt) return;
     const newBlocks = [...blocks];
     const [item] = newBlocks.splice(fromIndex, 1);
-    newBlocks.splice(toIndex, 0, item);
+    let target = insertAt;
+    if (fromIndex < insertAt) target -= 1;
+    newBlocks.splice(target, 0, item);
     setBlocks(newBlocks);
     setMovingId(item.id);
     setTimeout(() => setMovingId(null), 600);
   };
 
   const handleMinimapDragStart = (e, index) => {
+    if (e.target.closest('.block-minimap-del')) {
+      e.preventDefault();
+      return;
+    }
+    minimapDragMovedRef.current = false;
     setDragIndex(index);
     setDropIndex(null);
+    setDropPosition(null);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', String(index));
-    const row = e.currentTarget?.closest('.block-minimap-item');
-    if (row) e.dataTransfer.setDragImage(row, 24, 24);
+    const row = e.currentTarget;
+    if (row) e.dataTransfer.setDragImage(row, row.offsetWidth / 2, row.offsetHeight / 2);
   };
 
   const handleMinimapDragOver = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
-    if (dragIndex !== null && dragIndex !== index) setDropIndex(index);
+    if (dragIndex === null) return;
+    minimapDragMovedRef.current = true;
+    if (dragIndex === index) {
+      setDropIndex(null);
+      setDropPosition(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = e.clientX < rect.left + rect.width / 2 ? 'before' : 'after';
+    setDropIndex(index);
+    setDropPosition(position);
+  };
+
+  const handleMinimapContainerDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragIndex === null || !blocks.length) return;
+    minimapDragMovedRef.current = true;
+    setDropIndex(blocks.length - 1);
+    setDropPosition('after');
   };
 
   const handleMinimapDrop = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
     const from = dragIndex ?? parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (!Number.isNaN(from)) reorderBlocks(from, index);
+    if (Number.isNaN(from)) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = e.clientX < rect.left + rect.width / 2 ? 'before' : 'after';
+    const insertAt = position === 'after' ? index + 1 : index;
+    reorderBlocks(from, insertAt);
     setDragIndex(null);
     setDropIndex(null);
+    setDropPosition(null);
+  };
+
+  const handleMinimapContainerDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const from = dragIndex ?? parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (Number.isNaN(from)) return;
+    reorderBlocks(from, blocks.length);
+    setDragIndex(null);
+    setDropIndex(null);
+    setDropPosition(null);
   };
 
   const handleMinimapDragEnd = () => {
     setDragIndex(null);
     setDropIndex(null);
+    setDropPosition(null);
+    setTimeout(() => { minimapDragMovedRef.current = false; }, 0);
+  };
+
+  const handleMinimapClick = (blockId) => {
+    if (minimapDragMovedRef.current) return;
+    focusBlockInExpandedView(blockId);
   };
 
   const getBlockLabel = (type) => {
@@ -1339,7 +1386,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
         </div>
         <div className="block-view-hint">
           {blockViewMode === 'compact'
-            ? '导览模式：点击块放大编辑 · 底部握把拖拽排序 · 悬停右上角可删除'
+            ? '导览模式：拖拽任意位置排序（左/右边缘高亮为插入位置）· 点击块放大编辑 · 悬停右上角可删除'
             : '放大视图下可通过块左侧按钮调整顺序'}
         </div>
       </div>
@@ -1349,8 +1396,8 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
         ) : (
           <div
             className="block-minimap"
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDragOver={handleMinimapContainerDragOver}
+            onDrop={handleMinimapContainerDrop}
           >
             {blocks.map((b, index) => (
               <BlockMinimapItem
@@ -1359,13 +1406,14 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                 index={index}
                 isCover={b.id === coverImageBlockId}
                 isDragging={dragIndex === index}
-                isDropTarget={dropIndex === index && dragIndex !== index}
+                isDropBefore={dropIndex === index && dropPosition === 'before'}
+                isDropAfter={dropIndex === index && dropPosition === 'after'}
                 justMoved={movingId === b.id}
                 onDragStart={handleMinimapDragStart}
                 onDragOver={handleMinimapDragOver}
                 onDrop={handleMinimapDrop}
                 onDragEnd={handleMinimapDragEnd}
-                onSelect={focusBlockInExpandedView}
+                onClick={handleMinimapClick}
                 onRemove={removeBlock}
               />
             ))}
