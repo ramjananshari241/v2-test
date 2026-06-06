@@ -26,8 +26,11 @@ export async function getImageInfo(src: string) {
 }
 
 const calculatePlaiceholder = async (url: string) => {
-  // 开发模式：跳过所有远程图片探测，本地预览秒开且避免加载 sharp 原生模块
-  if (process.env.NODE_ENV === 'development') {
+  // 开发模式，或显式跳过：避免远程探测拖慢 ISR / 按需生成
+  if (
+    process.env.NODE_ENV === 'development' ||
+    process.env.SKIP_REMOTE_IMAGE_PROBE === '1'
+  ) {
     return {
       placeholder: DEFAULT_PLACEHOLDER,
       width: DEFAULT_WIDTH,

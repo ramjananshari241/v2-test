@@ -35,7 +35,7 @@ export function GalleryPostContent({ postSlug, blocks }: GalleryPostContentProps
 
       {ready && !hasGallery && !showBody ? (
         <p className="py-6 text-center text-[13px] text-neutral-400">
-          暂无正文与图库。可在后台添加正文块，或在「图库（Gallery · Supabase）」上传作品图集。
+          暂无内容
         </p>
       ) : null}
     </>

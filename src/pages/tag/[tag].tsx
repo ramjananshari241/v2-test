@@ -19,14 +19,13 @@ import {
 } from '@/src/types/blog'
 import { ApiScope } from '@/src/types/notion'
 import { GetStaticProps, GetStaticPropsContext, NextPage } from 'next'
-import { capPostsForBuild } from '../../lib/blog/postLimits'
 import { getPosts } from '../../lib/notion/getBlogData'
 
 const { TAG } = CONFIG.DEFAULT_SPECIAL_PAGES
 
 export const getStaticPaths = async () => {
   const posts = await getPosts(ApiScope.Archive)
-  const formattedPosts = capPostsForBuild(await formatPosts(posts))
+  const formattedPosts = await formatPosts(posts)
   const tags = getAllTags(formattedPosts)
   const paths = tags.map((tag) => ({
     params: { tag: tag.id },

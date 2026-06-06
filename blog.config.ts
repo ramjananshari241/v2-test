@@ -20,7 +20,7 @@ interface BlogConfig {
    * 仅影响首页 props，不减少构建预渲染篇数。
    */
   HOME_FEED_POSTS_MAX?: number
-  /** 构建时预渲染的文章路径数（announcement + 置顶优先；其余走 fallback） */
+  /** 构建时预渲染的文章路径数（0 = 不预渲染 /post/*，靠 fallback + 保存后按需刷新） */
   STATIC_POST_PATHS_MAX?: number
   // public 下图标目录
   ICON_PATH: string
@@ -108,7 +108,7 @@ const CONFIG: BlogConfig = {
   },
   ARCHIVE_PER_COUNT: 10,
   HOME_FEED_POSTS_MAX: 0,
-  STATIC_POST_PATHS_MAX: 80,
+  STATIC_POST_PATHS_MAX: 0,
   ICON_PATH: '/icons',
   DEFAULT_SPECIAL_PAGES: {
     TAG: 'tag',

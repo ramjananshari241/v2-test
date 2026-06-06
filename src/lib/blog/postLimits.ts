@@ -5,10 +5,10 @@ import { ANNOUNCEMENT_SLUG, sortPostsByPinnedThenDate } from './pinnedPosts'
 /**
  * 构建期与首页文章策略（全主题共用，与 Notion theme-config 无关）：
  * - 首页 feed：buildHomeFeedPosts → 默认全量，供卡片翻页（announcement + 置顶优先排序）
- * - 预渲染路径：capPostsForBuild → STATIC_POST_PATHS_MAX（默认 80），其余 fallback: 'blocking'
+ * - 预渲染路径：capPostsForBuild → STATIC_POST_PATHS_MAX（0 = 部署时不生成任何 /post/* 静态页）
  */
 export const BLOG_STATIC_POST_PATHS_MAX =
-  (CONFIG as { STATIC_POST_PATHS_MAX?: number }).STATIC_POST_PATHS_MAX ?? 80
+  (CONFIG as { STATIC_POST_PATHS_MAX?: number }).STATIC_POST_PATHS_MAX ?? 0
 
 /** 0 表示首页不限制篇数 */
 export const BLOG_HOME_FEED_POSTS_MAX =
@@ -38,8 +38,11 @@ export function buildHomeFeedPosts(posts: Post[]): Post[] {
   return sliceToMax(ordered, BLOG_HOME_FEED_POSTS_MAX)
 }
 
-/** 构建 paths 时预渲染的文章集合 */
+/** 构建 paths 时预渲染的文章集合（仅用于 /post/*、/draft/*；0 则返回空数组） */
 export function capPostsForBuild(posts: Post[]): Post[] {
+  if (!BLOG_STATIC_POST_PATHS_MAX || BLOG_STATIC_POST_PATHS_MAX <= 0) {
+    return []
+  }
   return sliceToMax(orderPostsForBuildCap(posts), BLOG_STATIC_POST_PATHS_MAX)
 }
 
