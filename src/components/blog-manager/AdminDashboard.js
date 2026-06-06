@@ -24,7 +24,6 @@ import {
   isVideoImageContent,
   serializeBlocksForSave,
 } from '@/src/lib/admin/contentMediaFlush';
-import { slugify } from '@/src/lib/util';
 
 async function triggerContentRevalidation(payload = { scope: 'full' }) {
   try {
@@ -42,14 +41,6 @@ async function triggerContentRevalidation(payload = { scope: 'full' }) {
     console.warn('页面增量刷新请求失败', e);
     return null;
   }
-}
-
-function resolveRevalidateTagIds(tagsString) {
-  return (tagsString || '')
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .map((name) => slugify(name));
 }
 
 // ================= 1. 图标库 =================
@@ -1767,18 +1758,24 @@ const [mounted, setMounted] = useState(false);
         }
 
         alert("✅ 保存成功！");
-        await triggerContentRevalidation({
-          scope: form.type === 'Page' ? 'full' : 'post',
-          slug: form.slug,
-          categoryId: form.category ? slugify(form.category) : null,
-          tagIds: resolveRevalidateTagIds(form.tags),
-          previousSlug: editingSlugRef.current,
-        });
+        const previousSlug = editingSlugRef.current;
         editingSlugRef.current = form.slug;
         resetGalleryItems();
         setView('list');
         fetchPosts();
         loadGalleryStorage();
+
+        try {
+          await triggerContentRevalidation({
+            scope: form.type === 'Page' ? 'full' : 'post',
+            slug: form.slug,
+            category: form.category || '',
+            tags: form.tags || '',
+            previousSlug,
+          });
+        } catch (revalidateErr) {
+          console.warn('页面增量刷新失败（文章已保存）', revalidateErr);
+        }
       }
     } catch (e) {
       alert('网络错误: ' + e.message);
