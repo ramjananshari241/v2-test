@@ -224,29 +224,29 @@ const GlobalStyle = () => (
     .block-view-btn.active { border-color: greenyellow; color: greenyellow; background: rgba(173,255,47,0.08); }
     .block-view-btn:hover:not(.active) { border-color: #777; color: #ddd; }
     .block-view-hint { font-size: 11px; color: #888; line-height: 1.5; }
-    .block-minimap { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #252528; border: 1px solid #333; border-radius: 12px; max-height: min(72vh, 680px); overflow-y: auto; }
-    .block-minimap-item { position: relative; display: flex; align-items: stretch; width: 100%; border: 1px solid #444; border-radius: 10px; background: #1c1c1f; overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s; user-select: none; }
+    .block-minimap { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 14px; background: #252528; border: 1px solid #333; border-radius: 12px; max-height: min(72vh, 680px); overflow-y: auto; align-content: start; }
+    .block-minimap-item { position: relative; display: flex; flex-direction: column; min-height: 118px; border: 1px solid #444; border-radius: 8px; background: #1c1c1f; overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s; user-select: none; }
     .block-minimap-item:hover { border-color: #666; }
-    .block-minimap-item.is-dragging { opacity: 0.45; }
+    .block-minimap-item.is-dragging { opacity: 0.45; transform: scale(0.97); }
     .block-minimap-item.is-drop-target { border-color: greenyellow; box-shadow: 0 0 0 2px rgba(173,255,47,0.25); }
-    .block-minimap-item.is-cover { border-color: rgba(173,255,47,0.45); }
+    .block-minimap-item.is-cover { border-color: rgba(173,255,47,0.55); }
     .block-minimap-item.just-moved { animation: moveHighlight 0.6s ease-out; }
-    .block-minimap-drag { width: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.28); border-right: 1px solid #333; color: #666; font-size: 15px; letter-spacing: -2px; cursor: grab; touch-action: none; }
-    .block-minimap-drag:active { cursor: grabbing; color: greenyellow; }
-    .block-minimap-main { flex: 1; min-width: 0; padding: 10px 36px 10px 12px; cursor: pointer; transition: background 0.15s; }
+    .block-minimap-main { flex: 1; min-height: 0; padding: 8px 8px 6px; cursor: pointer; transition: background 0.15s; display: flex; flex-direction: column; gap: 6px; }
     .block-minimap-main:hover { background: rgba(255,255,255,0.03); }
-    .block-minimap-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-    .block-minimap-index { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 5px; background: rgba(0,0,0,0.55); color: greenyellow; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-    .block-minimap-type { font-size: 11px; color: #888; font-weight: 600; }
-    .block-minimap-cover { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: greenyellow; color: #000; font-weight: 700; }
-    .block-minimap-preview { padding: 12px 14px; background: #141416; border-radius: 8px; font-size: 13px; line-height: 1.55; color: #ccc; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; word-break: break-word; white-space: pre-wrap; }
-    .block-minimap-preview.is-h1 { font-size: 16px; font-weight: 700; color: #eee; -webkit-line-clamp: 3; }
-    .block-minimap-preview.is-quote { border-left: 3px solid greenyellow; padding-left: 12px; font-style: italic; color: #bbb; }
-    .block-minimap-preview.is-note { font-family: monospace; font-size: 12px; color: #ff8a8a; }
+    .block-minimap-index { position: absolute; top: 6px; left: 6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 4px; background: rgba(0,0,0,0.65); color: greenyellow; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; z-index: 1; }
+    .block-minimap-type-row { display: flex; align-items: center; gap: 5px; margin-top: 18px; flex-wrap: wrap; min-height: 16px; }
+    .block-minimap-type { font-size: 10px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .block-minimap-cover { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: greenyellow; color: #000; font-weight: 700; flex-shrink: 0; }
+    .block-minimap-preview { flex: 1; font-size: 11px; line-height: 1.35; color: #ccc; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; word-break: break-word; background: #141416; border-radius: 4px; padding: 6px 8px; min-height: 48px; }
+    .block-minimap-preview.is-h1 { font-weight: 700; color: #eee; -webkit-line-clamp: 2; }
+    .block-minimap-preview.is-quote { font-style: italic; color: #bbb; border-left: 2px solid greenyellow; padding-left: 6px; }
+    .block-minimap-preview.is-note { font-family: monospace; font-size: 10px; color: #ff8a8a; }
     .block-minimap-preview.is-empty { color: #666; font-style: italic; }
-    .block-minimap-thumb { width: 100%; border-radius: 8px; overflow: hidden; background: #0d0d0f; display: flex; align-items: center; justify-content: center; }
-    .block-minimap-thumb img, .block-minimap-thumb video { width: 100%; height: auto; max-height: 320px; object-fit: contain; display: block; }
-    .block-minimap-del { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: #ff4d4f; color: #fff; border: none; opacity: 0; pointer-events: none; z-index: 2; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1; font-weight: 700; transition: opacity 0.15s, transform 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+    .block-minimap-thumb { flex: 1; min-height: 48px; max-height: 72px; border-radius: 4px; overflow: hidden; background: #111; display: flex; align-items: center; justify-content: center; }
+    .block-minimap-thumb img, .block-minimap-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .block-minimap-drag { flex-shrink: 0; height: 22px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.28); border-top: 1px solid #333; color: #666; font-size: 12px; letter-spacing: 2px; cursor: grab; touch-action: none; }
+    .block-minimap-drag:active { cursor: grabbing; color: greenyellow; }
+    .block-minimap-del { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: #ff4d4f; color: #fff; border: none; opacity: 0; pointer-events: none; z-index: 2; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; font-weight: 700; transition: opacity 0.15s, transform 0.15s; box-shadow: 0 2px 6px rgba(0,0,0,0.35); padding: 0; }
     .block-minimap-item:hover .block-minimap-del { opacity: 1; pointer-events: auto; }
     .block-minimap-del:hover { transform: scale(1.08); background: #ff7875; }
     .acc-btn { width: 100%; background: #424242; padding: 15px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #555; color: #fff; margin-bottom: 10px; transition: 0.2s; }
@@ -1012,16 +1012,16 @@ const BlockMinimapItem = ({
       onDragOver={(e) => onDragOver(e, index)}
       onDrop={(e) => onDrop(e, index)}
     >
-      <div
-        className="block-minimap-drag"
-        draggable
-        onDragStart={(e) => onDragStart(e, index)}
-        onDragEnd={onDragEnd}
-        title="拖拽调整顺序"
-        aria-label="拖拽调整顺序"
+      <span className="block-minimap-index">{index + 1}</span>
+      <button
+        type="button"
+        className="block-minimap-del"
+        onClick={(e) => { e.stopPropagation(); onRemove(block.id); }}
+        title="删除此块"
+        aria-label="删除此块"
       >
-        ⋮⋮
-      </div>
+        ×
+      </button>
       <div
         className="block-minimap-main"
         onClick={() => onSelect(block.id)}
@@ -1030,8 +1030,7 @@ const BlockMinimapItem = ({
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(block.id); } }}
       >
-        <div className="block-minimap-meta">
-          <span className="block-minimap-index">{index + 1}</span>
+        <div className="block-minimap-type-row">
           <span className="block-minimap-type">{BLOCK_TYPE_SHORT[block.type] || block.type}</span>
           {isCover ? <span className="block-minimap-cover">封面</span> : null}
         </div>
@@ -1043,15 +1042,16 @@ const BlockMinimapItem = ({
           <div className={previewClass}>{previewText || '（空）'}</div>
         )}
       </div>
-      <button
-        type="button"
-        className="block-minimap-del"
-        onClick={(e) => { e.stopPropagation(); onRemove(block.id); }}
-        title="删除此块"
-        aria-label="删除此块"
+      <div
+        className="block-minimap-drag"
+        draggable
+        onDragStart={(e) => onDragStart(e, index)}
+        onDragEnd={onDragEnd}
+        title="拖拽调整顺序"
+        aria-label="拖拽调整顺序"
       >
-        ×
-      </button>
+        ⋮⋮
+      </div>
     </div>
   );
 };
@@ -1339,7 +1339,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
         </div>
         <div className="block-view-hint">
           {blockViewMode === 'compact'
-            ? '竖向导览：点击块可放大编辑 · 左侧握把拖拽排序 · 悬停右上角可删除'
+            ? '导览模式：点击块放大编辑 · 底部握把拖拽排序 · 悬停右上角可删除'
             : '放大视图下可通过块左侧按钮调整顺序'}
         </div>
       </div>
