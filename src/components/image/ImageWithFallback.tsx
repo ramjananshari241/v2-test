@@ -7,39 +7,41 @@ const ImageWithFallback = (
   props: ImageProps & { fallbackSrc: string; isIcon?: boolean }
 ) => {
   const { fallbackSrc, alt, isIcon, ...rest } = props
-  const src = props.src as string
-  const [error, setError] = useState(false)
-  const [imgSrc, setImgSrc] = useState(src)
-  const [enableFallbackIcon, setEnableFallbackIcon] = useState(false)
-  const isNotionHosted = imgSrc.includes('secure.notion-static.com')
+  const initialSrc = props.src as string
+  const [imgSrc, setImgSrc] = useState(initialSrc)
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
 
-  return !error ? (
+  const isNotionHosted = imgSrc.includes('secure.notion-static.com')
+  const showBrokenIcon = failedSrc === fallbackSrc
+
+  const handleError = () => {
+    if (imgSrc !== fallbackSrc) {
+      setFailedSrc(imgSrc)
+      setImgSrc(fallbackSrc)
+      return
+    }
+    setFailedSrc(fallbackSrc)
+  }
+
+  if (showBrokenIcon) {
+    if (isIcon === true) {
+      return <FaQuestionCircle className="h-full w-full opacity-30" />
+    }
+    return (
+      <div className="relative z-0 flex h-full w-full items-center justify-center bg-neutral-50 dark:bg-neutral-800">
+        <RxLinkBreak2 className="h-1/3 w-1/3 opacity-30" />
+      </div>
+    )
+  }
+
+  return (
     <NextImage
       {...rest}
       src={imgSrc}
-      onError={() => {
-        setImgSrc(fallbackSrc)
-        setError(true)
-      }}
+      onError={handleError}
       unoptimized={props.unoptimized || isNotionHosted}
       alt={alt}
     />
-  ) : enableFallbackIcon ? (
-    <NextImage
-      {...rest}
-      src={imgSrc}
-      onError={() => {
-        setEnableFallbackIcon(true)
-      }}
-      unoptimized={props.unoptimized || isNotionHosted}
-      alt={alt}
-    />
-  ) : isIcon && isIcon === true ? (
-    <FaQuestionCircle className="w-full h-full opacity-30" />
-  ) : (
-    <div className="relative z-0 flex items-center justify-center w-full h-full bg-neutral-50 dark:bg-neutral-800">
-      <RxLinkBreak2 className="w-1/3 h-1/3 opacity-30" />
-    </div>
   )
 }
 

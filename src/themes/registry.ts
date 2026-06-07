@@ -11,8 +11,8 @@ export const THEME_HOME: Record<ThemeId, ComponentType<ThemeHomeProps>> = {
 }
 
 /**
- * 新主题首页应使用 index 下发的 props.posts（buildHomeFeedPosts，默认全量），
- * 勿在主题内全量 getPosts。构建上限见 src/lib/blog/postLimits.ts
+ * 新主题首页应使用 index 下发的 props.posts（buildHomeFeedPosts 全量），
+ * 勿在主题内重复 getPosts。
  */
 
 /** 将 theme-config.excerpt 或内部主题 ID 解析为 ThemeId */

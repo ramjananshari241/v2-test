@@ -57,7 +57,7 @@ export async function collectAllRevalidatePaths(): Promise<string[]> {
     getPages(),
   ])
 
-  const formattedPosts = await formatPosts(posts)
+  const formattedPosts = await formatPosts(posts, { skipImageProbe: true })
   const formattedPages = formatPages(pagesRaw)
 
   for (const post of formattedPosts) {
@@ -89,7 +89,7 @@ export async function collectAllRevalidatePaths(): Promise<string[]> {
   }
 
   const draftPosts = await getPosts(ApiScope.Draft)
-  const formattedDrafts = await formatPosts(draftPosts)
+  const formattedDrafts = await formatPosts(draftPosts, { skipImageProbe: true })
   for (const post of formattedDrafts) {
     paths.add(`/draft/${post.slug}`)
   }
@@ -129,7 +129,7 @@ export async function collectPostRevalidatePaths(
   }
 
   const { posts, pieces } = await getPostsAndPieces(ApiScope.Archive)
-  const formattedPosts = await formatPosts(posts)
+  const formattedPosts = await formatPosts(posts, { skipImageProbe: true })
   const archivePageCount = Math.max(
     1,
     Math.ceil((formattedPosts.length + pieces.length) / CONFIG.ARCHIVE_PER_COUNT)

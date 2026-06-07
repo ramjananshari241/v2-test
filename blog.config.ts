@@ -15,13 +15,6 @@ interface BlogConfig {
   }
   // 归档页每页显示的数量
   ARCHIVE_PER_COUNT: number
-  /**
-   * 首页卡片列表上限（全主题）。0 或不设 = 不限制，可翻页看全部文章；
-   * 仅影响首页 props，不减少构建预渲染篇数。
-   */
-  HOME_FEED_POSTS_MAX?: number
-  /** 构建时预渲染的文章路径数（0 = 不预渲染 /post/*，靠 fallback + 保存后按需刷新） */
-  STATIC_POST_PATHS_MAX?: number
   // public 下图标目录
   ICON_PATH: string
   // 默认特殊页面对应的 slug
@@ -107,8 +100,6 @@ const CONFIG: BlogConfig = {
     MORE: 6,
   },
   ARCHIVE_PER_COUNT: 10,
-  HOME_FEED_POSTS_MAX: 0,
-  STATIC_POST_PATHS_MAX: 0,
   ICON_PATH: '/icons',
   DEFAULT_SPECIAL_PAGES: {
     TAG: 'tag',

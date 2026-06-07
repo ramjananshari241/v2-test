@@ -44,7 +44,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     const { posts, pieces } = await getPostsAndPieces(ApiScope.Archive)
     const pages = sharedPageStaticProps.props.navPages
     const page = pages.find((page) => page.slug === slug) ?? null
-    const preFormattedPosts = await formatPosts([...posts, ...pieces])
+    const preFormattedPosts = await formatPosts([...posts, ...pieces], {
+      skipImageProbe: true,
+    })
     const formattedPosts = preFormattedPosts.sort(
       (a, b) =>
         Number(new Date(b.date.created)) - Number(new Date(a.date.created))

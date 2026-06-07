@@ -15,7 +15,8 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     domains: [
       'www.notion.so', 'images.unsplash.com', 'img.notionusercontent.com',
-      'file.notion.so', 'static.anzifan.com', 's3.us-west-2.amazonaws.com'
+      'file.notion.so', 'static.anzifan.com', 's3.us-west-2.amazonaws.com',
+      'img.x1file.top',
     ],
     unoptimized: true,
   }

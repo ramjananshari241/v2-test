@@ -28,7 +28,7 @@ import { formatBlocks } from '../../lib/blog/format/block'
 import { formatPosts, getNavigationInfo } from '../../lib/blog/format/post'
 import { withNavFooterStaticProps } from '../../lib/blog/withNavFooterStaticProps'
 import { getAllBlocks } from '../../lib/notion/getBlocks'
-import { capPostsForBuild } from '../../lib/blog/postLimits'
+import { buildStaticPostPaths } from '../../lib/blog/postLimits'
 import { getPosts } from '../../lib/notion/getBlogData'
 import { addSubTitle } from '../../lib/util'
 import { NextPageWithLayout, Page, PartialPost, Post, SharedNavFooterStaticProps } from '../../types/blog'
@@ -36,17 +36,14 @@ import { ApiScope, BlockResponse } from '../../types/notion'
 
 export const getStaticPaths = async () => {
   const postsRaw = await getPosts(ApiScope.Archive)
-  const formattedPosts = await formatPosts(postsRaw)
-  
-  // 构建期仅预渲染最新 N 篇，其余走 fallback: blocking（见 blog.config STATIC_POST_PATHS_MAX）
-  const paths = capPostsForBuild(formattedPosts).map((post) => ({
-      params: { post: post.slug },
-    }))
+  const formattedPosts = await formatPosts(postsRaw, { skipImageProbe: true })
+  const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
+    params: { post: post.slug },
+  }))
 
-  return { 
-    paths, 
-    // 🟢 必须是 'blocking'。这样第 101 篇老文章被点击时，才会现场即时生成。
-    fallback: 'blocking' 
+  return {
+    paths,
+    fallback: 'blocking',
   }
 }
 
@@ -62,22 +59,30 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
     try {
       const postsRaw = await getPosts(ApiScope.Archive)
-      const allFormattedPosts = await formatPosts(postsRaw)
-      const post = allFormattedPosts.find((p) => p.slug === slug)
+      const allFormattedPosts = await formatPosts(postsRaw, {
+        skipImageProbe: true,
+      })
+      const rawPost = postsRaw.find(
+        (p) =>
+          p.properties.slug?.type === 'rich_text' &&
+          p.properties.slug.rich_text[0]?.plain_text === slug
+      )
+      if (!rawPost) return { notFound: true }
 
-      if (!post) return { notFound: true }
+      const post = await formatPosts([rawPost])
+      const postForPage = post[0]
 
-      addSubTitle(sharedPageStaticProps.props, '', { text: post.title, color: 'gray', slug: post.slug }, false)
-      const { previousPost, nextPost } = getNavigationInfo(allFormattedPosts, post)
+      addSubTitle(sharedPageStaticProps.props, '', { text: postForPage.title, color: 'gray', slug: postForPage.slug }, false)
+      const { previousPost, nextPost } = getNavigationInfo(allFormattedPosts, postForPage)
       const statsMap = await getAllPostStatsMap()
       const postStats = await getPostStats(slug)
       const recommendations = buildGalleryRecommendations(
-        post,
+        postForPage,
         allFormattedPosts,
         undefined,
         statsMap
       )
-      const blocks = await getAllBlocks(post.id)
+      const blocks = await getAllBlocks(postForPage.id)
       const formattedBlocks = await formatBlocks(blocks)
 
       const activeTheme = await resolveActiveTheme()
@@ -87,7 +92,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       // 🛡️ JSON 暴力清洗：杜绝 undefined 导致的 500 报错
       const safeData = JSON.parse(JSON.stringify({
         ...sharedPageStaticProps.props,
-        post,
+        post: postForPage,
         blocks: formattedBlocks,
         navigation: {
             previousPost: previousPost || null,

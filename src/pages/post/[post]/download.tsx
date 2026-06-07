@@ -8,7 +8,7 @@ import { formatBlocks } from '@/src/lib/blog/format/block'
 import { formatPosts } from '@/src/lib/blog/format/post'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
 import { getAllBlocks } from '@/src/lib/notion/getBlocks'
-import { capPostsForBuild } from '@/src/lib/blog/postLimits'
+import { buildStaticPostPaths } from '@/src/lib/blog/postLimits'
 import { getPosts } from '@/src/lib/notion/getBlogData'
 import { addSubTitle } from '@/src/lib/util'
 import { GalleryPostDownloadPage } from '@/src/themes/gallery/GalleryPostDownloadPage'
@@ -28,8 +28,8 @@ import { ApiScope, BlockResponse } from '@/src/types/notion'
 
 export const getStaticPaths = async () => {
   const postsRaw = await getPosts(ApiScope.Archive)
-  const formattedPosts = await formatPosts(postsRaw)
-  const paths = capPostsForBuild(formattedPosts).map((post) => ({
+  const formattedPosts = await formatPosts(postsRaw, { skipImageProbe: true })
+  const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
     params: { post: post.slug },
   }))
 

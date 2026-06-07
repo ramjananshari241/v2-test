@@ -83,30 +83,6 @@ export const getAll = async (
   return objects
 }
 
-export const getLimitPosts = async (
-  limit: number,
-  scope: ApiScope.Home | ApiScope.Archive | ApiScope.Draft,
-  id?: string
-): Promise<Array<PageObjectResponse>> => {
-  const response = await getDatabase(scope, undefined, id)
-  const objects: PageObjectResponse[] = []
-  addObjects(response.results, objects, ContentType.Post, limit)
-  let cursor = response.next_cursor
-
-  if (cursor) {
-    do {
-      const additional: QueryDatabaseResponse = await getDatabase(
-        scope,
-        cursor,
-        id
-      )
-      addObjects(additional.results, objects, ContentType.Post, limit)
-      cursor = additional.next_cursor
-    } while (cursor && objects.length < limit)
-  }
-  return objects
-}
-
 export const getDatabaseMetadata = async (): Promise<GetDatabaseResponse> => {
   const response = await withRetry(() => notion.databases.retrieve({ database_id: databaseId }))
   return response
@@ -142,16 +118,10 @@ export const getDatabaseProperties = async (): Promise<
 function addObjects(
   results: QueryDatabaseResponse['results'],
   objects: PageObjectResponse[],
-  filter?: ContentType,
-  limit?: number
+  filter?: ContentType
 ) {
   results.forEach((object) => {
     if (isFullPage(object)) {
-      if (limit) {
-        if (objects.length >= limit) {
-          return
-        }
-      }
       if (
         !filter ||
         (object.properties.type.type === 'select' &&

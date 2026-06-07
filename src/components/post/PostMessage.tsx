@@ -6,8 +6,6 @@ import { BlockDataType, Post } from '../../types/blog'
 import { ApiColor } from '../../types/notion'
 import { Callout } from '../blocks/BasicBlock'
 
-const OUTDATE_DAYS = 100
-
 const PostMessage: NextPage<{ post: Post }> = ({ post }) => {
   const { date, options, slug } = post
   let pastBlogStopDate
@@ -17,19 +15,9 @@ const PostMessage: NextPage<{ post: Post }> = ({ post }) => {
   const isPastBlog =
     pastBlogStopDate && new Date(date.created) < pastBlogStopDate
 
-  const days =
-    pastBlogStopDate && isPastBlog
-      ? Math.floor(
-          (new Date().getTime() - pastBlogStopDate.getTime()) / 86400000
-        )
-      : Math.floor(
-          (new Date().getTime() - new Date(date.updated).getTime()) / 86400000
-        )
-
   return (
     <div className="mb-2 flex flex-col gap-4">
       {isPastBlog && <PastBlogPostMessage slug={slug} />}
-      {days > OUTDATE_DAYS && <OutdatedPostMessage days={days} />}
       {options?.repost && <RepostMessage url={options.repost} />}
     </div>
   )
@@ -148,58 +136,6 @@ const PastBlogPostMessage = ({ slug }: { slug: string }) => {
         color: color,
       },
       plain_text: ' and may not display optimally',
-    },
-  ] as TextRichTextItemResponse[]
-  return (
-    <Message
-      icon={{
-        content: '⚠️',
-        type: 'emoji',
-      }}
-      color={`${color}_background`}
-      text={texts}
-    />
-  )
-}
-
-const OutdatedPostMessage = ({ days }: { days: number }) => {
-  const color = 'orange'
-  const texts = [
-    {
-      type: 'text',
-      annotations: {
-        bold: false,
-        italic: false,
-        strikethrough: false,
-        underline: false,
-        code: false,
-        color: color,
-      },
-      plain_text: 'This post was updated ',
-    },
-    {
-      type: 'text',
-      annotations: {
-        bold: true,
-        italic: false,
-        strikethrough: false,
-        underline: false,
-        code: false,
-        color: color,
-      },
-      plain_text: days.toString(),
-    },
-    {
-      type: 'text',
-      annotations: {
-        bold: false,
-        italic: false,
-        strikethrough: false,
-        underline: false,
-        code: false,
-        color: color,
-      },
-      plain_text: ' days ago and may contain outdated content',
     },
   ] as TextRichTextItemResponse[]
   return (
