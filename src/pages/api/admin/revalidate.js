@@ -96,6 +96,15 @@ export default async function handler(req, res) {
       clearContentBuildCaches()
     }
 
+    if (warmPaths) {
+      console.log('[admin/revalidate] warmPaths', {
+        scope,
+        pathCount: paths.length,
+        origin: resolveRevalidateOrigin(req),
+        expectedTheme: expectedTheme || null,
+      })
+    }
+
     const results = await revalidateMany(res, paths, {
       freshTheme,
       clearCaches: scope === 'batch' ? clearCaches : false,

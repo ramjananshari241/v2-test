@@ -86,17 +86,29 @@ async function warmRevalidatedPage(
   options?: { expectedTheme?: string | null }
 ): Promise<void> {
   const normalized = normalizePath(path)
-  const url = `${origin}${normalized}`
   const expectedTheme = options?.expectedTheme?.trim()
-  const attempts = expectedTheme ? 4 : 1
+  const attempts = expectedTheme && normalized === '/' ? 5 : 1
 
   for (let i = 0; i < attempts; i += 1) {
+    const bust = `_isr_warm=${Date.now()}-${i}`
+    const joiner = normalized.includes('?') ? '&' : '?'
+    const url = `${origin}${normalized}${joiner}${bust}`
+
+    console.log('[warmRevalidatedPage] fetch', {
+      path: normalized,
+      attempt: i + 1,
+      expectedTheme: expectedTheme || null,
+    })
+
     try {
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), 60_000)
       const response = await fetch(url, {
         cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
         signal: controller.signal,
       })
       clearTimeout(timer)
@@ -106,12 +118,14 @@ async function warmRevalidatedPage(
       } else if (expectedTheme && normalized === '/') {
         const html = await response.text()
         if (htmlMatchesTheme(html, expectedTheme)) {
+          console.log('[warmRevalidatedPage] homepage theme ok', expectedTheme)
           return
         }
         console.warn(
           `[warmRevalidatedPage] / theme mismatch on attempt ${i + 1}, expected ${expectedTheme}`
         )
       } else {
+        console.log('[warmRevalidatedPage] done', normalized)
         return
       }
     } catch (error) {
@@ -119,7 +133,7 @@ async function warmRevalidatedPage(
     }
 
     if (i < attempts - 1) {
-      await sleep(1500)
+      await sleep(2000)
     }
   }
 }

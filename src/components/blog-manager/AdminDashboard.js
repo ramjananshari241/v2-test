@@ -190,22 +190,8 @@ async function runBatchedRevalidation(options = {}) {
   return { total, failed: failedCount, succeeded: done };
 }
 
-/** 主题切换：先刷内页，最后预热壳层（等 ISR 真正生成完 HTML 再结束） */
+/** 主题切换：与右上角刷新按钮相同（壳层 + 预热）；内页后台异步更新 */
 async function runThemeRevalidation(onProgress, expectedTheme) {
-  const postResult = await runBatchedRevalidation({
-    freshTheme: true,
-    listScope: 'theme-posts',
-    onProgress,
-    progressLabels: {
-      listing: '正在统计最新文章内页…',
-      running: '正在更新文章内页…',
-      doneOk: '正在更新首页与列表页…',
-      donePartial: '部分内页需稍后自动更新',
-      hintOk: '',
-      hintPartial: '个内页未能及时更新，可打开该篇文章触发更新',
-    },
-  });
-
   if (onProgress) {
     onProgress({
       step: 2,
@@ -213,7 +199,7 @@ async function runThemeRevalidation(onProgress, expectedTheme) {
       label: '正在更新首页与列表页…',
       done: 0,
       total: 7,
-      hint: '等待首页生成完成',
+      hint: '与手动刷新相同流程',
     });
   }
 
@@ -225,13 +211,37 @@ async function runThemeRevalidation(onProgress, expectedTheme) {
     expectedTheme: expectedTheme || null,
   });
 
+  void runBatchedRevalidation({
+    freshTheme: true,
+    listScope: 'theme-posts',
+    progressLabels: {
+      listing: '',
+      running: '',
+      doneOk: '',
+      donePartial: '',
+      hintOk: '',
+      hintPartial: '',
+    },
+  }).catch((e) => console.warn('[runThemeRevalidation] theme-posts async failed', e));
+
   const shellFailed = shellResult.ok ? 0 : 1;
   const shellSucceeded = shellResult.ok ? (shellResult.succeeded ?? 7) : 0;
 
+  if (onProgress) {
+    onProgress({
+      step: 3,
+      totalSteps: 3,
+      label: shellFailed > 0 ? '主题已保存，部分列表页需稍后更新' : '主题切换完成',
+      done: 7,
+      total: 7,
+      hint: shellFailed > 0 ? '可点右上角刷新重试' : '最新文章内页将在后台逐步更新',
+    });
+  }
+
   return {
-    total: shellSucceeded + postResult.total,
-    failed: shellFailed + postResult.failed,
-    succeeded: shellSucceeded + postResult.succeeded,
+    total: shellSucceeded,
+    failed: shellFailed,
+    succeeded: shellSucceeded,
     shellOk: shellResult.ok,
   };
 }

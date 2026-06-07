@@ -16,6 +16,7 @@ import {
   AdminFaviconLinks,
   GalleryFaviconLinks,
 } from '@/src/themes/gallery/GalleryFaviconLinks'
+import { ThemeSyncGuard } from '@/src/components/theme/ThemeSyncGuard'
 import { NextPageWithLayout } from '../types/blog'
 
 type AppPropsWithLayout = AppProps & {
@@ -173,6 +174,7 @@ function BlogApp({ Component, pageProps, router }: AppPropsWithLayout) {
         options={{ showSpinner: false }}
       />
       <GoogleAnalytics trackPageViews />
+      <ThemeSyncGuard activeTheme={activeTheme} isAdminRoute={isAdminRoute} />
       {getLayout(<Component {...pageProps} />)}
       <Analytics />
     </ThemeProvider>
