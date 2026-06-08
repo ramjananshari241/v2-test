@@ -13,7 +13,11 @@ import withNavFooter from '../../components/withNavFooter'
 import { GalleryPost } from '@/src/themes/gallery/GalleryPost'
 import {
   buildGalleryRecommendations,
+  excludeAnnouncementFromGalleryRecommendations,
+  findGalleryAnnouncementPost,
   GalleryRecommendPost,
+  pinAnnouncementForGallerySidebar,
+  postToGalleryRecommend,
 } from '@/src/lib/gallery/galleryRecommendations'
 import {
   getAllPostStatsMap,
@@ -89,6 +93,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
       const postStats = await getPostStats(slug)
       let recommendations: GalleryRecommendPost[] = []
+      let sidebarRecommendations: GalleryRecommendPost[] = []
+      let bottomRecommendations: GalleryRecommendPost[] = []
+      let pinnedSidebarPost: GalleryRecommendPost | null = null
       if (activeTheme === 'gallery') {
         try {
           const statsMap = await getAllPostStatsMap()
@@ -98,6 +105,16 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
             undefined,
             statsMap
           )
+          const announcement = findGalleryAnnouncementPost(navPosts)
+          pinnedSidebarPost = announcement
+            ? postToGalleryRecommend(announcement)
+            : null
+          sidebarRecommendations = pinAnnouncementForGallerySidebar(
+            recommendations,
+            navPosts
+          )
+          bottomRecommendations =
+            excludeAnnouncementFromGalleryRecommendations(recommendations)
         } catch (recError) {
           console.warn('Post page: gallery recommendations failed', recError)
         }
@@ -119,6 +136,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
             nextPost: nextPost || null,
         },
         recommendations,
+        sidebarRecommendations,
+        bottomRecommendations,
+        pinnedSidebarPost,
         postStats,
         galleryAdBanner,
       }))
@@ -151,11 +171,25 @@ const PostPage: NextPage<{
   blocks: BlockResponse[]
   navigation: { previousPost: PartialPost; nextPost: PartialPost }
   recommendations?: GalleryRecommendPost[]
+  sidebarRecommendations?: GalleryRecommendPost[]
+  bottomRecommendations?: GalleryRecommendPost[]
+  pinnedSidebarPost?: GalleryRecommendPost | null
   postStats?: { viewCount: number; downloadCount: number } | null
   galleryAdBanner?: GalleryAdBanner | null
   activeTheme?: string
   navPages?: Page[]
-}> = ({ post, blocks, navigation, recommendations = [], postStats = null, galleryAdBanner = null, activeTheme, navPages = [] }) => {
+}> = ({
+  post,
+  blocks,
+  navigation,
+  sidebarRecommendations = [],
+  bottomRecommendations = [],
+  pinnedSidebarPost = null,
+  postStats = null,
+  galleryAdBanner = null,
+  activeTheme,
+  navPages = [],
+}) => {
   if (!post) return <Section404 />
 
   if (activeTheme === 'gallery') {
@@ -163,7 +197,9 @@ const PostPage: NextPage<{
       <GalleryPost
         post={post}
         blocks={blocks}
-        recommendations={recommendations}
+        sidebarRecommendations={sidebarRecommendations}
+        bottomRecommendations={bottomRecommendations}
+        pinnedSidebarPost={pinnedSidebarPost}
         postStats={postStats}
         galleryAdBanner={galleryAdBanner}
         navPages={navPages}

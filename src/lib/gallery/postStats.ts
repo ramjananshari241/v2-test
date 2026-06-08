@@ -3,9 +3,12 @@ import {
   getBlogSiteIdOrNull,
   isGalleryTenantConfigured,
 } from '@/src/lib/gallery/blogSite'
+import { ANNOUNCEMENT_SLUG } from '@/src/lib/blog/pinnedPosts'
 import {
   GalleryRecommendPost,
   GALLERY_RECOMMEND_COUNT,
+  pinAnnouncementForGallerySidebar,
+  postToGalleryRecommend,
 } from '@/src/lib/gallery/galleryRecommendations'
 import { getSupabaseAdmin } from '@/src/lib/supabase/admin'
 import { Post } from '@/src/types/blog'
@@ -96,15 +99,6 @@ export async function incrementPostStat(
   return true
 }
 
-function toRecommendPost(post: Post): GalleryRecommendPost {
-  return {
-    title: post.title,
-    slug: post.slug,
-    coverSrc: post.cover?.light?.src || '',
-    date: post.date?.updated || post.date?.created || '',
-  }
-}
-
 export function pickPopularRecommendations(
   current: Post,
   allPosts: Post[],
@@ -112,7 +106,10 @@ export function pickPopularRecommendations(
   limit = GALLERY_RECOMMEND_COUNT
 ): GalleryRecommendPost[] {
   const pool = allPosts.filter(
-    (p) => p.slug !== current.slug && p.status === 'Published'
+    (p) =>
+      p.slug !== current.slug &&
+      p.slug !== ANNOUNCEMENT_SLUG &&
+      p.status === 'Published'
   )
 
   const scored = pool
@@ -123,5 +120,5 @@ export function pickPopularRecommendations(
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
 
-  return scored.slice(0, limit).map((x) => toRecommendPost(x.post))
+  return scored.slice(0, limit).map((x) => postToGalleryRecommend(x.post))
 }

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
+import { pinAnnouncementForGallerySidebar } from '@/src/lib/gallery/galleryRecommendations'
 import {
   getAllPostStatsMap,
   getPostStats,
@@ -85,10 +86,15 @@ export default async function handler(
             status: 'Published',
           } as Post)
 
-        const posts = pickPopularRecommendations(
+        const popular = pickPopularRecommendations(
           current,
           allPosts,
           statsMap,
+          limit
+        )
+        const posts = pinAnnouncementForGallerySidebar(
+          popular,
+          allPosts,
           limit
         )
         res.setHeader(

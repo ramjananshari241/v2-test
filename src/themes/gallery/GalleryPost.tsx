@@ -17,7 +17,9 @@ import { galleryPostTitleClass } from './galleryFonts'
 type GalleryPostProps = {
   post: Post
   blocks: BlockResponse[]
-  recommendations: GalleryRecommendPost[]
+  sidebarRecommendations: GalleryRecommendPost[]
+  bottomRecommendations: GalleryRecommendPost[]
+  pinnedSidebarPost?: GalleryRecommendPost | null
   postStats?: PostStatsSnapshot | null
   galleryAdBanner?: GalleryAdBannerData | null
   navPages?: Page[]
@@ -28,7 +30,9 @@ const { CATEGORY } = CONFIG.DEFAULT_SPECIAL_PAGES
 export const GalleryPost = ({
   post,
   blocks,
-  recommendations,
+  sidebarRecommendations,
+  bottomRecommendations,
+  pinnedSidebarPost = null,
   postStats = null,
   galleryAdBanner = null,
   navPages = [],
@@ -82,13 +86,14 @@ export const GalleryPost = ({
 
             <GalleryPostContent postSlug={post.slug} blocks={blocks} />
 
-            <GalleryPostRecommendations posts={recommendations} />
+            <GalleryPostRecommendations posts={bottomRecommendations} />
 
             {galleryAdBanner ? <GalleryAdBanner banner={galleryAdBanner} /> : null}
           </article>
 
           <GalleryPopularSidebar
-            posts={recommendations}
+            posts={sidebarRecommendations}
+            pinnedPost={pinnedSidebarPost}
             excludeSlug={post.slug}
             className="hidden lg:block lg:sticky lg:top-6 lg:self-start"
           />

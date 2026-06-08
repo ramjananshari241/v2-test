@@ -1,3 +1,4 @@
+import { ANNOUNCEMENT_SLUG } from '@/src/lib/blog/pinnedPosts'
 import { Post } from '@/src/types/blog'
 import {
   pickPopularRecommendations,
@@ -28,13 +29,44 @@ function seededShuffle<T>(arr: T[], seed: string): T[] {
   return copy
 }
 
-function toRecommendPost(post: Post): GalleryRecommendPost {
+export function postToGalleryRecommend(post: Post): GalleryRecommendPost {
   return {
     title: post.title,
     slug: post.slug,
     coverSrc: post.cover?.light?.src || '',
     date: post.date?.updated || post.date?.created || '',
   }
+}
+
+/** Gallery 内页：站长公告（slug=announcement） */
+export function findGalleryAnnouncementPost(
+  allPosts: Post[]
+): Post | undefined {
+  return allPosts.find(
+    (p) => p.slug === ANNOUNCEMENT_SLUG && p.status === 'Published'
+  )
+}
+
+/** 右侧「热门推荐」：公告始终置顶 */
+export function pinAnnouncementForGallerySidebar(
+  recommendations: GalleryRecommendPost[],
+  allPosts: Post[],
+  limit = GALLERY_RECOMMEND_COUNT
+): GalleryRecommendPost[] {
+  const announcement = findGalleryAnnouncementPost(allPosts)
+  if (!announcement) {
+    return recommendations.slice(0, limit)
+  }
+  const pinned = postToGalleryRecommend(announcement)
+  const rest = recommendations.filter((p) => p.slug !== ANNOUNCEMENT_SLUG)
+  return [pinned, ...rest].slice(0, limit)
+}
+
+/** 底部「猜你喜欢」：不展示站长公告 */
+export function excludeAnnouncementFromGalleryRecommendations(
+  recommendations: GalleryRecommendPost[]
+): GalleryRecommendPost[] {
+  return recommendations.filter((p) => p.slug !== ANNOUNCEMENT_SLUG)
 }
 
 /**
@@ -47,7 +79,10 @@ export function buildGalleryRecommendations(
   statsMap?: Map<string, PostStatsSnapshot>
 ): GalleryRecommendPost[] {
   const pool = allPosts.filter(
-    (p) => p.slug !== current.slug && p.status === 'Published'
+    (p) =>
+      p.slug !== current.slug &&
+      p.slug !== ANNOUNCEMENT_SLUG &&
+      p.status === 'Published'
   )
   const tagIds = new Set((current.tags || []).map((t) => t.id))
   const categoryId = current.category?.id
@@ -116,5 +151,5 @@ export function buildGalleryRecommendations(
     }
   }
 
-  return picked.slice(0, limit).map(toRecommendPost)
+  return picked.slice(0, limit).map(postToGalleryRecommend)
 }
