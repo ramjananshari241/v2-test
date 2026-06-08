@@ -28,16 +28,6 @@ function resolveTagIds(tagsString) {
     .map((name) => slugify(name))
 }
 
-/** 保存/删除等内容变更后应预热 ISR（否则只标记 stale，前台仍可能看到旧 HTML） */
-const CONTENT_CHANGE_SCOPES = new Set([
-  'post',
-  'page',
-  'delete',
-  'widget',
-  'friends',
-  'gallery-ad',
-])
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' })
@@ -57,6 +47,7 @@ export default async function handler(req, res) {
       warmPaths = false,
       expectedTheme = null,
       manualShell = false,
+      contentChange = false,
     } = req.body ?? {}
 
     if (scope === 'shell' && manualShell) {
@@ -139,20 +130,16 @@ export default async function handler(req, res) {
         pathCount: paths.length,
         origin: resolveRevalidateOrigin(req),
         expectedTheme: expectedTheme || null,
-        expectedSlug: slug || null,
       })
     }
-
-    const shouldWarmPaths =
-      Boolean(warmPaths) || CONTENT_CHANGE_SCOPES.has(scope)
-    const warmOrigin = shouldWarmPaths ? resolveRevalidateOrigin(req) : undefined
 
     const results = await revalidateMany(res, paths, {
       freshTheme,
       clearCaches: scope === 'batch' ? clearCaches : false,
-      warmPaths: shouldWarmPaths,
-      origin: warmOrigin,
+      warmPaths: Boolean(warmPaths),
+      origin: warmPaths ? resolveRevalidateOrigin(req) : undefined,
       expectedTheme: expectedTheme || null,
+      contentChange: Boolean(contentChange),
     })
     const failed = results.filter((item) => !item.ok)
     const succeeded = results.filter((item) => item.ok)

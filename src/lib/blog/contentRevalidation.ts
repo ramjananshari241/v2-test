@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import CONFIG from '@/blog.config'
-import { slugify } from '@/src/lib/util'
 import { resolveThemeId } from '@/src/themes/registry'
 import { clearGalleryAdBannerCache } from '@/src/lib/gallery/loadGalleryAdBanner'
 import { clearGalleryPostsCache } from '@/src/lib/gallery/galleryPostsCache'
@@ -83,84 +82,60 @@ function htmlMatchesTheme(html: string, themeCode: string): boolean {
   return themeId === 'gallery' ? hasGalleryMarkup : !hasGalleryMarkup
 }
 
+function buildWarmFetchHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+  }
+  const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim()
+  if (bypass) {
+    headers['x-vercel-protection-bypass'] = bypass
+  }
+  const secret =
+    process.env.REVALIDATE_SECRET?.trim() ||
+    process.env.MY_SECRET_TOKEN?.trim()
+  if (secret) {
+    headers['x-prerender-revalidate'] = secret
+  }
+  return headers
+}
+
 async function warmRevalidatedPage(
   origin: string,
   path: string,
-  options?: {
-    expectedTheme?: string | null
-    /** 保存文章后校验首页 HTML 是否已含该 slug（应对 Notion 索引延迟） */
-    expectedSlug?: string | null
-    initialDelayMs?: number
-    maxAttempts?: number
-  }
+  options?: { expectedTheme?: string | null }
 ): Promise<void> {
   const normalized = normalizePath(path)
   const expectedTheme = options?.expectedTheme?.trim()
-  const expectedSlug = options?.expectedSlug?.trim()
-  const needsSlugCheck = Boolean(expectedSlug && normalized === '/')
-  const maxAttempts =
-    options?.maxAttempts ??
-    (needsSlugCheck ? 4 : expectedTheme && normalized === '/' ? 5 : 1)
-  const initialDelayMs =
-    options?.initialDelayMs ?? (needsSlugCheck ? 1200 : 0)
-
-  if (initialDelayMs > 0) {
-    await sleep(initialDelayMs)
-  }
+  const maxAttempts = expectedTheme && normalized === '/' ? 5 : 1
 
   for (let i = 0; i < maxAttempts; i += 1) {
     const bust = `_isr_warm=${Date.now()}-${i}`
     const joiner = normalized.includes('?') ? '&' : '?'
     const url = `${origin}${normalized}${joiner}${bust}`
 
-    console.log('[warmRevalidatedPage] fetch', {
-      path: normalized,
-      attempt: i + 1,
-      expectedTheme: expectedTheme || null,
-      expectedSlug: expectedSlug || null,
-    })
-
     try {
       const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 60_000)
+      const timer = setTimeout(() => controller.abort(), 30_000)
       const response = await fetch(url, {
         cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-        },
+        headers: buildWarmFetchHeaders(),
         signal: controller.signal,
       })
       clearTimeout(timer)
 
       if (!response.ok) {
         console.warn(`[warmRevalidatedPage] ${url} status ${response.status}`)
-      } else {
+      } else if (expectedTheme && normalized === '/') {
         const html = await response.text()
-
-        if (needsSlugCheck) {
-          const slugPresent =
-            html.includes(`"/post/${expectedSlug}"`) ||
-            html.includes(`/post/${expectedSlug}`)
-          if (slugPresent) {
-            console.log('[warmRevalidatedPage] homepage contains slug', expectedSlug)
-            return
-          }
-          console.warn(
-            `[warmRevalidatedPage] / missing slug ${expectedSlug} on attempt ${i + 1}`
-          )
-        } else if (expectedTheme && normalized === '/') {
-          if (htmlMatchesTheme(html, expectedTheme)) {
-            console.log('[warmRevalidatedPage] homepage theme ok', expectedTheme)
-            return
-          }
-          console.warn(
-            `[warmRevalidatedPage] / theme mismatch on attempt ${i + 1}, expected ${expectedTheme}`
-          )
-        } else {
-          console.log('[warmRevalidatedPage] done', normalized)
+        if (htmlMatchesTheme(html, expectedTheme)) {
           return
         }
+        console.warn(
+          `[warmRevalidatedPage] / theme mismatch on attempt ${i + 1}, expected ${expectedTheme}`
+        )
+      } else {
+        return
       }
     } catch (error) {
       console.warn(`[warmRevalidatedPage] ${url} failed`, error)
@@ -169,6 +144,26 @@ async function warmRevalidatedPage(
     if (i < maxAttempts - 1) {
       await sleep(2000)
     }
+  }
+}
+
+/** 首页多次 revalidate + 预热，应对 CDN 传播与 Notion 索引延迟 */
+async function warmHomepageWithRetries(
+  res: NextApiResponse,
+  origin: string,
+  options?: { expectedTheme?: string | null; contentChange?: boolean }
+): Promise<void> {
+  const delaysMs = options?.contentChange
+    ? [800, 4000, 12000]
+    : [800, 3500]
+
+  for (let i = 0; i < delaysMs.length; i += 1) {
+    await res.revalidate('/')
+    await sleep(delaysMs[i])
+    await warmRevalidatedPage(origin, '/', {
+      expectedTheme: options?.expectedTheme || null,
+    })
+    console.log('[warmHomepageWithRetries] pass', i + 1, 'of', delaysMs.length)
   }
 }
 
@@ -392,8 +387,8 @@ export async function revalidateMany(
     warmPaths?: boolean
     origin?: string
     expectedTheme?: string | null
-    /** 保存/更新文章后用于首页预热校验 */
-    expectedSlug?: string | null
+    /** 保存内容后：首页多轮预热，缩短 Notion/CDN 导致的延迟 */
+    contentChange?: boolean
   }
 ): Promise<RevalidateResult[]> {
   const unique = Array.from(new Set(paths.map(normalizePath)))
@@ -403,7 +398,7 @@ export async function revalidateMany(
   const warmPaths = options?.warmPaths ?? false
   const origin = options?.origin
   const expectedTheme = options?.expectedTheme ?? null
-  const expectedSlug = options?.expectedSlug ?? null
+  const contentChange = options?.contentChange ?? false
 
   if (clearCaches || freshTheme) {
     clearContentBuildCaches()
@@ -412,34 +407,30 @@ export async function revalidateMany(
     setRevalidateFreshTheme(true)
   }
 
-  const warmOrder = warmPaths
-    ? [...unique].sort((a, b) => {
-        if (a === '/') return -1
-        if (b === '/') return 1
-        if (a.startsWith('/post/') && !b.startsWith('/post/')) return -1
-        if (b.startsWith('/post/') && !a.startsWith('/post/')) return 1
-        return 0
-      })
-    : unique
+  const warmHomeFirst = warmPaths && origin && unique.includes('/')
 
   try {
-    for (const path of warmOrder) {
+    if (warmHomeFirst) {
+      try {
+        await warmHomepageWithRetries(res, origin!, {
+          expectedTheme: expectedTheme || null,
+          contentChange,
+        })
+        results.push({ path: '/', ok: true })
+      } catch (error) {
+        results.push({
+          path: '/',
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+
+    for (const path of unique) {
+      if (warmHomeFirst && path === '/') continue
+
       try {
         await res.revalidate(path)
-        if (warmPaths && origin) {
-          const warmThisPath =
-            path === '/' ||
-            path.startsWith('/post/') ||
-            path.startsWith('/category/') ||
-            path.startsWith('/tag/') ||
-            path.startsWith('/archive')
-          if (warmThisPath) {
-            await warmRevalidatedPage(origin, path, {
-              expectedTheme: path === '/' ? expectedTheme : null,
-              expectedSlug: path === '/' ? expectedSlug : null,
-            })
-          }
-        }
         results.push({ path, ok: true })
       } catch (error) {
         results.push({
@@ -456,109 +447,4 @@ export async function revalidateMany(
   }
 
   return results
-}
-
-export function resolveTagIdsFromString(tagsString: string): string[] {
-  return (tagsString || '')
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .map((name) => slugify(name))
-}
-
-export type ContentSaveRevalidateInput = {
-  type?: string
-  slug: string
-  category?: string | null
-  tags?: string | null
-  previousSlug?: string | null
-  kind?: 'save' | 'delete'
-}
-
-/**
- * 保存/删除后立即刷新前台（与手动「刷新BLOG」相同：先 shell + warm，再补充文章路径）。
- * 须在 /api/admin/post 写入 Notion 成功后、返回响应前调用。
- */
-export async function revalidateAfterContentSave(
-  res: NextApiResponse,
-  req: Pick<NextApiRequest, 'headers'>,
-  input: ContentSaveRevalidateInput
-): Promise<{ ok: boolean; succeeded: number; failed: number; total: number }> {
-  const {
-    slug,
-    category,
-    tags,
-    previousSlug,
-    type = 'Post',
-    kind = 'save',
-  } = input
-
-  if (!slug?.trim()) {
-    return { ok: true, succeeded: 0, failed: 0, total: 0 }
-  }
-
-  const origin = resolveRevalidateOrigin(req)
-  const categoryId = category?.trim() ? slugify(category.trim()) : null
-  const tagIds = resolveTagIdsFromString(tags || '')
-  const scope =
-    kind === 'delete' ? 'delete' : resolveSaveRevalidateScope(type, slug)
-
-  const shellPaths = collectShellRevalidatePaths()
-  clearContentBuildCaches()
-
-  console.log('[revalidateAfterContentSave] shell', { slug, scope, kind })
-
-  const shellResults = await revalidateMany(res, shellPaths, {
-    freshTheme: true,
-    clearCaches: false,
-    warmPaths: true,
-    origin,
-  })
-
-  let extraPaths: string[] = []
-  const shellSet = new Set(shellPaths)
-
-  if (scope === 'post') {
-    const all = await collectPostRevalidatePaths(slug, {
-      categoryId,
-      tagIds,
-      previousSlug,
-    })
-    extraPaths = all.filter((p) => !shellSet.has(p))
-  } else if (scope === 'delete') {
-    const all = await collectDeleteRevalidatePaths(slug, { categoryId, tagIds })
-    extraPaths = all.filter((p) => !shellSet.has(p))
-  } else if (scope === 'page') {
-    extraPaths = collectPageRevalidatePaths(slug, { previousSlug }).filter(
-      (p) => !shellSet.has(p)
-    )
-  } else if (scope === 'widget') {
-    extraPaths = ['/', '/about', '/download'].filter((p) => !shellSet.has(p))
-  } else if (scope === 'gallery-ad') {
-    const all = await collectGalleryAdRevalidatePaths()
-    extraPaths = all.filter((p) => !shellSet.has(p))
-  }
-
-  let extraResults: RevalidateResult[] = []
-  if (extraPaths.length > 0) {
-    console.log('[revalidateAfterContentSave] extra', {
-      slug,
-      count: extraPaths.length,
-    })
-    extraResults = await revalidateMany(res, extraPaths, {
-      freshTheme: false,
-      clearCaches: false,
-      warmPaths: true,
-      origin,
-    })
-  }
-
-  const allResults = [...shellResults, ...extraResults]
-  const failed = allResults.filter((r) => !r.ok).length
-  return {
-    ok: failed === 0,
-    succeeded: allResults.length - failed,
-    failed,
-    total: allResults.length,
-  }
 }

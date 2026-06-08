@@ -1,13 +1,8 @@
 import { Client } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
-import { revalidateAfterContentSave } from '@/src/lib/blog/contentRevalidation';
 import { readPinnedFromNotionProperties } from '@/src/lib/blog/pinnedPosts';
 import { syncSiteThemeFromAdmin } from '@/src/lib/blog/siteTheme';
 import { normalizeMediaUrl, readNotionCoverUrl } from '@/src/lib/notion/readProperty';
-
-export const config = {
-  maxDuration: 120,
-};
 
 const notion = new Client({
   auth: process.env.NOTION_KEY || process.env.NOTION_TOKEN,
@@ -15,38 +10,6 @@ const notion = new Client({
 const n2m = new NotionToMarkdown({ notionClient: notion });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function readPostMetaFromPage(page) {
-  const p = page.properties || {};
-  return {
-    slug: p.slug?.rich_text?.[0]?.plain_text || '',
-    category: p.category?.select?.name || '',
-    tags: (p.tags?.multi_select || []).map((t) => t.name).join(','),
-    type: p.type?.select?.name || 'Post',
-  };
-}
-
-async function runPostSaveRevalidation(res, req, meta, previousSlug) {
-  try {
-    return await revalidateAfterContentSave(res, req, {
-      slug: meta.slug,
-      category: meta.category,
-      tags: meta.tags,
-      type: meta.type,
-      previousSlug: previousSlug || null,
-      kind: 'save',
-    });
-  } catch (error) {
-    console.error('[admin/post] revalidate failed', error);
-    return {
-      ok: false,
-      succeeded: 0,
-      failed: 1,
-      total: 1,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
 
 // 网络抖动(ECONNRESET 等)自动重试：本地到 api.notion.com 偶发连接重置时不至于整单失败
 const isTransient = (e) => {
@@ -381,11 +344,7 @@ export default async function handler(req, res) {
           properties: { [pinKey]: { checkbox: !!pinned } },
         })
       );
-      const meta = readPostMetaFromPage(page);
-      const revalidation = meta.slug
-        ? await runPostSaveRevalidation(res, req, meta, null)
-        : null;
-      return res.status(200).json({ success: true, pinned: !!pinned, revalidation });
+      return res.status(200).json({ success: true, pinned: !!pinned });
     }
 
     if (req.method === 'POST') {
@@ -468,48 +427,14 @@ export default async function handler(req, res) {
       } else {
         const newBlocks = useStructured ? structuredToBlocks(blocksData) : mdToBlocks(content || "");
         const page = await withRetry(() => notion.pages.create({ parent: { database_id: databaseId }, properties: props, children: newBlocks.slice(0, 100) }));
-        const meta = {
-          slug: slug || '',
-          category: category || '',
-          tags: tags || '',
-          type: type || 'Post',
-        };
-        const revalidation = meta.slug
-          ? await runPostSaveRevalidation(res, req, meta, null)
-          : null;
-        return res.status(200).json({ success: true, id: page.id, revalidation });
+        return res.status(200).json({ success: true, id: page.id });
       }
-      const meta = {
-        slug: slug || '',
-        category: category || '',
-        tags: tags || '',
-        type: type || 'Post',
-      };
-      const previousSlug =
-        typeof body.previousSlug === 'string' ? body.previousSlug.trim() : '';
-      const revalidation = meta.slug
-        ? await runPostSaveRevalidation(res, req, meta, previousSlug || null)
-        : null;
-      return res.status(200).json({ success: true, id, revalidation });
+      return res.status(200).json({ success: true, id });
     }
 
     if (req.method === 'DELETE') {
-      const page = await withRetry(() => notion.pages.retrieve({ page_id: queryId }));
-      const meta = readPostMetaFromPage(page);
       await withRetry(() => notion.pages.update({ page_id: queryId, archived: true }));
-      const revalidation = meta.slug
-        ? await revalidateAfterContentSave(res, req, {
-            slug: meta.slug,
-            category: meta.category,
-            tags: meta.tags,
-            type: meta.type,
-            kind: 'delete',
-          }).catch((error) => {
-            console.error('[admin/post] delete revalidate failed', error);
-            return { ok: false, succeeded: 0, failed: 1, total: 1 };
-          })
-        : null;
-      return res.status(200).json({ success: true, revalidation });
+      return res.status(200).json({ success: true });
     }
   } catch (error) {
     console.error('API Error:', error);

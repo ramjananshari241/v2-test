@@ -47,6 +47,17 @@ async function triggerContentRevalidation(payload = {}) {
   }
 }
 
+/** 与右上角「刷新BLOG」相同：壳层列表 + 首页预热 */
+function triggerShellBlogRefresh(extra = {}) {
+  return triggerContentRevalidation({
+    scope: 'shell',
+    clearCaches: true,
+    freshTheme: true,
+    warmPaths: true,
+    ...extra,
+  });
+}
+
 function showRevalidateFeedback(result, showAdminToastFn) {
   if (!result || !showAdminToastFn) return;
   const { ok, succeeded, failed, total } = result;
@@ -2350,12 +2361,9 @@ const [mounted, setMounted] = useState(false);
           alert("✅ 保存成功！");
           setView('list');
           fetchPosts();
-          if (d.revalidation) {
-            showRevalidateFeedback(
-              { ok: d.revalidation.ok, ...d.revalidation },
-              showAdminToast
-            );
-          }
+          triggerShellBlogRefresh().then((rev) =>
+            showRevalidateFeedback(rev, showAdminToast)
+          );
         }
       } catch (e) { alert('网络错误: ' + e.message); }
       finally { setLoading(false); }
@@ -2427,6 +2435,11 @@ const [mounted, setMounted] = useState(false);
       } else {
         const newId = d.id || currentId;
         if (newId && newId !== currentId) setCurrentId(newId);
+        const previousSlug = editingSlugRef.current;
+
+        // Notion 写入完成后立刻刷 shell（与手动刷新相同），再传图库
+        const shellRev = await triggerShellBlogRefresh({ contentChange: true });
+        showRevalidateFeedback(shellRev, showAdminToast);
 
         if (willSyncGallery) {
           setSavePhase('gallery');
@@ -2447,32 +2460,24 @@ const [mounted, setMounted] = useState(false);
             setGalleryDirty(false);
           } catch (e) {
             alert(`✅ 文章已保存，但图库上传失败：\n\n${e.message}\n\n请留在本页重试保存。`);
-            if (d.revalidation) {
-              showRevalidateFeedback(
-                { ok: d.revalidation.ok, ...d.revalidation },
-                showAdminToast
-              );
-            }
             return;
           }
         }
 
         alert("✅ 保存成功！");
-        const previousSlug = editingSlugRef.current;
         editingSlugRef.current = form.slug;
         resetGalleryItems();
         setView('list');
         fetchPosts();
         loadGalleryStorage();
 
-        if (d.revalidation) {
-          showRevalidateFeedback(
-            { ok: d.revalidation.ok, ...d.revalidation },
-            showAdminToast
-          );
-        } else {
-          showAdminToast('文章已保存，前台刷新未执行');
-        }
+        void triggerContentRevalidation({
+          scope: 'post',
+          slug: form.slug,
+          category: form.category || '',
+          tags: form.tags || '',
+          previousSlug,
+        }).catch((e) => console.warn('文章内页增量刷新失败', e));
       }
     } catch (e) {
       alert('网络错误: ' + e.message);
@@ -2489,7 +2494,7 @@ const [mounted, setMounted] = useState(false);
         setLoading(true);
         await fetch('/api/admin/config', { method: 'POST', body: JSON.stringify({ title: newTitle }) });
         setSiteTitle(newTitle);
-        const rev = await triggerContentRevalidation({ scope: 'shell' });
+        const rev = await triggerShellBlogRefresh();
         showRevalidateFeedback(rev, showAdminToast);
         setLoading(false);
     }
@@ -2505,13 +2510,7 @@ const [mounted, setMounted] = useState(false);
     }
     setBlogRefreshBusy(true);
     showAdminToast('正在刷新 BLOG…');
-    triggerContentRevalidation({
-      scope: 'shell',
-      clearCaches: true,
-      freshTheme: true,
-      warmPaths: true,
-      manualShell: true,
-    })
+    triggerShellBlogRefresh({ manualShell: true })
       .then((rev) => {
         if (rev.status === 429) {
           const retrySec = rev.data?.retryAfterSec || 60;
@@ -2562,12 +2561,8 @@ const [mounted, setMounted] = useState(false);
       if (!d.success) alert(d.error || '置顶操作失败');
       else {
         await fetchPosts();
-        if (d.revalidation) {
-          showRevalidateFeedback(
-            { ok: d.revalidation.ok, ...d.revalidation },
-            showAdminToast
-          );
-        }
+        const rev = await triggerShellBlogRefresh();
+        showRevalidateFeedback(rev, showAdminToast);
       }
     } catch (err) {
       alert(err.message || '置顶操作失败');
@@ -2586,12 +2581,8 @@ const [mounted, setMounted] = useState(false);
         throw new Error(data.error || '删除失败');
       }
       await fetchPosts();
-      if (data.revalidation) {
-        showRevalidateFeedback(
-          { ok: data.revalidation.ok, ...data.revalidation },
-          showAdminToast
-        );
-      }
+      const rev = await triggerShellBlogRefresh();
+      showRevalidateFeedback(rev, showAdminToast);
     } catch (e) {
       alert('删除失败：' + (e.message || '未知错误'));
     } finally {
