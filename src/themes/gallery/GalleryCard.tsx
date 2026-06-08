@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { Post, Tag } from '@/src/types/blog'
 import CONFIG from '@/blog.config'
 import { galleryPostDownloadHref } from '@/src/lib/gallery/galleryDownloadPaths'
-import { galleryCardTagClass, galleryCardTitleClass } from './galleryFonts'
+import {
+  galleryCardCategoryClass,
+  galleryCardTagClass,
+  galleryCardTitleClass,
+} from './galleryFonts'
 
 const { TAG, CATEGORY } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -90,7 +94,7 @@ export const GalleryCard = ({ post }: { post: Post }) => {
           ) : null}
 
           {categoryName ? (
-            <p className={`mt-0.5 truncate ${galleryCardTagClass} text-neutral-400`}>
+            <p className={`mt-1 truncate ${galleryCardCategoryClass}`}>
               <Link
                 href={`/${CATEGORY}/${post.category?.id || ''}`}
                 onClick={(e) => e.stopPropagation()}

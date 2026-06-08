@@ -22,6 +22,10 @@ export const galleryCardTitleClass =
 export const galleryCardTagClass =
   'font-gallery text-[12px] font-normal leading-[1.5] tracking-[0.03em] text-neutral-500 antialiased'
 
+/** 文章卡片分类名（略大于标签、字重更深，便于区分） */
+export const galleryCardCategoryClass =
+  'font-gallery text-[13px] font-semibold leading-[1.4] tracking-[0.01em] text-neutral-900 antialiased'
+
 /** 文章详情页标题 */
 export const galleryPostTitleClass =
   'font-gallery text-2xl font-semibold leading-tight tracking-[0.01em] text-neutral-900 antialiased md:text-[1.75rem]'
