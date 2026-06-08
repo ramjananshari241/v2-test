@@ -73,7 +73,7 @@ export const GallerySidebar = () => {
           rel="noopener noreferrer"
           className="block w-full rounded-md bg-black py-2 text-center text-[13px] font-normal text-white transition-all hover:bg-neutral-800 active:scale-[0.98] active:bg-neutral-900"
         >
-          购买
+          STORE
         </a>
       </div>
     </aside>
