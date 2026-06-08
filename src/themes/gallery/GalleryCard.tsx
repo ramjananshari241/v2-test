@@ -37,7 +37,7 @@ export const GalleryCard = ({ post }: { post: Post }) => {
   const categoryName = post.category?.name?.trim()
 
   return (
-    <article className="group mx-auto flex w-full max-w-[calc(100%-5px)] flex-col">
+    <article className="group flex w-full flex-col">
         <Link href={postHref} className="block overflow-hidden rounded-md">
           <div className="relative aspect-[10/13.35] bg-neutral-100">
             {cover ? (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { preloadGalleryImages } from '@/src/lib/gallery/preloadGalleryImages'
 import { GALLERY_POST_PAGE_SIZE } from './galleryConstants'
+import { galleryMediaGridClass } from './galleryFonts'
 import { GalleryGridImage } from './GalleryGridImage'
 import { GalleryGridLoader } from './GalleryGridLoader'
 import { GalleryLightbox } from './GalleryLightbox'
@@ -169,7 +170,7 @@ export function GalleryImageGrid({
 
       <div
         ref={gridRef}
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4"
+        className={galleryMediaGridClass}
       >
         {images.map((img, index) => (
           <GalleryGridImage

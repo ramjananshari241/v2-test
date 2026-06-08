@@ -1,0 +1,74 @@
+/**
+ * Gallery Epic 流体网格：随容器宽度与浏览器缩放自动重排列数。
+ * 父级需加 .gallery-content-container（container-type: inline-size）。
+ */
+
+.gallery-content-container {
+  container-type: inline-size;
+  container-name: gallery;
+  width: 100%;
+  min-width: 0;
+}
+
+.gallery-card-grid,
+.gallery-media-grid,
+.gallery-pill-grid,
+.gallery-recommend-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--gallery-col-min)), 1fr)
+  );
+}
+
+/* 首页 / 分类详情卡片：宽约 4–5 列 */
+.gallery-card-grid {
+  --gallery-col-min: max(10.5rem, 19cqi);
+  column-gap: 0.625rem;
+  row-gap: 1.5rem;
+}
+
+/* 文章内页图库：略小单元格，随正文区宽度伸缩 */
+.gallery-media-grid {
+  --gallery-col-min: max(9rem, 22cqi);
+  gap: 0.75rem;
+}
+
+@container gallery (min-width: 48rem) {
+  .gallery-media-grid {
+    gap: 1rem;
+  }
+}
+
+/* 分类索引 pill 按钮 */
+.gallery-pill-grid {
+  --gallery-col-min: max(8.5rem, 17cqi);
+  gap: 0.75rem;
+}
+
+/* 标签索引：多列文字链 */
+.gallery-tag-grid {
+  display: grid;
+  width: 100%;
+  --gallery-col-min: max(9rem, 18cqi);
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--gallery-col-min)), 1fr)
+  );
+  column-gap: 2rem;
+  row-gap: 0;
+}
+
+@container gallery (min-width: 48rem) {
+  .gallery-tag-grid {
+    column-gap: 3rem;
+  }
+}
+
+/* 内页底部「猜你喜欢」：略宽卡片 */
+.gallery-recommend-grid {
+  --gallery-col-min: max(11rem, 26cqi);
+  column-gap: 1.25rem;
+  row-gap: 2rem;
+}

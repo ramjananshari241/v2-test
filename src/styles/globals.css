@@ -1,4 +1,5 @@
 @import './gallery-prose.css';
+@import './gallery-grid.css';
 @import './chatwoot-launcher.css';
 
 @tailwind base;

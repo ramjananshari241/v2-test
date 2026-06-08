@@ -2,14 +2,14 @@ import CONFIG from '@/blog.config'
 
 export const GALLERY_SIDEBAR_WIDTH = 260
 
-/** 首页每页文章数（4 列 × 3 行） */
-export const GALLERY_HOME_PAGE_SIZE = 12
+/** 首页每页文章数（流体网格约 5 列 × 3 行） */
+export const GALLERY_HOME_PAGE_SIZE = 15
 
-/** 分类 / 标签列表每页条数（4 列 × 6 行） */
-export const GALLERY_LIST_PAGE_SIZE = 24
+/** 分类 / 标签列表每页条数（流体网格约 5 列 × 6 行） */
+export const GALLERY_LIST_PAGE_SIZE = 30
 
-/** 文章内页图库：首屏 4 列 × 2 行，其余点「显示更多」 */
-export const GALLERY_POST_PAGE_SIZE = 8
+/** 文章内页图库：首屏约 5 列 × 3 行，其余点「显示更多」 */
+export const GALLERY_POST_PAGE_SIZE = 15
 
 export const GALLERY_LOGIN_URL = CONFIG.GALLERY_LOGIN_URL || '#'
 

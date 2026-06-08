@@ -5,6 +5,10 @@ import { GalleryAnnouncement } from './GalleryAnnouncement'
 import { GalleryCard } from './GalleryCard'
 import { GalleryPagination } from './GalleryPagination'
 import { GALLERY_HOME_PAGE_SIZE } from './galleryConstants'
+import {
+  galleryCardGridClass,
+  galleryContentContainerClass,
+} from './galleryFonts'
 import { filterGalleryPosts, readSearchQuery } from './gallerySearch'
 
 type AnnouncementLike = { title?: string; slug?: string }
@@ -72,7 +76,7 @@ export const GalleryHome = ({ posts, widgets }: ThemeHomeProps) => {
     <>
       <GalleryAnnouncement announcement={announcement} />
 
-      <main className="flex-1 px-5 pb-10 pt-1">
+      <main className={`${galleryContentContainerClass} flex-1 px-5 pb-10 pt-1`}>
         {searchQuery ? (
           <p className="mb-4 text-[12px] text-neutral-400">
             共 {filteredPosts.length} 条结果
@@ -85,7 +89,7 @@ export const GalleryHome = ({ posts, widgets }: ThemeHomeProps) => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-x-2.5 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
+            <div className={galleryCardGridClass}>
               {displayPosts.map((post) => (
                 <GalleryCard key={post.id} post={post} />
               ))}

@@ -5,7 +5,11 @@ import { GalleryBreadcrumb, BreadcrumbItem } from './GalleryBreadcrumb'
 import { GalleryCard } from './GalleryCard'
 import { GalleryPagination } from './GalleryPagination'
 import { GALLERY_HOME_PAGE_SIZE } from './galleryConstants'
-import { galleryPostTitleClass } from './galleryFonts'
+import {
+  galleryCardGridClass,
+  galleryContentContainerClass,
+  galleryPostTitleClass,
+} from './galleryFonts'
 
 function parsePageFromQuery(query: unknown, maxPages: number): number {
   const raw = Array.isArray(query) ? query[0] : query
@@ -75,7 +79,7 @@ export function GalleryFilteredPosts({
     <>
       <GalleryBreadcrumb items={breadcrumbItems} />
 
-      <main className="flex-1 px-5 pb-10 pt-2">
+      <main className={`${galleryContentContainerClass} flex-1 px-5 pb-10 pt-2`}>
         <header className="mb-6 px-1">
           <h1 className={galleryPostTitleClass}>{title}</h1>
           <p className="mt-2 font-gallery text-[13px] text-neutral-400">
@@ -89,7 +93,7 @@ export function GalleryFilteredPosts({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-x-2.5 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
+            <div className={galleryCardGridClass}>
               {displayPosts.map((post) => (
                 <GalleryCard key={post.id} post={post} />
               ))}

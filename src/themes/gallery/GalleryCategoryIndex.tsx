@@ -8,6 +8,10 @@ import { GalleryPageSearch } from './GalleryPageSearch'
 import { GalleryPagination } from './GalleryPagination'
 import { GALLERY_LIST_PAGE_SIZE } from './galleryConstants'
 import { filterGalleryCategories } from './galleryCategorySearch'
+import {
+  galleryContentContainerClass,
+  galleryPillGridClass,
+} from './galleryFonts'
 import { readSearchQuery } from './gallerySearch'
 
 const { CATEGORY } = CONFIG.DEFAULT_SPECIAL_PAGES
@@ -99,7 +103,7 @@ export function GalleryCategoryIndex({
         items={[{ label: '首页', href: '/' }, { label: pageLabel }]}
       />
 
-      <main className="flex-1 pb-10">
+      <main className={`${galleryContentContainerClass} flex-1 pb-10`}>
         <div className="py-8">
           <GalleryPageSearch
             value={searchInput}
@@ -122,7 +126,7 @@ export function GalleryCategoryIndex({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 px-6 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+            <div className={`${galleryPillGridClass} px-6`}>
               {pageItems.map((cat) => (
                 <Link
                   key={cat.id}

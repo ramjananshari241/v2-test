@@ -7,7 +7,11 @@ import { GalleryBreadcrumb } from './GalleryBreadcrumb'
 import { GalleryPageSearch } from './GalleryPageSearch'
 import { GalleryPagination } from './GalleryPagination'
 import { GALLERY_LIST_PAGE_SIZE } from './galleryConstants'
-import { galleryTagLinkClass } from './galleryFonts'
+import {
+  galleryContentContainerClass,
+  galleryTagGridClass,
+  galleryTagLinkClass,
+} from './galleryFonts'
 import { filterGalleryTags } from './galleryTagSearch'
 import { readSearchQuery } from './gallerySearch'
 
@@ -102,7 +106,7 @@ export function GalleryTagIndex({ page, tags }: GalleryTagIndexProps) {
         items={[{ label: '首页', href: '/' }, { label: pageLabel }]}
       />
 
-      <main className="flex-1 pb-10">
+      <main className={`${galleryContentContainerClass} flex-1 pb-10`}>
         <div className="py-8">
           <GalleryPageSearch
             value={searchInput}
@@ -125,7 +129,7 @@ export function GalleryTagIndex({ page, tags }: GalleryTagIndexProps) {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-0 px-6 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-12">
+            <div className={`${galleryTagGridClass} px-6`}>
               {pageItems.map((tag) => (
                 <Link
                   key={tag.id}

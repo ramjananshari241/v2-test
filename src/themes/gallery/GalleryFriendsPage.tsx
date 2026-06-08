@@ -4,7 +4,12 @@ import { BlockResponse } from '@/src/types/notion'
 import Link from 'next/link'
 import { GalleryBreadcrumb } from './GalleryBreadcrumb'
 import { filterGalleryIntroBlocks } from './filterGalleryIntroBlocks'
-import { galleryPostTitleClass, galleryProseClass } from './galleryFonts'
+import {
+  galleryCardGridClass,
+  galleryContentContainerClass,
+  galleryPostTitleClass,
+  galleryProseClass,
+} from './galleryFonts'
 
 function hostFromUrl(url: string): string {
   try {
@@ -99,7 +104,7 @@ export function GalleryFriendsPage({
         items={[{ label: '首页', href: '/' }, { label: heading }]}
       />
 
-      <main className="flex-1 px-5 pb-12 pt-2">
+      <main className={`${galleryContentContainerClass} flex-1 px-5 pb-12 pt-2`}>
         <header className="mb-6 px-1">
           <h1 className={galleryPostTitleClass}>{heading}</h1>
           <p className="mt-2 font-gallery text-[13px] text-neutral-400">
@@ -124,7 +129,7 @@ export function GalleryFriendsPage({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+          <div className={galleryCardGridClass}>
             {list.map((friend) => (
               <FriendCard
                 key={`${friend.name}-${friend.link}`}

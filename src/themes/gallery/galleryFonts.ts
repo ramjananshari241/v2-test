@@ -57,3 +57,21 @@ export const galleryArchiveDateClass =
 export const galleryArchiveEntryClass =
   'font-gallery text-[15px] font-normal leading-snug tracking-[0.01em] text-neutral-900 antialiased'
 
+/** 流体网格容器（配合 gallery-grid.css） */
+export const galleryContentContainerClass = 'gallery-content-container'
+
+/** 首页 / 列表卡片网格 */
+export const galleryCardGridClass = 'gallery-card-grid'
+
+/** 文章内页图库网格 */
+export const galleryMediaGridClass = 'gallery-media-grid'
+
+/** 分类索引 pill 网格 */
+export const galleryPillGridClass = 'gallery-pill-grid'
+
+/** 标签索引多列网格 */
+export const galleryTagGridClass = 'gallery-tag-grid'
+
+/** 内页底部推荐网格 */
+export const galleryRecommendGridClass = 'gallery-recommend-grid'
+

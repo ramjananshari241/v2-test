@@ -3,7 +3,7 @@ import {
   GalleryRecommendPost,
   withoutGalleryAnnouncement,
 } from '@/src/lib/gallery/galleryRecommendations'
-import { galleryCardTitleClass } from './galleryFonts'
+import { galleryCardTitleClass, galleryRecommendGridClass } from './galleryFonts'
 
 function formatPostDate(iso: string) {
   if (!iso) return ''
@@ -31,7 +31,7 @@ export function GalleryPostRecommendations({
       <h2 className="mb-6 font-gallery text-[15px] font-semibold tracking-wide text-neutral-500">
         猜你喜欢
       </h2>
-      <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={galleryRecommendGridClass}>
         {items.map((item) => (
           <Link
             key={item.slug}
