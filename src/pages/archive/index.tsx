@@ -13,6 +13,7 @@ import { initialCategory } from '@/src/lib/blog/format/category'
 import { initialTag } from '@/src/lib/blog/format/tag'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
 import { addSubTitle } from '@/src/lib/util'
+import { GalleryArchive } from '@/src/themes/gallery/GalleryArchive'
 import {
   Category,
   NextPageWithLayout,
@@ -60,6 +61,8 @@ const Archive: NextPage<{
   tagCategoryMapById: Record<string, string[]>
   categoryTagMapById: Record<string, string[]>
   currentPage: number
+  totalCount?: number
+  activeTheme?: string
 }> = ({
   page,
   items,
@@ -69,6 +72,8 @@ const Archive: NextPage<{
   tagCategoryMapById,
   categoryTagMapById,
   currentPage,
+  totalCount,
+  activeTheme,
 }) => {
   const router = useRouter()
   const [pageCountAfterFilter, setPageCountAfterFilter] = useState(pageCount)
@@ -152,6 +157,18 @@ const Archive: NextPage<{
 
   if (!page) return <Section404 />
 
+  if (activeTheme === 'gallery') {
+    return (
+      <GalleryArchive
+        page={page}
+        items={items}
+        pageCount={pageCount}
+        currentPage={currentPage}
+        totalCount={totalCount}
+      />
+    )
+  }
+
   const { title } = page
 
   return (
@@ -188,8 +205,11 @@ const Archive: NextPage<{
 
 const withNavPage = withNavFooter(Archive)
 
-;(withNavPage as NextPageWithLayout).getLayout = (page) => (
-  <BlogLayoutPure>{page}</BlogLayoutPure>
-)
+;(withNavPage as NextPageWithLayout).getLayout = (page) => {
+  if ((page.props as { activeTheme?: string })?.activeTheme === 'gallery') {
+    return page
+  }
+  return <BlogLayoutPure>{page}</BlogLayoutPure>
+}
 
 export default withNavPage

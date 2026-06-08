@@ -24,23 +24,23 @@ const morePath =
 /**
  * Gallery 侧栏结构：
  * Home → 首页
- * 导航：分类 | 标签 | 归档
- * 游客：说明 | 更多
+ * Cosplay：分类 | 标签 | 归档
+ * About：说明 | 更多
  */
 export const GALLERY_NAV_SECTIONS: GalleryNavSection[] = [
   {
     items: [{ label: 'Home', href: '/', icon: 'home' }],
   },
   {
-    title: '导航',
+    title: 'Cosplay',
     items: [
       { label: '分类', href: `/${CATEGORY}`, icon: 'lists' },
       { label: '标签', href: `/${TAG}`, icon: 'cosers' },
-      { label: '归档', href: `/${ARCHIVE}/1`, icon: 'parodies' },
+      { label: '归档', href: `/${ARCHIVE}`, icon: 'parodies' },
     ],
   },
   {
-    title: '游客',
+    title: 'About',
     items: [
       { label: '说明', href: guidePath, icon: 'guide' },
       { label: '更多', href: morePath, icon: 'models' },

@@ -45,3 +45,15 @@ export const galleryTagLinkClass =
 export const galleryAnnouncementBarClass =
   'font-gallery text-[14px] font-normal leading-[1.45] tracking-normal text-neutral-900 antialiased subpixel-antialiased'
 
+/** 归档页年份标题 */
+export const galleryArchiveYearClass =
+  'font-gallery text-[20px] font-semibold leading-none tracking-tight text-neutral-900 antialiased'
+
+/** 归档页日期 */
+export const galleryArchiveDateClass =
+  'font-gallery text-[13px] font-normal tabular-nums leading-none text-neutral-400 antialiased'
+
+/** 归档页文章标题 */
+export const galleryArchiveEntryClass =
+  'font-gallery text-[15px] font-normal leading-snug tracking-[0.01em] text-neutral-900 antialiased'
+

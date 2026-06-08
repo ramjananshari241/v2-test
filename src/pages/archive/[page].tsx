@@ -14,6 +14,7 @@ import { initialTag } from '@/src/lib/blog/format/tag'
 import { onDemandStaticPaths } from '@/src/lib/blog/postLimits'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
 import { addSubTitle } from '@/src/lib/util'
+import { GalleryArchive } from '@/src/themes/gallery/GalleryArchive'
 import {
   Category,
   NextPageWithLayout,
@@ -38,8 +39,17 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     const slug = ARCHIVE
     const currentPage = Number(context.params?.page as string)
 
-    if (!currentPage || Number.isNaN(currentPage) || currentPage < 2) {
+    if (!currentPage || Number.isNaN(currentPage) || currentPage < 1) {
       return { notFound: true }
+    }
+
+    if (currentPage === 1) {
+      return {
+        redirect: {
+          destination: `/${ARCHIVE}`,
+          permanent: true,
+        },
+      }
     }
 
     addSubTitle(sharedPageStaticProps.props, slug)
@@ -72,6 +82,8 @@ const Archive: NextPage<{
   tagCategoryMapById: Record<string, string[]>
   categoryTagMapById: Record<string, string[]>
   currentPage: number
+  totalCount?: number
+  activeTheme?: string
 }> = ({
   page,
   items,
@@ -81,6 +93,8 @@ const Archive: NextPage<{
   tagCategoryMapById,
   categoryTagMapById,
   currentPage,
+  totalCount,
+  activeTheme,
 }) => {
   const [pageCountAfterFilter, setPageCountAfterFilter] = useState(pageCount)
   const [itemsAfterFilter, setItemsAfterFilter] = useState(items)
@@ -165,6 +179,18 @@ const Archive: NextPage<{
 
   if (!page || !currentPage) return <Section404 />
 
+  if (activeTheme === 'gallery') {
+    return (
+      <GalleryArchive
+        page={page}
+        items={itemsAfterFilter}
+        pageCount={pageCountAfterFilter}
+        currentPage={currentPage}
+        totalCount={totalCount}
+      />
+    )
+  }
+
   const { title } = page
 
   return (
@@ -201,8 +227,11 @@ const Archive: NextPage<{
 
 const withNavPage = withNavFooter(Archive)
 
-;(withNavPage as NextPageWithLayout).getLayout = (page) => (
-  <BlogLayoutPure>{page}</BlogLayoutPure>
-)
+;(withNavPage as NextPageWithLayout).getLayout = (page) => {
+  if ((page.props as { activeTheme?: string })?.activeTheme === 'gallery') {
+    return page
+  }
+  return <BlogLayoutPure>{page}</BlogLayoutPure>
+}
 
 export default withNavPage
