@@ -2,6 +2,7 @@
 
 import { BlockRender } from '@/src/components/blocks/BlockRender'
 import { BlockResponse } from '@/src/types/notion'
+import { MathJaxContext } from 'better-react-mathjax'
 import { GalleryImageGrid, useGalleryHasImages } from './GalleryImageGrid'
 import {
   filterGalleryBodyBlocks,
@@ -22,22 +23,24 @@ export function GalleryPostContent({ postSlug, blocks }: GalleryPostContentProps
   const showBody = hasGalleryBodyContent(blocks, hasGallery)
 
   return (
-    <>
-      <GalleryImageGrid postSlug={postSlug} />
+    <MathJaxContext>
+      <div className="overflow-hidden break-words">
+        <GalleryImageGrid postSlug={postSlug} />
 
-      {ready && showBody ? (
-        <div className={hasGallery ? 'mt-8' : ''}>
-          <div className={hasGallery ? proseBorderedClass : galleryProseClass}>
-            <BlockRender blocks={bodyBlocks} />
+        {ready && showBody ? (
+          <div className={hasGallery ? 'mt-8' : ''}>
+            <div className={hasGallery ? proseBorderedClass : galleryProseClass}>
+              <BlockRender blocks={bodyBlocks} />
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {ready && !hasGallery && !showBody ? (
-        <p className="py-6 text-center text-[13px] text-neutral-400">
-          暂无内容
-        </p>
-      ) : null}
-    </>
+        {ready && !hasGallery && !showBody ? (
+          <p className="py-6 text-center text-[13px] text-neutral-400">
+            暂无内容
+          </p>
+        ) : null}
+      </div>
+    </MathJaxContext>
   )
 }

@@ -1,5 +1,6 @@
 import { BlockRender } from '@/src/components/blocks/BlockRender'
 import { BlockResponse } from '@/src/types/notion'
+import { MathJaxContext } from 'better-react-mathjax'
 import { GalleryBreadcrumb } from './GalleryBreadcrumb'
 import { galleryPostTitleClass, galleryProseClass } from './galleryFonts'
 
@@ -40,9 +41,11 @@ export function GalleryArticlePage({
             <div className="mb-8" />
           )}
 
-          <div className={galleryProseClass}>
-            <BlockRender blocks={blocks} />
-          </div>
+          <MathJaxContext>
+            <div className={`${galleryProseClass} overflow-hidden break-words`}>
+              <BlockRender blocks={blocks} />
+            </div>
+          </MathJaxContext>
         </article>
       </main>
     </>
