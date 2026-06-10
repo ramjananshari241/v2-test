@@ -1,4 +1,8 @@
 import { BlockDataType, BlockEnum, BlockType } from '@/src/types/blog'
+import {
+  BlockRenderProvider,
+  BlockRenderVariant,
+} from './BlockRenderContext'
 import { EncryptedCallout } from './EncryptedCallout' 
 import {
   Bookmark,
@@ -93,9 +97,15 @@ const getBlockComponent = (blockType: BlockType) => {
   }
 }
 
-export const BlockRender = ({ blocks }: { blocks: BlockDataType[] }) => {
+export const BlockRender = ({
+  blocks,
+  variant = 'default',
+}: {
+  blocks: BlockDataType[]
+  variant?: BlockRenderVariant
+}) => {
   return (
-    <>
+    <BlockRenderProvider variant={variant}>
       {blocks.map((block) => {
         const type = block.type ?? BlockEnum.unsupported
         const Block = getBlockComponent(type)
@@ -114,6 +124,6 @@ export const BlockRender = ({ blocks }: { blocks: BlockDataType[] }) => {
           </div>
         )
       })}
-    </>
+    </BlockRenderProvider>
   )
 }

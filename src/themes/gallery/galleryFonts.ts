@@ -10,9 +10,9 @@ export const galleryShellClass =
 export const galleryProseClass =
   'prose-gallery font-gallery text-[17px] font-normal leading-[1.8] tracking-[0.01em] text-neutral-900 antialiased'
 
-/** 正文内超链（与 gallery-prose.css 一致，供非 prose 区域复用） */
+/** 正文内超链（与 gallery-prose-blocks.css .gallery-block-link 一致） */
 export const galleryInlineLinkClass =
-  'font-semibold text-neutral-500 no-underline transition-colors hover:text-neutral-900'
+  'gallery-block-link font-semibold text-neutral-500 underline decoration-neutral-200 underline-offset-[3px] transition-colors hover:text-neutral-900 hover:decoration-neutral-400'
 
 /** 文章卡片标题 */
 export const galleryCardTitleClass =

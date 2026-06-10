@@ -43,7 +43,7 @@ export function GalleryArticlePage({
 
           <MathJaxContext>
             <div className={`${galleryProseClass} overflow-hidden break-words`}>
-              <BlockRender blocks={blocks} />
+              <BlockRender blocks={blocks} variant="gallery" />
             </div>
           </MathJaxContext>
         </article>

@@ -118,7 +118,7 @@ export function GalleryFriendsPage({
           <div
             className={`${galleryProseClass} mb-10 max-w-3xl rounded-sm border border-neutral-200 bg-white px-6 py-6 md:px-8`}
           >
-            <BlockRender blocks={introBlocks} />
+            <BlockRender blocks={introBlocks} variant="gallery" />
           </div>
         ) : null}
 

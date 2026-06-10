@@ -30,7 +30,7 @@ export function GalleryPostContent({ postSlug, blocks }: GalleryPostContentProps
         {ready && showBody ? (
           <div className={hasGallery ? 'mt-8' : ''}>
             <div className={hasGallery ? proseBorderedClass : galleryProseClass}>
-              <BlockRender blocks={bodyBlocks} />
+              <BlockRender blocks={bodyBlocks} variant="gallery" />
             </div>
           </div>
         ) : null}

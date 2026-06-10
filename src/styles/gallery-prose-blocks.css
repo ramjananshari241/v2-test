@@ -1,0 +1,334 @@
+/**
+ * Gallery 正文块级样式（简约浅色，独立于 Anzifan）
+ * 配合 BlockRender variant="gallery" + .prose-gallery 容器
+ */
+
+.prose-gallery {
+  color: #171717;
+  color-scheme: light;
+}
+
+/* —— 段落 / 标题 / 列表 —— */
+.prose-gallery p {
+  margin: 0.5em 0;
+  color: #171717;
+}
+
+.prose-gallery h2 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #171717;
+  scroll-margin-top: 5rem;
+}
+
+.prose-gallery h3 {
+  margin: 1.5rem 0 0.625rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #171717;
+  scroll-margin-top: 4rem;
+}
+
+.prose-gallery h4 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #171717;
+  scroll-margin-top: 4rem;
+}
+
+.prose-gallery ul,
+.prose-gallery ol {
+  margin: 0.75em 0;
+  padding-left: 1.35rem;
+  color: #171717;
+}
+
+.prose-gallery li {
+  margin: 0.35em 0;
+  color: #171717;
+}
+
+.prose-gallery img,
+.prose-gallery video {
+  max-width: 100%;
+  border-radius: 0.375rem;
+}
+
+/* —— 行内超链（Text.tsx gallery-block-link） —— */
+.prose-gallery .gallery-block-link {
+  color: #737373 !important;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: #e5e5e5;
+  text-underline-offset: 3px;
+  background: none !important;
+  background-image: none !important;
+  padding-bottom: 0 !important;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.prose-gallery .gallery-block-link:hover {
+  color: #171717 !important;
+  text-decoration-color: #a3a3a3;
+}
+
+.prose-gallery .gallery-block-link::after {
+  content: none !important;
+}
+
+/* Bookmark 卡片上的外链 */
+.prose-gallery a.rounded-\[1\.25rem\]:not(.gallery-block-link) {
+  border: 1px solid #e5e5e5 !important;
+  background-color: #fafafa !important;
+  color: #404040 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.prose-gallery a.rounded-\[1\.25rem\]:not(.gallery-block-link):hover {
+  background-color: #f5f5f5 !important;
+  border-color: #d4d4d4 !important;
+}
+
+/* —— 行内代码 / 标签 —— */
+.prose-gallery code,
+.prose-gallery .font-mono.text-sm {
+  background-color: #f5f5f5 !important;
+  color: #171717 !important;
+  border: 1px solid #ebebeb;
+  border-radius: 0.25rem;
+  padding: 0.1em 0.35em;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+.prose-gallery .rounded-full.border.px-2 {
+  background-color: #f5f5f5 !important;
+  border-color: #e5e5e5 !important;
+  color: #525252 !important;
+}
+
+/* —— 行内高亮（Notion default_background） —— */
+.prose-gallery .bg-black,
+.prose-gallery .dark\:bg-white {
+  background-color: #f3f4f6 !important;
+  color: #171717 !important;
+  border-radius: 0.2rem;
+  padding: 0 0.15em;
+}
+
+/* —— Callout —— */
+.prose-gallery .gallery-callout {
+  border: 1px solid #e8e8e8 !important;
+  border-radius: 0.5rem !important;
+  background-color: #fafafa !important;
+  box-shadow: none !important;
+}
+
+.prose-gallery .gallery-callout.bg-gray-50,
+.prose-gallery .gallery-callout.dark\:bg-\[\#171717\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#1c1c1e\] {
+  background-color: #fafafa !important;
+}
+
+.prose-gallery .gallery-callout.dark\:bg-brown-dark,
+.prose-gallery .gallery-callout.dark\:bg-orange-dark,
+.prose-gallery .gallery-callout.dark\:bg-yellow-dark,
+.prose-gallery .gallery-callout.dark\:bg-green-dark,
+.prose-gallery .gallery-callout.dark\:bg-blue-dark,
+.prose-gallery .gallery-callout.dark\:bg-purple-dark,
+.prose-gallery .gallery-callout.dark\:bg-pink-dark,
+.prose-gallery .gallery-callout.dark\:bg-red-dark,
+.prose-gallery .gallery-callout.dark\:bg-neutral-700,
+.prose-gallery .gallery-callout.dark\:bg-\[\#3d1515\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#321209\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#2d1908\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#0a2212\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#0d1737\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#131234\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#350b1b\],
+.prose-gallery .gallery-callout.dark\:bg-\[\#311607\] {
+  background-color: #f7f7f5 !important;
+  border-color: #e8e8e8 !important;
+}
+
+.prose-gallery .gallery-callout p,
+.prose-gallery .gallery-callout span,
+.prose-gallery .gallery-callout li {
+  color: inherit;
+}
+
+/* Notion 彩色字（Callout 内保留色相、降低饱和） */
+.prose-gallery .gallery-callout .text-brown-light,
+.prose-gallery .gallery-callout .dark\:text-brown-dark {
+  color: #92400e !important;
+}
+.prose-gallery .gallery-callout .text-orange-light,
+.prose-gallery .gallery-callout .dark\:text-orange-dark {
+  color: #c2410c !important;
+}
+.prose-gallery .gallery-callout .text-yellow-light,
+.prose-gallery .gallery-callout .dark\:text-yellow-dark {
+  color: #a16207 !important;
+}
+.prose-gallery .gallery-callout .text-green-light,
+.prose-gallery .gallery-callout .dark\:text-green-dark {
+  color: #15803d !important;
+}
+.prose-gallery .gallery-callout .text-blue-light,
+.prose-gallery .gallery-callout .dark\:text-blue-dark {
+  color: #1d4ed8 !important;
+}
+.prose-gallery .gallery-callout .text-purple-light,
+.prose-gallery .gallery-callout .dark\:text-purple-dark {
+  color: #4338ca !important;
+}
+.prose-gallery .gallery-callout .text-pink-light,
+.prose-gallery .gallery-callout .dark\:text-pink-dark {
+  color: #be185d !important;
+}
+.prose-gallery .gallery-callout .text-red-light,
+.prose-gallery .gallery-callout .dark\:text-red-dark {
+  color: #b91c1c !important;
+}
+
+/* —— 引用块 —— */
+.prose-gallery blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid #e5e5e5;
+  color: #525252 !important;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.prose-gallery .rounded-2xl.bg-\[\#f8f9fa\],
+.prose-gallery .dark\:bg-\[\#2d2d2d\],
+.prose-gallery .dark\:bg-\[\#1c1c1e\],
+.prose-gallery .dark\:bg-\[\#222222\] {
+  background-color: #fafafa !important;
+  border: 1px solid #ebebeb;
+  border-radius: 0.5rem !important;
+  color: #404040 !important;
+}
+
+.prose-gallery .text-3xl.font-bold.text-neutral-300,
+.prose-gallery .dark\:text-neutral-600 {
+  color: #d4d4d4 !important;
+}
+
+/* —— 代码块 —— */
+.prose-gallery pre,
+.prose-gallery .dark\:bg-neutral-900,
+.prose-gallery .dark\:bg-neutral-800,
+.prose-gallery .rounded-md.bg-\[\#f3f4f5\],
+.prose-gallery .dark\:bg-\[\#2f2f2f\] {
+  background-color: #f5f5f5 !important;
+  color: #171717 !important;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.375rem;
+}
+
+/* —— 分隔线 / 表格 —— */
+.prose-gallery .dark\:bg-gray-700 {
+  background-color: #e5e5e5 !important;
+}
+
+.prose-gallery .dark\:border-neutral-700,
+.prose-gallery .dark\:border-gray-700 {
+  border-color: #e5e5e5 !important;
+}
+
+.prose-gallery tr.odd\:bg-slate-50,
+.prose-gallery tr.dark\:odd\:bg-slate-900 {
+  background-color: #fafafa !important;
+}
+
+.prose-gallery .dark\:from-neutral-900 {
+  --tw-gradient-from: #ffffff !important;
+}
+
+/* —— Toggle —— */
+.prose-gallery summary,
+.prose-gallery .cursor-pointer {
+  color: #171717 !important;
+}
+
+/* —— 加密块 —— */
+.prose-gallery .gallery-encrypted-panel {
+  background-color: #fafafa !important;
+  border: 1px solid #e5e5e5 !important;
+  border-radius: 0.5rem;
+  box-shadow: none !important;
+}
+
+.prose-gallery .gallery-encrypted-panel__bg,
+.prose-gallery .gallery-encrypted-panel .dark\:bg-\[\#121212\] {
+  background-color: #f5f5f5 !important;
+}
+
+.prose-gallery .gallery-encrypted-panel h3 {
+  color: #171717 !important;
+}
+
+.prose-gallery .gallery-encrypted-panel p {
+  color: #525252 !important;
+}
+
+.prose-gallery .gallery-encrypted-panel input {
+  background-color: #fff !important;
+  color: #171717 !important;
+  border-color: #e5e5e5 !important;
+}
+
+.prose-gallery .gallery-encrypted-panel__unlock {
+  background-color: #171717 !important;
+}
+
+/* —— 修正全站 dark 误入的正文色 —— */
+.prose-gallery .dark\:text-neutral-200,
+.prose-gallery .dark\:text-\[\#e4e2dc\] {
+  color: #171717 !important;
+}
+
+.prose-gallery .text-\[\#37352f\] {
+  color: #37352f !important;
+}
+
+.prose-gallery .text-neutral-500,
+.prose-gallery .text-neutral-400,
+.prose-gallery .dark\:text-neutral-400,
+.prose-gallery .dark\:text-gray-400,
+.prose-gallery .dark\:text-gray-500 {
+  color: #525252 !important;
+}
+
+.prose-gallery .text-brown-light { color: #92400e !important; }
+.prose-gallery .text-orange-light { color: #c2410c !important; }
+.prose-gallery .text-yellow-light { color: #a16207 !important; }
+.prose-gallery .text-green-light { color: #15803d !important; }
+.prose-gallery .text-blue-light { color: #1d4ed8 !important; }
+.prose-gallery .text-purple-light { color: #4338ca !important; }
+.prose-gallery .text-pink-light { color: #be185d !important; }
+.prose-gallery .text-red-light { color: #b91c1c !important; }
+
+.prose-gallery .dark\:text-brown-dark { color: #92400e !important; }
+.prose-gallery .dark\:text-orange-dark { color: #c2410c !important; }
+.prose-gallery .dark\:text-yellow-dark { color: #a16207 !important; }
+.prose-gallery .dark\:text-green-dark { color: #15803d !important; }
+.prose-gallery .dark\:text-blue-dark { color: #1d4ed8 !important; }
+.prose-gallery .dark\:text-purple-dark { color: #4338ca !important; }
+.prose-gallery .dark\:text-pink-dark { color: #be185d !important; }
+.prose-gallery .dark\:text-red-dark { color: #b91c1c !important; }
+
+.prose-gallery .dark\:bg-clip-text.dark\:text-transparent {
+  -webkit-text-fill-color: #171717 !important;
+  color: #171717 !important;
+}

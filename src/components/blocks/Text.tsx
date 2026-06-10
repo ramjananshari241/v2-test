@@ -1,6 +1,7 @@
 import { colorMap } from '@/src/lib/colors'
 import { classNames } from '@/src/lib/util'
 import { AnnotationResponse, ApiColor } from '@/src/types/notion'
+import { useBlockRenderVariant } from './BlockRenderContext'
 import {
   EquationRichTextItemResponse,
   RichTextItemResponse,
@@ -80,56 +81,68 @@ export const Text = ({
   outerColor?: ApiColor
 }) => {
   const { type, annotations, plain_text: plainText, href, ...object } = richText
+  const variant = useBlockRenderVariant()
 
   if (type === 'text') {
     const isHref = href ? true : false
     const isAt = href && plainText.startsWith('@') ? true : false
+    const isGallery = variant === 'gallery'
     return (
       <span
         className={classNames(
           annotationsToStyles(annotations, outerColor, {
-            href: isHref,
-            at: isAt,
+            href: isHref && !isGallery,
+            at: isAt && !isGallery,
           })
         )}
       >
         {href ? (
           <a
-            className={classNames(
-              "mx-0.5 break-all bg-gradient-to-r bg-no-underline-size bg-bottom bg-no-repeat pb-[0.5px] transition-all duration-200 ease-in-out after:content-['↗'] hover:bg-underline-size",
-              isHref &&
-                !isAt &&
-                (outerColor === 'default' ||
-                  !outerColor ||
-                  outerColor === 'default_background') &&
-                annotations.color === 'default'
-                ? 'from-blue-light to-blue-light'
-                : isAt &&
-                  (outerColor === 'default' ||
-                    !outerColor ||
-                    outerColor === 'default_background')
-                ? 'from-orange-light to-orange-light'
-                : classNames(
-                    colorMap[
-                      (annotations.color === 'default'
-                        ? outerColor + '_background_from'
-                        : annotations.color.endsWith('_background')
-                        ? outerColor
-                          ? outerColor + '_background_from'
-                          : 'blue_background_from'
-                        : annotations.color + '_background_from') as ApiColor
-                    ],
-                    colorMap[
-                      (annotations.color === 'default'
-                        ? outerColor + '_background_to'
-                        : annotations.color.endsWith('_background')
-                        ? outerColor
-                          ? outerColor + '_background_to'
-                          : 'blue_background_to'
-                        : annotations.color + '_background_to') as ApiColor
-                    ]
+            className={
+              isGallery
+                ? classNames(
+                    'gallery-block-link',
+                    annotations.bold ? 'font-bold' : '',
+                    annotations.italic ? 'italic' : '',
+                    annotations.strikethrough ? 'line-through' : '',
+                    annotations.underline ? 'underline' : ''
                   )
-            )}
+                : classNames(
+                    "mx-0.5 break-all bg-gradient-to-r bg-no-underline-size bg-bottom bg-no-repeat pb-[0.5px] transition-all duration-200 ease-in-out after:content-['↗'] hover:bg-underline-size",
+                    isHref &&
+                      !isAt &&
+                      (outerColor === 'default' ||
+                        !outerColor ||
+                        outerColor === 'default_background') &&
+                      annotations.color === 'default'
+                      ? 'from-blue-light to-blue-light'
+                      : isAt &&
+                        (outerColor === 'default' ||
+                          !outerColor ||
+                          outerColor === 'default_background')
+                      ? 'from-orange-light to-orange-light'
+                      : classNames(
+                          colorMap[
+                            (annotations.color === 'default'
+                              ? outerColor + '_background_from'
+                              : annotations.color.endsWith('_background')
+                              ? outerColor
+                                ? outerColor + '_background_from'
+                                : 'blue_background_from'
+                              : annotations.color + '_background_from') as ApiColor
+                          ],
+                          colorMap[
+                            (annotations.color === 'default'
+                              ? outerColor + '_background_to'
+                              : annotations.color.endsWith('_background')
+                              ? outerColor
+                                ? outerColor + '_background_to'
+                                : 'blue_background_to'
+                              : annotations.color + '_background_to') as ApiColor
+                          ]
+                        )
+                  )
+            }
             href={href ?? ''}
             target="_blank"
             rel="noopener noreferrer"

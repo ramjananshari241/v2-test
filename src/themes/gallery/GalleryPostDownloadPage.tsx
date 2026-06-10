@@ -122,7 +122,7 @@ export function GalleryPostDownloadPage({
                 <section className="pt-2">
                   {downloadInstructionBlocks.length > 0 ? (
                     <div className={`${galleryProseClass} text-[15px]`}>
-                      <BlockRender blocks={downloadInstructionBlocks} />
+                      <BlockRender blocks={downloadInstructionBlocks} variant="gallery" />
                     </div>
                   ) : (
                     <p className="font-gallery text-sm leading-relaxed text-neutral-500">
