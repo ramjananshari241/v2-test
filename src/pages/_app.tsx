@@ -3,6 +3,7 @@ import '../styles/globals.css'
 /* 必须在 Tailwind 之后加载，否则 utilities 会覆盖 Gallery 正文块样式 */
 import '../styles/gallery-prose.css'
 import '../styles/gallery-grid.css'
+import '../styles/gallery-category.css'
 
 import CONFIG from '@/blog.config'
 import BlogLayout from '@/src/components/layout/BlogLayout'

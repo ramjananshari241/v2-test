@@ -66,8 +66,11 @@ export const galleryCardGridClass = 'gallery-card-grid'
 /** 文章内页图库网格 */
 export const galleryMediaGridClass = 'gallery-media-grid'
 
-/** 分类索引 pill 网格 */
+/** 分类索引 pill 网格（遗留，当前分类页已改用 gallery-category-grid） */
 export const galleryPillGridClass = 'gallery-pill-grid'
+
+/** 分类索引：Epic Coser 风格圆标 + 名称网格 */
+export const galleryCategoryGridClass = 'gallery-category-grid'
 
 /** 标签索引多列网格 */
 export const galleryTagGridClass = 'gallery-tag-grid'

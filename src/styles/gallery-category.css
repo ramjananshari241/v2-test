@@ -1,0 +1,108 @@
+/**
+ * Gallery 分类索引：Epic Coser 风格（圆标 + 名称横排网格）
+ * 圆标样式改编自 Uiverse.io by m-muzammal（仅装饰，无 checkbox 交互）
+ */
+
+.gallery-category-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--gallery-category-col-min, 11rem)), 1fr)
+  );
+  column-gap: 1.75rem;
+  row-gap: 1.5rem;
+}
+
+@container gallery (min-width: 48rem) {
+  .gallery-category-grid {
+    column-gap: 2.25rem;
+    row-gap: 1.75rem;
+  }
+}
+
+.gallery-category-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gallery-category-item__name {
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #171717;
+  transition: color 0.2s ease;
+}
+
+.gallery-category-item:hover .gallery-category-item__name {
+  color: #404040;
+}
+
+/* —— 统一圆标（替代头像） —— */
+.gallery-category-marker {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.gallery-category-marker__disc {
+  --size: 50px;
+  --shadow: calc(var(--size) * 0.07) calc(var(--size) * 0.1);
+  position: relative;
+  display: block;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background-color: #4158d0;
+  background-image: linear-gradient(
+    43deg,
+    #4158d0 0%,
+    #c850c0 46%,
+    #ffcc70 100%
+  );
+  box-shadow: 0 var(--shadow) #ffbeb8;
+  transition: transform 0.2s ease;
+}
+
+.gallery-category-marker__hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--size) * 0.7);
+  height: calc(var(--size) * 0.7);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: inset 0 var(--shadow) #ffbeb8;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.gallery-category-item:hover .gallery-category-marker__hole {
+  width: calc(var(--size) * 0.55);
+  height: calc(var(--size) * 0.55);
+  box-shadow: inset 0 var(--shadow) #ff9d96;
+}
+
+.gallery-category-item:active .gallery-category-marker__disc {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-category-marker__disc,
+  .gallery-category-marker__hole,
+  .gallery-category-item__name {
+    transition: none !important;
+  }
+
+  .gallery-category-item:active .gallery-category-marker__disc {
+    transform: none;
+  }
+}

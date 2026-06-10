@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
 import { GalleryBreadcrumb } from './GalleryBreadcrumb'
+import { GalleryCategoryMarker } from './GalleryCategoryMarker'
 import { GalleryPageSearch } from './GalleryPageSearch'
 import { GalleryPagination } from './GalleryPagination'
 import { GALLERY_LIST_PAGE_SIZE } from './galleryConstants'
 import { filterGalleryCategories } from './galleryCategorySearch'
 import {
+  galleryCategoryGridClass,
   galleryContentContainerClass,
-  galleryPillGridClass,
 } from './galleryFonts'
 import { readSearchQuery } from './gallerySearch'
 
@@ -126,14 +127,17 @@ export function GalleryCategoryIndex({
           </div>
         ) : (
           <>
-            <div className={`${galleryPillGridClass} px-6`}>
+            <div className={`${galleryCategoryGridClass} px-6`}>
               {pageItems.map((cat) => (
                 <Link
                   key={cat.id}
                   href={`/${CATEGORY}/${cat.id}`}
-                  className="font-gallery group flex min-h-[48px] items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 py-3.5 text-center text-[15px] font-medium leading-snug text-neutral-900 transition-all duration-200 hover:border-neutral-900 hover:bg-neutral-900 hover:text-white hover:shadow-sm active:scale-[0.98]"
+                  className="gallery-category-item font-gallery"
                 >
-                  <span className="line-clamp-2">{cat.name}</span>
+                  <GalleryCategoryMarker />
+                  <span className="gallery-category-item__name line-clamp-2">
+                    {cat.name}
+                  </span>
                 </Link>
               ))}
             </div>
