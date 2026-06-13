@@ -57,10 +57,10 @@ export const GalleryPost = ({
           { label: post.title },
         ]}
       />
-      <main className="flex flex-1 flex-col bg-white px-6 py-6 pb-8 lg:px-10">
+      <main className="flex flex-1 flex-col bg-white px-4 py-6 pb-8 sm:px-6 lg:px-10">
         <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-0 lg:flex-row lg:items-start lg:gap-6 xl:gap-8">
           <article className={`${galleryContentContainerClass} min-w-0 flex-1`}>
-            <div className="mb-3 flex items-start justify-between gap-6">
+            <div className="mb-3 flex items-start justify-between gap-3 sm:gap-6">
               <h1 className={`min-w-0 flex-1 ${galleryPostTitleClass}`}>
                 {post.title}
               </h1>

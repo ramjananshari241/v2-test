@@ -1,13 +1,24 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { GALLERY_LOGIN_URL, GALLERY_SIDEBAR_WIDTH } from './galleryConstants'
+import {
+  GALLERY_LOGIN_URL,
+  GALLERY_LOGO_SRC,
+} from './galleryConstants'
 import { GALLERY_NAV_SECTIONS } from './galleryNav'
 import { getGalleryNavIcon } from './galleryIcons'
 import { GallerySearchBox } from './GallerySearchBox'
 
 export const GALLERY_HEADER_HEIGHT = 72
 
-export const GallerySidebar = () => {
+const GALLERY_LOGO_BUST = 'v=5'
+
+type GallerySidebarProps = {
+  /** 移动端抽屉是否展开（桌面端忽略，始终常驻） */
+  open?: boolean
+  onClose?: () => void
+}
+
+export const GallerySidebar = ({ open = false, onClose }: GallerySidebarProps) => {
   const router = useRouter()
 
   const isActive = (href: string) => {
@@ -21,10 +32,37 @@ export const GallerySidebar = () => {
 
   return (
     <aside
-      className="font-gallery fixed inset-y-0 left-0 z-30 flex flex-col border-r border-neutral-200 bg-white antialiased"
-      style={{ width: GALLERY_SIDEBAR_WIDTH }}
+      className={`font-gallery fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] flex-col border-r border-neutral-200 bg-white antialiased transition-transform duration-300 ease-out lg:z-30 lg:w-[260px] lg:max-w-none lg:transition-none ${
+        open ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0`}
     >
-      <div style={{ height: GALLERY_HEADER_HEIGHT }} aria-hidden />
+      <div
+        className="flex shrink-0 items-center justify-between px-5"
+        style={{ height: GALLERY_HEADER_HEIGHT }}
+      >
+        <Link
+          href="/"
+          onClick={onClose}
+          className="flex items-center gap-2 lg:hidden"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`${GALLERY_LOGO_SRC}?${GALLERY_LOGO_BUST}`}
+            alt=""
+            width={26}
+            height={26}
+            className="h-[26px] w-[26px] shrink-0 object-contain"
+          />
+        </Link>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="关闭菜单"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-2xl leading-none text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 lg:hidden"
+        >
+          ×
+        </button>
+      </div>
 
       <nav className="flex flex-1 flex-col overflow-y-auto border-t border-neutral-200 px-5 pb-4 pt-6">
         {GALLERY_NAV_SECTIONS.map((section, sectionIndex) => (
@@ -46,6 +84,7 @@ export const GallerySidebar = () => {
                   <li key={`${section.title}-${item.label}-${item.href}`}>
                     <Link
                       href={item.href}
+                      onClick={onClose}
                       className={`flex items-center gap-3 rounded-md px-2 py-2 text-[15px] transition-colors ${
                         active
                           ? 'bg-neutral-100 font-semibold text-neutral-900'

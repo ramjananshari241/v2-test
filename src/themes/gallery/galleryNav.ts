@@ -32,7 +32,7 @@ export const GALLERY_NAV_SECTIONS: GalleryNavSection[] = [
     items: [{ label: 'Home', href: '/', icon: 'home' }],
   },
   {
-    title: 'Cosplay',
+    title: 'Gallery',
     items: [
       { label: '分类', href: `/${CATEGORY}`, icon: 'lists' },
       { label: '标签', href: `/${TAG}`, icon: 'cosers' },
