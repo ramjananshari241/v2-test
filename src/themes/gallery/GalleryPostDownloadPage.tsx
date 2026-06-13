@@ -3,7 +3,6 @@ import { GalleryAdBanner as GalleryAdBannerData } from '@/src/lib/gallery/loadGa
 import { PostStatsSnapshot } from '@/src/lib/gallery/postStats'
 import { Page, Post } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
-import Link from 'next/link'
 import CONFIG from '@/blog.config'
 import { getSubTitleInfo } from '@/src/lib/util'
 import { GalleryAdBanner } from './GalleryAdBanner'
@@ -58,8 +57,8 @@ export function GalleryPostDownloadPage({
         ]}
       />
 
-      <main className="flex flex-1 flex-col bg-white px-4 py-5 pb-10 sm:px-6 lg:px-10">
-        <div className="mx-auto w-full max-w-[960px]">
+      <main className="flex flex-1 flex-col bg-white px-6 py-5 pb-10">
+        <div className="w-full">
           <div className="mb-5 flex items-start justify-between gap-4 border-b border-neutral-200 pb-3">
               <h1 className={`min-w-0 flex-1 ${galleryEpicBarTitleClass}`}>
                 {post.title}
@@ -78,8 +77,8 @@ export function GalleryPostDownloadPage({
               track={false}
             />
 
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-              <div className="mx-auto w-full max-w-[380px] shrink-0 lg:mx-0 lg:max-w-[340px] xl:max-w-[380px]">
+            <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
+              <div className="w-full shrink-0 lg:w-[42%] lg:max-w-[460px]">
                 <div className="overflow-hidden rounded-md bg-neutral-100">
                   <div className="relative aspect-[10/13.35]">
                     {cover ? (
@@ -95,12 +94,6 @@ export function GalleryPostDownloadPage({
                     )}
                   </div>
                 </div>
-                <Link
-                  href={postHref}
-                  className="mt-3 inline-block font-gallery text-[13px] text-neutral-500 transition-colors hover:text-neutral-900"
-                >
-                  ← 返回预览
-                </Link>
               </div>
 
               <div className="min-w-0 flex-1">
