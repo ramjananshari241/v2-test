@@ -59,8 +59,38 @@ export function GalleryLightbox({
   }, [open])
 
   const current = images[index]
-  const hasPrev = index > 0
-  const hasNext = index < images.length - 1
+
+  // 退出动画期间父级会把 index 归零，需冻结最后一帧画面，避免关闭瞬间闪到第 1 张
+  const snapshotRef = useRef<{
+    url: string
+    index: number
+    total: number
+    hasPrev: boolean
+    hasNext: boolean
+  } | null>(null)
+
+  if (open && current) {
+    snapshotRef.current = {
+      url: current.url,
+      index,
+      total: images.length,
+      hasPrev: index > 0,
+      hasNext: index < images.length - 1,
+    }
+  }
+
+  const view = open && current
+    ? {
+        url: current.url,
+        index,
+        total: images.length,
+        hasPrev: index > 0,
+        hasNext: index < images.length - 1,
+      }
+    : snapshotRef.current
+
+  const hasPrev = !!view?.hasPrev
+  const hasNext = !!view?.hasNext
 
   useEffect(() => {
     if (!mounted) return
@@ -79,9 +109,12 @@ export function GalleryLightbox({
     }
   }, [mounted, onClose, onPrev, onNext, hasPrev, hasNext])
 
-  if (!mounted || !current || typeof document === 'undefined') return null
+  if (!mounted || !view || typeof document === 'undefined') return null
 
   const state = entered ? 'open' : 'closed'
+  // 退出动画期间禁用翻页箭头，避免误触
+  const showPrev = open && hasPrev
+  const showNext = open && hasNext
 
   return createPortal(
     <div
@@ -101,7 +134,7 @@ export function GalleryLightbox({
         ×
       </button>
 
-      {hasPrev ? (
+      {showPrev ? (
         <button
           type="button"
           onClick={(e) => {
@@ -115,7 +148,7 @@ export function GalleryLightbox({
         </button>
       ) : null}
 
-      {hasNext ? (
+      {showNext ? (
         <button
           type="button"
           onClick={(e) => {
@@ -135,14 +168,14 @@ export function GalleryLightbox({
         onClick={(e) => e.stopPropagation()}
       >
         <img
-          key={current.url}
-          src={current.url}
+          key={view.url}
+          src={view.url}
           alt=""
           className="gallery-lightbox-img max-h-[92vh] max-w-[min(96vw,1500px)] select-none rounded-sm object-contain shadow-2xl"
           draggable={false}
         />
         <p className="mt-4 font-gallery text-sm text-white/70">
-          {index + 1} / {images.length}
+          {view.index + 1} / {view.total}
         </p>
       </div>
     </div>,
