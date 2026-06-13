@@ -43,7 +43,7 @@ export function GalleryPostRecommendations({
                 <img
                   src={item.coverSrc}
                   alt={item.title}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  className="h-full w-full object-cover transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.1]"
                   loading="lazy"
                 />
               ) : (

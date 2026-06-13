@@ -149,13 +149,56 @@
   transform: scale(0.98);
 }
 
+/* —— 大图灯箱：打开/关闭过渡 —— */
+.gallery-lightbox-backdrop {
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.gallery-lightbox-backdrop[data-state='open'] {
+  opacity: 1;
+}
+
+.gallery-lightbox-figure {
+  opacity: 0;
+  transform: scale(0.82) translateY(12px);
+  transition:
+    opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+
+.gallery-lightbox-figure[data-state='open'] {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* 切换上一张 / 下一张时的轻微淡入 */
+.gallery-lightbox-img {
+  animation: gallery-lightbox-img-in 0.32s ease both;
+}
+
+@keyframes gallery-lightbox-img-in {
+  from {
+    opacity: 0.35;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gallery-grid-panel,
   .gallery-grid-panel--ready,
   .gallery-grid-enter-item,
   .gallery-grid-load-more-item,
   .gallery-load-more-skeleton,
-  .gallery-grid-image-shimmer {
+  .gallery-grid-image-shimmer,
+  .gallery-lightbox-backdrop,
+  .gallery-lightbox-figure,
+  .gallery-lightbox-img {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

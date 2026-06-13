@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 export type GalleryLightboxImage = {
@@ -17,6 +17,8 @@ type GalleryLightboxProps = {
   onNext: () => void
 }
 
+const EXIT_MS = 260
+
 export function GalleryLightbox({
   open,
   images,
@@ -25,12 +27,43 @@ export function GalleryLightbox({
   onPrev,
   onNext,
 }: GalleryLightboxProps) {
+  // mounted：是否渲染 portal；entered：是否应用「打开」过渡态
+  const [mounted, setMounted] = useState(open)
+  const [entered, setEntered] = useState(false)
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      if (exitTimer.current) {
+        clearTimeout(exitTimer.current)
+        exitTimer.current = null
+      }
+      setMounted(true)
+      // 下一帧再切到 entered，确保过渡从初始态开始播放
+      const frame = requestAnimationFrame(() => setEntered(true))
+      return () => cancelAnimationFrame(frame)
+    }
+
+    // 关闭：先播放退出动画，再卸载
+    setEntered(false)
+    exitTimer.current = setTimeout(() => {
+      setMounted(false)
+      exitTimer.current = null
+    }, EXIT_MS)
+    return () => {
+      if (exitTimer.current) {
+        clearTimeout(exitTimer.current)
+        exitTimer.current = null
+      }
+    }
+  }, [open])
+
   const current = images[index]
   const hasPrev = index > 0
   const hasNext = index < images.length - 1
 
   useEffect(() => {
-    if (!open) return
+    if (!mounted) return
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
@@ -44,13 +77,16 @@ export function GalleryLightbox({
       document.body.style.overflow = prevOverflow
       window.removeEventListener('keydown', onKey)
     }
-  }, [open, onClose, onPrev, onNext, hasPrev, hasNext])
+  }, [mounted, onClose, onPrev, onNext, hasPrev, hasNext])
 
-  if (!open || !current || typeof document === 'undefined') return null
+  if (!mounted || !current || typeof document === 'undefined') return null
+
+  const state = entered ? 'open' : 'closed'
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/88 p-4 backdrop-blur-sm"
+      className="gallery-lightbox-backdrop fixed inset-0 z-[100000] flex items-center justify-center bg-black/90 p-3 backdrop-blur-sm sm:p-6"
+      data-state={state}
       role="dialog"
       aria-modal="true"
       aria-label="查看大图"
@@ -94,13 +130,15 @@ export function GalleryLightbox({
       ) : null}
 
       <div
-        className="flex max-h-full max-w-full flex-col items-center"
+        className="gallery-lightbox-figure flex max-h-full max-w-full flex-col items-center"
+        data-state={state}
         onClick={(e) => e.stopPropagation()}
       >
         <img
+          key={current.url}
           src={current.url}
           alt=""
-          className="max-h-[85vh] max-w-[min(92vw,1200px)] select-none object-contain"
+          className="gallery-lightbox-img max-h-[92vh] max-w-[min(96vw,1500px)] select-none rounded-sm object-contain shadow-2xl"
           draggable={false}
         />
         <p className="mt-4 font-gallery text-sm text-white/70">

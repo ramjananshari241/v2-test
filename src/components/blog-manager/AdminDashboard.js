@@ -629,16 +629,21 @@ const AdminPublishCalendar = ({ month, publishedDates, selectedDate, onMonthChan
 
 /** 分类搜索 + 可滚动下拉列表（fixed 定位，避免被 accordion overflow 裁剪） */
 const CategoryPicker = ({ value, categories, onChange }) => {
-  const [query, setQuery] = useState(value || '');
+  const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [menuRect, setMenuRect] = useState(null);
   const wrapRef = useRef(null);
   const triggerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const hasSelection = !!(value && value.trim());
 
   useEffect(() => {
-    setQuery(value || '');
-  }, [value]);
+    if (!hasSelection) return;
+    // 选中分类后清空搜索框文字（仅在“搜索态”使用）
+    setQuery('');
+  }, [hasSelection]);
 
   const updateMenuRect = useCallback(() => {
     const el = triggerRef.current;
@@ -691,9 +696,17 @@ const CategoryPicker = ({ value, categories, onChange }) => {
 
   const pickCategory = (cat) => {
     onChange(cat);
-    setQuery(cat);
+    setQuery('');
     setOpen(false);
     setShowAll(false);
+  };
+
+  const clearSelection = () => {
+    onChange('');
+    setQuery('');
+    setOpen(true);
+    setShowAll(true);
+    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   const toggleDropdown = () => {
@@ -706,41 +719,104 @@ const CategoryPicker = ({ value, categories, onChange }) => {
   return (
     <div ref={wrapRef} style={{ position: 'relative', marginBottom: '10px' }}>
       <div ref={triggerRef} style={{ display: 'flex', alignItems: 'stretch' }}>
-        <input
-          className="glow-input"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setShowAll(false);
-            setOpen(true);
-            const trimmed = e.target.value.trim();
-            if (!trimmed) onChange('');
-            else if (allCategories.includes(trimmed)) onChange(trimmed);
-          }}
-          onFocus={() => { setOpen(true); setShowAll(false); }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              if (listCategories.length === 1) pickCategory(listCategories[0]);
-              else {
-                const exact = listCategories.find((c) => c === query.trim());
-                if (exact) pickCategory(exact);
-              }
-            } else if (e.key === 'Escape') {
-              setOpen(false);
+        {hasSelection ? (
+          <div
+            onClick={() => { setOpen(true); setShowAll(true); }}
+            title="点击浏览全部分类，或点 × 重新搜索"
+            style={{
+              flex: 1,
+              minHeight: '50px',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              background: '#18181c',
+              border: '1px solid #333',
+              borderRight: 'none',
+              borderTopLeftRadius: '10px',
+              borderBottomLeftRadius: '10px',
+              cursor: 'pointer',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                maxWidth: '100%',
+                background: 'rgba(173,255,47,0.14)',
+                border: '1px solid rgba(173,255,47,0.45)',
+                color: 'greenyellow',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {value}
+              </span>
+              <span
+                onClick={(e) => { e.stopPropagation(); clearSelection(); }}
+                title="清除分类，重新搜索"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  background: 'rgba(173,255,47,0.25)',
+                  color: '#eaffd0',
+                  fontSize: '12px',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                ×
+              </span>
+            </span>
+          </div>
+        ) : (
+          <input
+            ref={inputRef}
+            className="glow-input"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
               setShowAll(false);
-              setQuery(value || '');
-            }
-          }}
-          placeholder="输入关键词搜索分类"
-          style={{
-            flex: 1,
-            marginBottom: 0,
-            borderTopRightRadius: 0,
-            borderBottomRightRadius: 0,
-            borderRight: 'none',
-          }}
-        />
+              setOpen(true);
+              const trimmed = e.target.value.trim();
+              if (!trimmed) onChange('');
+              else if (allCategories.includes(trimmed)) onChange(trimmed);
+            }}
+            onFocus={() => { setOpen(true); setShowAll(false); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (listCategories.length === 1) pickCategory(listCategories[0]);
+                else {
+                  const exact = listCategories.find((c) => c === query.trim());
+                  if (exact) pickCategory(exact);
+                }
+              } else if (e.key === 'Escape') {
+                setOpen(false);
+                setShowAll(false);
+                setQuery('');
+              }
+            }}
+            placeholder="搜索分类"
+            style={{
+              flex: 1,
+              marginBottom: 0,
+              borderTopRightRadius: 0,
+              borderBottomRightRadius: 0,
+              borderRight: 'none',
+            }}
+          />
+        )}
         <button
           type="button"
           onClick={toggleDropdown}

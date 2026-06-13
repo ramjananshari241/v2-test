@@ -78,7 +78,7 @@ export function GalleryPopularSidebar({
                     <img
                       src={item.coverSrc}
                       alt=""
-                      className="h-full w-full object-cover object-[center_20%] transition-transform duration-300 group-hover:scale-[1.05]"
+                      className="h-full w-full object-cover object-[center_20%] transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.12]"
                       loading="lazy"
                     />
                   ) : (

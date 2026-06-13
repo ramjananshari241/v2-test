@@ -55,7 +55,7 @@ export function GalleryGridImage({
         alt=""
         onLoad={markLoaded}
         onError={markLoaded}
-        className={`relative z-[2] h-full w-full object-cover transition-opacity duration-300 group-hover:scale-[1.02] ${
+        className={`relative z-[2] h-full w-full object-cover transition-[transform,opacity] duration-300 ease-out will-change-transform group-hover:scale-[1.12] ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
         loading="lazy"
