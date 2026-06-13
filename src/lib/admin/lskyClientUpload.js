@@ -14,9 +14,9 @@ const GALLERY_SKIP_BYTES = 260 * 1024
 
 
 
-/** 兰空图床：后台限速 30 张/分钟，客户端留余量走全局队列 */
+/** 兰空图床：后台限速 50 张/分钟，客户端留余量走全局队列 */
 
-const LSKY_MAX_PER_MINUTE = 28
+const LSKY_MAX_PER_MINUTE = 48
 
 const LSKY_RATE_WINDOW_MS = 60_000
 
