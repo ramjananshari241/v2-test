@@ -10,7 +10,7 @@ import { getAnnouncementPost } from '../lib/blog/loadHomeWidgets'
 import { getPosts } from '../lib/notion/getBlogData'
 import { Post, SharedNavFooterStaticProps } from '../types/blog'
 import { ApiScope } from '../types/notion'
-import { themeFromEnv } from '../themes/getActiveTheme'
+import { buildHomePageSeo } from '../lib/seo/lightSeo'
 import { getThemeHomeComponent } from '../themes/registry'
 import { ThemeId } from '../themes/types'
 
@@ -72,6 +72,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
           ...finalProps,
           posts: finalPosts,
           widgets: finalWidgets,
+          seo: buildHomePageSeo(),
         },
         revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
       }
@@ -83,6 +84,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
           ...base,
           posts: [],
           widgets: {},
+          seo: buildHomePageSeo(),
           // 保留 sharedPageStaticProps 中的 activeTheme，由 withNavFooter 末尾再次校正
         },
         revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,

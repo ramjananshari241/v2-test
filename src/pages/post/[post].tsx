@@ -37,6 +37,7 @@ import {
 } from '../../lib/blog/postLimits'
 import { getPostBySlug, getPosts } from '../../lib/notion/getBlogData'
 import { addSubTitle } from '../../lib/util'
+import { buildPostPageSeo } from '@/src/lib/seo/lightSeo'
 import { NextPageWithLayout, Page, PartialPost, Post, SharedNavFooterStaticProps } from '../../types/blog'
 import { ApiScope, BlockResponse } from '../../types/notion'
 
@@ -126,6 +127,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         bottomRecommendations,
         postStats,
         galleryAdBanner,
+        seo: buildPostPageSeo(postForPage),
       }))
 
       if (safeData.widgets?.profile && safeData.widgets.profile.links === undefined) {

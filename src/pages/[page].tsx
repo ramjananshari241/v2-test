@@ -13,6 +13,7 @@ import { withNavFooterStaticProps } from '../lib/blog/withNavFooterStaticProps'
 import { getAllBlocks } from '../lib/notion/getBlocks'
 import { getPages } from '../lib/notion/getBlogData'
 import { addSubTitle } from '../lib/util'
+import { buildNavPageSeo } from '@/src/lib/seo/lightSeo'
 import {
   NextPageWithLayout,
   Page,
@@ -76,6 +77,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
             ...sharedPageStaticProps.props,
             page: page,
             blocks: formattedBlocks,
+            seo: buildNavPageSeo(page),
           })
         ),
         revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
@@ -95,6 +97,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
             ...sharedPageStaticProps.props,
             page: page,
             blocks: [],
+            seo: buildNavPageSeo(page),
           })
         ),
         revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,

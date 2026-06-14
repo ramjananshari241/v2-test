@@ -24,6 +24,8 @@ import {
   ActiveThemeProvider,
   useActiveTheme,
 } from '@/src/components/theme/ActiveThemeProvider'
+import { LightSeoMeta } from '@/src/components/seo/LightSeoMeta'
+import type { PageSeoFlat } from '@/src/lib/seo/lightSeo'
 import { NextPageWithLayout } from '../types/blog'
 
 type AppPropsWithLayout = AppProps & {
@@ -171,13 +173,6 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
-        <title>{pageProps?.siteTitle?.text}</title>
-        <meta name="description" content="PRO+" />
-        {/* 静态 SEO 关键词：仅写入 head，不参与任何页面数据逻辑 */}
-        <meta
-          name="keywords"
-          content="PRO+, PRO BLOG, PRO+博客, PRO+一站式寄售, PRO+博客服务, 免费博客服务, 免费博客, 个人博客, 免费个人博客, 个人主页, 博客搭建, Notion博客"
-        />
         {isAdminRoute ? (
           <AdminFaviconLinks />
         ) : (
@@ -187,6 +182,12 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
           <link rel="manifest" href="/site.webmanifest" />
         ) : null}
       </Head>
+      <LightSeoMeta
+        seo={(pageProps as { seo?: PageSeoFlat })?.seo}
+        siteName={pageProps?.siteTitle?.text}
+        pageSubtitle={pageProps?.siteSubtitle?.text}
+        isAdmin={isAdminRoute}
+      />
       <NextNprogress
         color={CONFIG.PROGRESS_BAR_COLOR}
         options={{ showSpinner: false }}
