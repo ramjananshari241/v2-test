@@ -80,22 +80,24 @@ function parseLinesToChildren(text) {
   for (let line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    const mdMatch = trimmed.match(/^!\[.*?\]\((.*?)\)$/) || trimmed.match(/^\[.*?\]\((.*?)\)$/);
-    let potentialUrl = mdMatch ? mdMatch[1] : trimmed;
-    const urlMatch = potentialUrl.match(/https?:\/\/[^\s"']+/);
-    if (urlMatch) {
-      let safeUrl = urlMatch[0];
-      if (/[\[\]]/.test(safeUrl)) { try { safeUrl = encodeURI(decodeURI(safeUrl)); } catch (e) { safeUrl = encodeURI(safeUrl); } }
-      const isVideo = safeUrl.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i);
-      const isImage = safeUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
-      if (isVideo) { blocks.push({ object: 'block', type: 'video', video: { type: 'external', external: { url: safeUrl } } }); } 
-      else if (isImage) { blocks.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: safeUrl } } }); } 
-      else { blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed, link: { url: safeUrl } } }] } }); }
-      continue;
-    }
-    if (trimmed.startsWith('# ')) { blocks.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: [{ text: { content: trimmed.replace('# ', '') } }] } }); continue; } 
+    if (trimmed.startsWith('# ')) { blocks.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: inlineToRichRuns(trimmed.replace('# ', ''), {}) } }); continue; }
     if (trimmed.startsWith('`') && trimmed.endsWith('`') && trimmed.length > 1) { blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed.slice(1, -1) }, annotations: { code: true, color: 'red' } }] } }); continue; }
-    blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed } }] } });
+    // 整行图片/视频/裸链接
+    const wholeMd = trimmed.match(/^!?\[.*?\]\((.*?)\)$/);
+    const bareUrl = !wholeMd && /^https?:\/\/[^\s"']+$/.test(trimmed) ? trimmed : null;
+    const mediaCandidate = wholeMd ? wholeMd[1] : bareUrl;
+    if (mediaCandidate) {
+      const urlMatch = mediaCandidate.match(/https?:\/\/[^\s"']+/);
+      if (urlMatch) {
+        let safeUrl = normalizeLinkUrl(urlMatch[0]);
+        const isVideo = safeUrl.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i);
+        const isImage = safeUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+        if (isVideo) { blocks.push({ object: 'block', type: 'video', video: { type: 'external', external: { url: safeUrl } } }); continue; }
+        if (isImage) { blocks.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: safeUrl } } }); continue; }
+        if (bareUrl) { blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: safeUrl, link: { url: safeUrl } } }] } }); continue; }
+      }
+    }
+    blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: inlineToRichRuns(line, {}) } });
   }
   return blocks;
 }
@@ -136,27 +138,88 @@ function annOf(b, extra = {}) {
   return { bold: !!(b && b.bold), italic: !!(b && b.italic), color, ...extra };
 }
 
-// 文本(可多行)转 Notion 子块：保留洗链(图片/视频/链接自动识别)，并给段落附加整块样式
+function normalizeLinkUrl(url) {
+  let u = (url || '').trim();
+  if (!u) return '';
+  if (/[\[\]]/.test(u)) {
+    try { u = encodeURI(decodeURI(u)); } catch (e) { u = encodeURI(u); }
+  }
+  return u;
+}
+
+/**
+ * 把一段（单行）文本中的行内 Markdown 链接 `[文字](url)` 解析为多个 Notion rich_text run，
+ * 其余普通文本保持为普通 run。所有 run 共享整块样式 annotations。
+ */
+function inlineToRichRuns(text, annotations) {
+  const src = text == null ? '' : String(text);
+  const ann = annotations || {};
+  const runs = [];
+  const re = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+  let last = 0;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const idx = m.index;
+    // 跳过图片语法 ![alt](url)：前面紧跟 ! 的当作普通文本处理
+    if (idx > 0 && src[idx - 1] === '!') continue;
+    if (idx > last) runs.push({ text: { content: src.slice(last, idx) }, annotations: ann });
+    const label = m[1];
+    const url = normalizeLinkUrl(m[2]);
+    runs.push({
+      text: url ? { content: label, link: { url } } : { content: label },
+      annotations: ann,
+    });
+    last = idx + m[0].length;
+  }
+  if (last < src.length) runs.push({ text: { content: src.slice(last) }, annotations: ann });
+  if (!runs.length) runs.push({ text: { content: src }, annotations: ann });
+  return runs;
+}
+
+/** Notion rich_text 数组 → 行内 Markdown 字符串（带链接的 run 还原为 [文字](url)） */
+function richToInlineMd(rts) {
+  return (rts || [])
+    .map((r) => {
+      const t = r && r.plain_text != null ? r.plain_text : (r && r.text && r.text.content) || '';
+      const url = (r && r.text && r.text.link && r.text.link.url) || (r && r.href) || '';
+      return url ? `[${t}](${url})` : t;
+    })
+    .join('');
+}
+
+/** rich_text 数组里是否包含任意链接 run */
+function richTextHasLink(rts) {
+  return (rts || []).some((r) => (r && r.text && r.text.link && r.text.link.url) || (r && r.href));
+}
+
+// 文本(可多行)转 Notion 子块：整行图片/视频识别为独立块；其余按行内链接解析，并附加整块样式
 function styledLinesToChildren(text, b) {
   const lines = (text || '').split(/\r?\n/);
   const out = [];
   for (let line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    const mdMatch = trimmed.match(/^!\[.*?\]\((.*?)\)$/) || trimmed.match(/^\[.*?\]\((.*?)\)$/);
-    let potentialUrl = mdMatch ? mdMatch[1] : trimmed;
-    const urlMatch = potentialUrl.match(/https?:\/\/[^\s"']+/);
-    if (urlMatch) {
-      let safeUrl = urlMatch[0];
-      if (/[\[\]]/.test(safeUrl)) { try { safeUrl = encodeURI(decodeURI(safeUrl)); } catch (e) { safeUrl = encodeURI(safeUrl); } }
-      const isVideo = safeUrl.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i);
-      const isImage = safeUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
-      if (isVideo) { out.push({ object: 'block', type: 'video', video: { type: 'external', external: { url: safeUrl } } }); continue; }
-      if (isImage) { out.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: safeUrl } } }); continue; }
-      out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: trimmed, link: { url: safeUrl } }, annotations: annOf(b) }] } });
-      continue;
+    // 整行就是一张图片/视频（[](url) / ![](url) / 裸 URL）→ 独立媒体块
+    const wholeMd = trimmed.match(/^!?\[.*?\]\((.*?)\)$/);
+    const bareUrl = !wholeMd && /^https?:\/\/[^\s"']+$/.test(trimmed) ? trimmed : null;
+    const mediaCandidate = wholeMd ? wholeMd[1] : bareUrl;
+    if (mediaCandidate) {
+      const urlMatch = mediaCandidate.match(/https?:\/\/[^\s"']+/);
+      if (urlMatch) {
+        let safeUrl = normalizeLinkUrl(urlMatch[0]);
+        const isVideo = safeUrl.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i);
+        const isImage = safeUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+        if (isVideo) { out.push({ object: 'block', type: 'video', video: { type: 'external', external: { url: safeUrl } } }); continue; }
+        if (isImage) { out.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: safeUrl } } }); continue; }
+        // 整行就是一个非图片链接（裸 URL）→ 链接段落
+        if (bareUrl) {
+          out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: safeUrl, link: { url: safeUrl } }, annotations: annOf(b) }] } });
+          continue;
+        }
+      }
     }
-    out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: line }, annotations: annOf(b) }] } });
+    // 普通文本行（可能含行内 [文字](url)）
+    out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: inlineToRichRuns(line, annOf(b)) } });
   }
   return out;
 }
@@ -166,11 +229,11 @@ function structuredToBlocks(blocks) {
   for (const b of (blocks || [])) {
     const type = b.type;
     if (type === 'h1') {
-      out.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: [{ text: { content: b.content || '' }, annotations: annOf(b) }] } });
+      out.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: inlineToRichRuns(b.content || '', annOf(b)) } });
     } else if (type === 'note') {
       out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: b.content || '' }, annotations: annOf(b, { code: true, color: (b.color && b.color !== 'default') ? b.color : 'red' }) }] } });
     } else if (type === 'quote') {
-      out.push({ object: 'block', type: 'quote', quote: { rich_text: [{ text: { content: b.content || '' }, annotations: annOf(b) }] } });
+      out.push({ object: 'block', type: 'quote', quote: { rich_text: inlineToRichRuns(b.content || '', annOf(b)) } });
     } else if (type === 'link') {
       const url = (b.url || '').trim();
       const text = b.content || url;
@@ -207,17 +270,29 @@ async function notionToEditorBlocks(blocks) {
   for (const blk of (blocks || [])) {
     const t = blk.type;
     if (t === 'heading_1' || t === 'heading_2' || t === 'heading_3') {
-      out.push({ type: 'h1', content: plainText(blk[t].rich_text), ...annFrom(blk[t].rich_text && blk[t].rich_text[0]) });
+      const rts = blk[t].rich_text || [];
+      const content = richTextHasLink(rts) ? richToInlineMd(rts) : plainText(rts);
+      out.push({ type: 'h1', content, ...annFrom(rts[0]) });
     } else if (t === 'paragraph') {
       const rts = blk.paragraph.rich_text || [];
       const rt = rts[0];
-      const text = plainText(rts);
-      const link = (rt && rt.text && rt.text.link && rt.text.link.url) || (rt && rt.href) || '';
-      if (link) out.push({ type: 'link', content: text, url: link, ...annFrom(rt) });
-      else if (rt && rt.annotations && rt.annotations.code) out.push({ type: 'note', content: text, ...annFrom(rt) });
-      else out.push({ type: 'text', content: text, ...annFrom(rt) });
+      const onlyRun = rts.length === 1 ? rts[0] : null;
+      const pureLink = onlyRun && ((onlyRun.text && onlyRun.text.link && onlyRun.text.link.url) || onlyRun.href);
+      if (pureLink) {
+        // 整段就是一个链接 → 保留为「链接块」(便于用专门的链接 UI 编辑)
+        out.push({ type: 'link', content: plainText(rts), url: pureLink, ...annFrom(rt) });
+      } else if (richTextHasLink(rts)) {
+        // 段落内含行内链接 → 用行内 Markdown 承载，避免丢失
+        out.push({ type: 'text', content: richToInlineMd(rts), ...annFrom(rt) });
+      } else if (rt && rt.annotations && rt.annotations.code) {
+        out.push({ type: 'note', content: plainText(rts), ...annFrom(rt) });
+      } else {
+        out.push({ type: 'text', content: plainText(rts), ...annFrom(rt) });
+      }
     } else if (t === 'quote') {
-      out.push({ type: 'quote', content: plainText(blk.quote.rich_text), ...annFrom(blk.quote.rich_text && blk.quote.rich_text[0]) });
+      const rts = blk.quote.rich_text || [];
+      const content = richTextHasLink(rts) ? richToInlineMd(rts) : plainText(rts);
+      out.push({ type: 'quote', content, ...annFrom(rts[0]) });
     } else if (t === 'image') {
       const url = (blk.image && (blk.image.external?.url || blk.image.file?.url)) || '';
       if (url) out.push({ type: 'image', content: url });
@@ -235,7 +310,7 @@ async function notionToEditorBlocks(blocks) {
         const images = []; const textLines = []; let lockAnn = null;
         kids.forEach(k => {
           if (k.type === 'image') { const u = k.image?.external?.url || k.image?.file?.url; if (u) images.push(u); }
-          else if (k.type === 'paragraph') { const p = plainText(k.paragraph.rich_text); if (p) { textLines.push(p); if (!lockAnn) lockAnn = annFrom(k.paragraph.rich_text && k.paragraph.rich_text[0]); } }
+          else if (k.type === 'paragraph') { const rtk = k.paragraph.rich_text || []; const p = richTextHasLink(rtk) ? richToInlineMd(rtk) : plainText(rtk); if (p) { textLines.push(p); if (!lockAnn) lockAnn = annFrom(rtk[0]); } }
         });
         out.push({ type: 'lock', pwd, content: textLines.join('\n'), images, ...(lockAnn || {}) });
       } else {

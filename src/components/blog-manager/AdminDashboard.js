@@ -1264,10 +1264,13 @@ const fmtStyle = (b) => ({
 });
 
 // 块内文字格式工具条 (整块加粗/斜体/颜色)
-const FormatBar = ({ b, onChange }) => (
+const FormatBar = ({ b, onChange, onInsertLink }) => (
   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
     <button onClick={() => onChange('bold', !b.bold)} title="加粗" style={{ width: '30px', height: '28px', borderRadius: '6px', cursor: 'pointer', border: '1px solid', borderColor: b.bold ? 'greenyellow' : '#444', background: b.bold ? 'greenyellow' : '#2a2a2e', color: b.bold ? '#000' : '#ccc', fontWeight: 'bold' }}>B</button>
     <button onClick={() => onChange('italic', !b.italic)} title="斜体" style={{ width: '30px', height: '28px', borderRadius: '6px', cursor: 'pointer', border: '1px solid', borderColor: b.italic ? 'greenyellow' : '#444', background: b.italic ? 'greenyellow' : '#2a2a2e', color: b.italic ? '#000' : '#ccc', fontStyle: 'italic' }}>I</button>
+    {onInsertLink && (
+      <button onClick={onInsertLink} title="给选中的文字添加超链接" style={{ height: '28px', padding: '0 8px', borderRadius: '6px', cursor: 'pointer', border: '1px solid #444', background: '#2a2a2e', color: '#7cb3ff', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>🔗 链接</button>
+    )}
     <div style={{ width: '1px', height: '20px', background: '#444', margin: '0 4px' }} />
     {NOTION_TEXT_COLORS.map(c => (
       <div key={c.key} onClick={() => onChange('color', c.key)} title={c.label}
@@ -1396,6 +1399,21 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
     }, delay);
   };
 
+  // 后台被包裹在 #admin-container（position:fixed; overflow:auto）中，
+  // 真正的滚动容器是它而非 window，所以这里直接滚该容器。
+  const scrollEditView = (where) => {
+    const container =
+      (typeof document !== 'undefined' &&
+        document.getElementById('admin-container')) ||
+      document.scrollingElement ||
+      document.documentElement;
+    if (!container) return;
+    container.scrollTo({
+      top: where === 'top' ? 0 : container.scrollHeight,
+      behavior: 'smooth',
+    });
+  };
+
   const focusBlockInExpandedView = (blockId) => {
     setBlockViewMode('expanded');
     setMovingId(blockId);
@@ -1410,6 +1428,40 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
     scrollToBlock(newId);
   };
   const updateBlock = (id, val, key='content') => { setBlocks(blocks.map(b => b.id === id ? { ...b, [key]: val } : b)); };
+
+  // 给当前块（h1/正文/引用/注释）选中的文字插入行内超链接，写成 [文字](url)
+  const insertLinkForBlock = (b) => {
+    const el = typeof document !== 'undefined' ? document.getElementById('editfield-' + b.id) : null;
+    const content = b.content || '';
+    let start = content.length;
+    let end = content.length;
+    if (el && typeof el.selectionStart === 'number') {
+      start = el.selectionStart;
+      end = el.selectionEnd;
+    }
+    let label = content.slice(start, end);
+    if (!label) {
+      label = window.prompt('链接显示文字：', '');
+      if (label === null) return;
+      label = label.trim();
+      if (!label) { alert('请输入要显示的文字'); return; }
+    }
+    let url = window.prompt('链接地址（https://...）：', 'https://');
+    if (url === null) return;
+    url = (url || '').trim();
+    if (!url) return;
+    const snippet = `[${label}](${url})`;
+    const next = content.slice(0, start) + snippet + content.slice(end);
+    updateBlock(b.id, next);
+    setTimeout(() => {
+      const el2 = document.getElementById('editfield-' + b.id);
+      if (el2) {
+        const pos = start + snippet.length;
+        el2.focus();
+        try { el2.setSelectionRange(pos, pos); } catch (e) {}
+      }
+    }, 0);
+  };
   const removeBlock = (id) => {
     setBlocks(prev => {
       const block = prev.find(b => b.id === id);
@@ -1752,12 +1804,13 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                <div className="move-btn" onClick={() => moveToBottom(index)} title="置底"><Icons.Bottom /></div>
             </div>
             <div className="block-label">{getBlockLabel(b.type)}</div>
-            {b.type !== 'image' && <FormatBar b={b} onChange={(key, val) => updateBlock(b.id, val, key)} />}
-            {b.type === 'h1' && <input className="glow-input" placeholder="输入大标题..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{fontSize:'20px', ...fmtStyle(b), fontWeight:'bold'}} />}
+            {b.type !== 'image' && <FormatBar b={b} onChange={(key, val) => updateBlock(b.id, val, key)} onInsertLink={['text','h1','quote','note'].includes(b.type) ? () => insertLinkForBlock(b) : undefined} />}
+            {b.type === 'h1' && <input id={'editfield-' + b.id} className="glow-input" placeholder="输入大标题..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{fontSize:'20px', ...fmtStyle(b), fontWeight:'bold'}} />}
             {b.type === 'text' && (
               <textarea
+                id={'editfield-' + b.id}
                 className="glow-input"
-                placeholder="输入正文；拖入或粘贴图片将自动在下方生成图片块，不影响本文"
+                placeholder="输入正文；拖入或粘贴图片将自动在下方生成图片块，不影响本文。给部分文字加超链：选中文字后点上方「🔗 链接」，或直接输入 [文字](https://...)"
                 value={b.content}
                 onChange={e=>updateBlock(b.id, e.target.value)}
                 onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
@@ -1777,8 +1830,8 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                 style={{minHeight:'200px', ...fmtStyle(b)}}
               />
             )}
-            {b.type === 'note' && <textarea className="glow-input" placeholder="输入注释内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'80px', fontFamily: 'monospace', fontSize: '13px', ...fmtStyle(b), color: (b.color && b.color !== 'default') ? colorCss(b.color) : '#ff6b6b'}} />}
-            {b.type === 'quote' && <textarea className="glow-input" placeholder="输入引用内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'90px', borderLeft:'4px solid greenyellow', paddingLeft:'12px', ...fmtStyle(b)}} />}
+            {b.type === 'note' && <textarea id={'editfield-' + b.id} className="glow-input" placeholder="输入注释内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'80px', fontFamily: 'monospace', fontSize: '13px', ...fmtStyle(b), color: (b.color && b.color !== 'default') ? colorCss(b.color) : '#ff6b6b'}} />}
+            {b.type === 'quote' && <textarea id={'editfield-' + b.id} className="glow-input" placeholder="输入引用内容..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{minHeight:'90px', borderLeft:'4px solid greenyellow', paddingLeft:'12px', ...fmtStyle(b)}} />}
             {b.type === 'link' && (
                <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
                  <input className="glow-input" placeholder="显示文字（如：点此查看官网）" value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{...fmtStyle(b)}} />
@@ -2239,7 +2292,8 @@ const [mounted, setMounted] = useState(false);
     const stripMd = (str) => { const match = str.match(/(?:!|)?\[.*?\]\((.*?)\)/); return match ? match[1] : str; };
     const flushBuffer = () => {
       if (buffer.length > 0) {
-        const joined = buffer.map(stripMd).join('\n').trim();
+        // 正文行保留原样（含行内 [文字](url)），不要洗成纯 URL
+        const joined = buffer.join('\n').trim();
         if (joined) {
            if (joined.startsWith('`') && joined.endsWith('`') && joined.length > 1) {
               res.push({ id: Date.now() + Math.random(), type: 'note', content: joined.slice(1, -1) });
@@ -3453,8 +3507,8 @@ const [mounted, setMounted] = useState(false);
             <BlockBuilder blocks={editorBlocks} setBlocks={setEditorBlocks} />
             
             <div className="fab-scroll">
-              <div className="fab-btn" onClick={() => window.scrollTo({top:0, behavior:'smooth'})}><Icons.ArrowUp /></div>
-              <div className="fab-btn" onClick={() => window.scrollTo({top:99999, behavior:'smooth'})}><Icons.ArrowDown /></div>
+              <div className="fab-btn" onClick={() => scrollEditView('top')}><Icons.ArrowUp /></div>
+              <div className="fab-btn" onClick={() => scrollEditView('bottom')}><Icons.ArrowDown /></div>
             </div>
 
             <button onClick={attemptSave} disabled={loading} title={isFormValid ? '' : (getMissingFieldMsg() || '')} style={{width:'100%', padding:'20px', background:isFormValid && !loading?'#fff':'#222', color:isFormValid && !loading?'#000':'#666', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'16px', marginTop:'40px', cursor: loading ? 'wait' : 'pointer', transition:'0.3s'}}>
