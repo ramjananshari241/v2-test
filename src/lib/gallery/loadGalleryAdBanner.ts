@@ -1,10 +1,15 @@
 import { fetchUrlPreview } from '@/src/lib/blog/fetchUrlPreview'
-import { getWidgets } from '@/src/lib/notion/getBlogData'
-import { readRichTextPlain } from '@/src/lib/notion/readProperty'
+import { queryDatabasePages } from '@/src/lib/notion/getDatabase'
+import { slugEqualsFilter } from '@/src/lib/notion/filter'
+import {
+  readCoverFromPageProperties,
+  readRichTextPlain,
+} from '@/src/lib/notion/readProperty'
+import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 
 export type GalleryAdBanner = {
   url: string
-  imageSrc: string
+  imageSrc: string | null
   promoText: string | null
 }
 
@@ -16,21 +21,24 @@ export function clearGalleryAdBannerCache(): void {
   buildCache = undefined
 }
 
-function readCoverUrl(
-  cover: { type: string; url?: string | null } | undefined
-): string | null {
-  if (!cover || cover.type !== 'url') return null
-  const src = cover.url?.trim()
-  return src?.startsWith('http') ? src : null
+async function findGalleryAdWidget(): Promise<PageObjectResponse | null> {
+  const results = await queryDatabasePages(slugEqualsFilter(GALLERY_AD_SLUG), {
+    pageSize: 5,
+  })
+  return (
+    results.find(
+      (page) =>
+        page.properties['type']?.type === 'select' &&
+        page.properties['type'].select?.name === 'Widget' &&
+        readRichTextPlain(page.properties.slug) === GALLERY_AD_SLUG
+    ) ?? null
+  )
 }
 
 export async function loadGalleryAdBanner(): Promise<GalleryAdBanner | null> {
   if (buildCache !== undefined) return buildCache
 
-  const widgets = await getWidgets()
-  const raw = widgets.find(
-    (w) => readRichTextPlain(w.properties.slug) === GALLERY_AD_SLUG
-  )
+  const raw = await findGalleryAdWidget()
   if (!raw) {
     buildCache = null
     return null
@@ -42,24 +50,27 @@ export async function loadGalleryAdBanner(): Promise<GalleryAdBanner | null> {
     return null
   }
 
-  const coverOverride = readCoverUrl(
-    raw.properties.cover as { type: string; url?: string | null }
-  )
+  const coverOverride = readCoverFromPageProperties(raw.properties)
 
-  let imageSrc = coverOverride
+  let imageSrc: string | null = coverOverride
   if (!imageSrc) {
-    const preview = await fetchUrlPreview(url)
-    imageSrc = preview.image?.startsWith('http') ? preview.image : null
-  }
-
-  if (!imageSrc) {
-    buildCache = null
-    return null
+    try {
+      const preview = await fetchUrlPreview(url)
+      imageSrc =
+        preview.image?.startsWith('http') ? preview.image : null
+    } catch {
+      imageSrc = null
+    }
   }
 
   const rawTitle = readRichTextPlain(raw.properties.title) || ''
   const promoText =
     rawTitle && rawTitle !== '广告位' ? rawTitle : null
+
+  if (!imageSrc && !promoText) {
+    buildCache = null
+    return null
+  }
 
   buildCache = {
     url,

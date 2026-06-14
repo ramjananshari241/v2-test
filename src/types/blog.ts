@@ -137,7 +137,7 @@ export type SharedNavFooterStaticProps = {
     /** Gallery 主题全局底部广告条 */
     galleryAdBanner?: {
       url: string
-      imageSrc: string
+      imageSrc: string | null
       promoText: string | null
     } | null
   }

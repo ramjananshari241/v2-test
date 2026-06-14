@@ -80,6 +80,8 @@ export default async function handler(req, res) {
         paths = await collectThemePostRevalidatePaths()
       } else if (listScope === 'download-instructions') {
         paths = await collectDownloadInstructionsRevalidatePaths()
+      } else if (listScope === 'gallery-ad') {
+        paths = await collectGalleryAdRevalidatePaths()
       }
       return res.status(200).json({
         success: true,

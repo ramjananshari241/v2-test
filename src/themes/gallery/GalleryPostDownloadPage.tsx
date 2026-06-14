@@ -77,7 +77,7 @@ export function GalleryPostDownloadPage({
               track={false}
             />
 
-            <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
+            <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12 xl:gap-16">
               <div className="w-full shrink-0 lg:w-[42%] lg:max-w-[460px]">
                 <div className="overflow-hidden rounded-md bg-neutral-100">
                   <div className="relative aspect-[10/13.35]">
@@ -96,10 +96,11 @@ export function GalleryPostDownloadPage({
                 </div>
               </div>
 
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 px-5 sm:px-8 lg:px-10 xl:px-12">
                 {galleryAdBanner ? (
                   <GalleryAdBanner
                     banner={galleryAdBanner}
+                    layout="full"
                     className="mb-6 shrink-0 bg-white"
                   />
                 ) : null}
@@ -114,7 +115,7 @@ export function GalleryPostDownloadPage({
 
                 <section className="pt-2">
                   {downloadInstructionBlocks.length > 0 ? (
-                    <div className={`${galleryProseClass} text-[15px]`}>
+                    <div className={`${galleryProseClass} text-[15px] leading-relaxed`}>
                       <BlockRender blocks={downloadInstructionBlocks} variant="gallery" />
                     </div>
                   ) : (

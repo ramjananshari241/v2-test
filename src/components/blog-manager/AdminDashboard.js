@@ -311,24 +311,25 @@ const GlobalStyle = () => (
     .loader-lock-hint { font-size: 12px; color: #888; margin-top: 18px; text-align: center; max-width: 420px; line-height: 1.6; }
     .loader-progress-track { margin-top: 18px; width: min(320px, 80vw); height: 6px; background: #2a2a2e; border-radius: 999px; overflow: hidden; border: 1px solid #333; }
     .loader-progress-bar { height: 100%; background: linear-gradient(90deg, #adff2f, #84cc16); border-radius: 999px; transition: width 0.35s ease; }
-    .pubq { position: fixed; top: 96px; right: 12px; z-index: 99998; width: min(218px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 5px; }
-    .pubq-head { display: flex; align-items: center; justify-content: space-between; background: #18181c; border: 1px solid #333; border-radius: 8px; padding: 5px 9px; font-size: 10px; color: #aaa; letter-spacing: 0.3px; }
-    .pubq-head b { color: #fff; font-size: 10px; }
-    .pubq-list { display: flex; flex-direction: column; gap: 5px; max-height: calc(100vh - 130px); overflow-y: auto; padding-right: 2px; }
-    .pubq-card { background: #202024; border: 1px solid #333; border-radius: 9px; padding: 7px 9px; box-shadow: 0 8px 22px rgba(0,0,0,0.4); }
+    .pubq { position: fixed; top: 88px; right: 20px; z-index: 99998; width: min(360px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 8px; }
+    .pubq-head { display: flex; align-items: center; justify-content: space-between; background: #18181c; border: 1px solid #333; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #bbb; letter-spacing: 0.2px; }
+    .pubq-head b { color: #fff; font-size: 13px; font-weight: 700; }
+    .pubq-list { display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 120px); overflow-y: auto; padding-right: 2px; }
+    .pubq-card { background: #202024; border: 1px solid #333; border-radius: 12px; padding: 12px 14px; box-shadow: 0 10px 28px rgba(0,0,0,0.45); }
     .pubq-card.is-err { border-color: rgba(255,77,79,0.5); }
     .pubq-card.is-ok { border-color: rgba(173,255,47,0.4); }
-    .pubq-row { display: flex; align-items: center; gap: 6px; }
-    .pubq-title { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pubq-state { font-size: 9px; white-space: nowrap; }
-    .pubq-x { background: none; border: none; color: #777; font-size: 14px; line-height: 1; cursor: pointer; padding: 0 1px; width: auto; }
+    .pubq-row { display: flex; align-items: center; gap: 8px; }
+    .pubq-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+    .pubq-state { font-size: 12px; line-height: 1.4; color: #aaa; margin-top: 6px; }
+    .pubq-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+    .pubq-x { background: none; border: none; color: #777; font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; width: auto; }
     .pubq-x:hover { color: #fff; }
-    .pubq-retry { background: none; border: 1px solid #555; color: #ddd; font-size: 10px; border-radius: 5px; padding: 1px 6px; cursor: pointer; width: auto; }
+    .pubq-retry { background: none; border: 1px solid #555; color: #ddd; font-size: 12px; border-radius: 6px; padding: 3px 10px; cursor: pointer; width: auto; }
     .pubq-retry:hover { border-color: greenyellow; color: greenyellow; }
-    .pubq-spin { width: 11px; height: 11px; border: 2px solid #333; border-top-color: greenyellow; border-radius: 50%; animation: imgspin 0.8s linear infinite; flex: none; }
-    .pubq-detail { margin-top: 5px; font-size: 10px; color: #999; }
+    .pubq-spin { width: 14px; height: 14px; border: 2px solid #333; border-top-color: greenyellow; border-radius: 50%; animation: imgspin 0.8s linear infinite; flex: none; }
+    .pubq-detail { margin-top: 8px; font-size: 12px; color: #999; line-height: 1.45; }
     .pubq-detail.is-err { color: #ff6b6d; word-break: break-word; }
-    .pubq-bar-track { margin-top: 6px; height: 4px; background: #2a2a2e; border-radius: 999px; overflow: hidden; }
+    .pubq-bar-track { margin-top: 8px; height: 5px; background: #2a2a2e; border-radius: 999px; overflow: hidden; }
     .pubq-bar { height: 100%; background: linear-gradient(90deg, #adff2f, #84cc16); border-radius: 999px; transition: width 0.3s ease; }
     .pubq-bar.is-err { background: #ff4d4f; }
     .pubq-bar-indet { height: 100%; width: 40%; background: linear-gradient(90deg, #adff2f, #84cc16); border-radius: 999px; animation: pubqIndet 1.15s ease-in-out infinite; }
@@ -1053,18 +1054,20 @@ const PublishQueuePanel = ({ jobs, onRetry, onRemove }) => {
               <div className="pubq-row">
                 {job.status === 'running' && <span className="pubq-spin" />}
                 <span className="pubq-title" title={job.title}>{job.title}</span>
-                <span className="pubq-state" style={{ color: stateColor }}>{pubqStateText(job)}</span>
-                {job.status === 'error' && (
-                  <button className="pubq-retry" onClick={() => onRetry(job.id)}>重试</button>
-                )}
-                <button
-                  className="pubq-x"
-                  title={job.status === 'queued' || job.status === 'running' ? '取消发布' : '移除'}
-                  onClick={() => onRemove(job)}
-                >
-                  ×
-                </button>
+                <div className="pubq-actions">
+                  {job.status === 'error' && (
+                    <button className="pubq-retry" onClick={() => onRetry(job.id)}>重试</button>
+                  )}
+                  <button
+                    className="pubq-x"
+                    title={job.status === 'queued' || job.status === 'running' ? '取消发布' : '移除'}
+                    onClick={() => onRemove(job)}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
+              <div className="pubq-state" style={{ color: stateColor }}>{pubqStateText(job)}</div>
               {job.status === 'running' && (
                 <div className="pubq-bar-track">
                   {determinate ? (
@@ -2662,9 +2665,21 @@ const [mounted, setMounted] = useState(false);
         alert('✓ 广告位已保存');
         await loadGalleryAd();
         await fetchPosts();
-        await triggerContentRevalidation({ scope: 'gallery-ad' }).then((rev) =>
-          showRevalidateFeedback(rev, showAdminToast)
-        );
+        void runBatchedRevalidation({
+          listScope: 'gallery-ad',
+          freshTheme: true,
+          contentChange: true,
+          progressLabels: {
+            listing: '正在统计文章页…',
+            running: '正在更新广告位…',
+            doneOk: '广告位已同步到全部文章页',
+            donePartial: '部分页面需稍后自动更新',
+            hintPartial: '个页面未能更新，可重新保存广告位',
+            hintOk: '全部文章页与下载页已更新',
+          },
+        }).then((rev) => {
+          if (rev.failed > 0) showAdminToast(`部分页面更新失败（${rev.failed}/${rev.total}）`);
+        }).catch((e) => console.warn('Gallery 广告增量刷新失败', e));
       }
       else alert('保存失败：' + (d.error || '未知错误'));
     } catch (e) { alert('保存失败：' + e.message); }
@@ -2680,9 +2695,11 @@ const [mounted, setMounted] = useState(false);
         setGalleryAd({ id: null, url: '', promoText: '', cover: '' });
         alert('✓ 广告位已清空');
         await fetchPosts();
-        await triggerContentRevalidation({ scope: 'gallery-ad' }).then((rev) =>
-          showRevalidateFeedback(rev, showAdminToast)
-        );
+        void runBatchedRevalidation({
+          listScope: 'gallery-ad',
+          freshTheme: true,
+          contentChange: true,
+        }).catch((e) => console.warn('Gallery 广告增量刷新失败', e));
       } else alert('清空失败：' + (d.error || '未知错误'));
     } catch (e) { alert('清空失败：' + e.message); }
     finally { setGalleryAdSaving(false); }
@@ -3489,7 +3506,7 @@ const [mounted, setMounted] = useState(false);
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
               <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>📢 广告位编辑</div>
-              <div style={{fontSize:'12px', color:'#888'}}>页底广告位</div>
+              <div style={{fontSize:'12px', color:'#888'}}>文章内页底部 + 下载页右栏顶部</div>
             </div>
 
             {galleryAdLoading ? (
