@@ -463,8 +463,22 @@ const GlobalStyle = () => (
     .block-card-wrap.is-file-drop-before .block-card { border-color: greenyellow; box-shadow: inset 0 4px 0 0 greenyellow, 0 0 18px rgba(173, 255, 47, 0.4); }
     .block-card-wrap.is-file-drop-after .block-card { border-color: greenyellow; box-shadow: inset 0 -4px 0 0 greenyellow, 0 0 18px rgba(173, 255, 47, 0.4); }
     .block-minimap.is-file-drop-empty { border-color: greenyellow; box-shadow: 0 0 0 2px rgba(173, 255, 47, 0.35), inset 0 0 40px rgba(173, 255, 47, 0.06); }
-    .block-view-toolbar { display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+    .block-view-toolbar { display: flex; align-items: center; justify-content: center; margin-bottom: 16px; flex-direction: column; gap: 10px; }
     .block-view-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .block-compact-select-toggle { border: none; min-width: 0; height: 2.1em; padding: 0 0.85em; border-radius: 999px; display: inline-flex; justify-content: center; align-items: center; gap: 5px; background: #1C1A1C; cursor: pointer; transition: all 0.25s ease; font-family: inherit; }
+    .block-compact-select-toggle .view-mode-text { font-weight: 600; color: #AAAAAA; font-size: 11px; white-space: nowrap; line-height: 1; transition: color 0.25s ease; }
+    .block-compact-select-toggle:hover, .block-compact-select-toggle.is-active { background: greenyellow; box-shadow: 0 0 0 2px rgba(173,255,47,0.35), 0 0 20px rgba(173,255,47,0.35); transform: translateY(-1px); }
+    .block-compact-select-toggle:hover .view-mode-text, .block-compact-select-toggle.is-active .view-mode-text { color: #000; }
+    .block-compact-select-toggle:active { transform: translateY(0); }
+    .block-compact-multiselect-bar { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 8px 14px; border-radius: 10px; background: #1a1a1e; border: 1px solid #3a3a42; }
+    .block-compact-multiselect-count { font-size: 12px; color: #bbb; }
+    .block-compact-multiselect-del { border: none; border-radius: 8px; padding: 7px 16px; font-size: 12px; font-weight: bold; cursor: pointer; background: #ff4d4f; color: #fff; transition: background 0.15s, opacity 0.15s, transform 0.15s; }
+    .block-compact-multiselect-del:hover:not(:disabled) { background: #ff7875; transform: translateY(-1px); }
+    .block-compact-multiselect-del:disabled { opacity: 0.45; cursor: not-allowed; }
+    .block-minimap-item.is-select-mode { cursor: pointer; }
+    .block-minimap-item.is-select-mode:active { cursor: pointer; }
+    .block-minimap-item.is-selected { border-color: greenyellow; box-shadow: 0 0 0 2px rgba(173,255,47,0.55), 0 0 18px rgba(173,255,47,0.3); }
+    .block-minimap-item.is-selected::after { content: '✓'; position: absolute; bottom: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: greenyellow; color: #000; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 2px 8px rgba(173,255,47,0.45); line-height: 1; }
     .block-view-toggle .view-mode-btn { border: none; min-width: 0; height: 2.1em; padding: 0 0.85em; border-radius: 999px; display: inline-flex; justify-content: center; align-items: center; gap: 5px; background: #1C1A1C; cursor: pointer; transition: all 450ms ease-in-out; font-family: inherit; }
     .block-view-toggle .view-mode-btn .view-mode-sparkle { width: 11px; height: 11px; fill: #AAAAAA; transition: all 800ms ease; flex-shrink: 0; }
     .block-view-toggle .view-mode-btn .view-mode-text { font-weight: 600; color: #AAAAAA; font-size: 11px; transition: color 450ms ease; white-space: nowrap; line-height: 1; }
@@ -1560,6 +1574,8 @@ const BlockMinimapItem = ({
   isDropBefore,
   isDropAfter,
   justMoved,
+  selectMode,
+  isSelected,
   onDragStart,
   onDragOver,
   onDrop,
@@ -1590,30 +1606,32 @@ const BlockMinimapItem = ({
 
   return (
     <div
-      className={`block-minimap-item ${isDragging ? 'is-dragging' : ''} ${isDropBefore ? 'is-drop-before' : ''} ${isDropAfter ? 'is-drop-after' : ''} ${isCover ? 'is-cover' : ''} ${justMoved ? 'just-moved' : ''}`}
-      draggable
-      onDragStart={(e) => onDragStart(e, index)}
-      onDragOver={(e) => onDragOver(e, index)}
-      onDrop={(e) => onDrop(e, index)}
+      className={`block-minimap-item ${isDragging ? 'is-dragging' : ''} ${isDropBefore ? 'is-drop-before' : ''} ${isDropAfter ? 'is-drop-after' : ''} ${isCover ? 'is-cover' : ''} ${justMoved ? 'just-moved' : ''} ${selectMode ? 'is-select-mode' : ''} ${isSelected ? 'is-selected' : ''}`}
+      draggable={!selectMode}
+      onDragStart={(e) => { if (selectMode) { e.preventDefault(); return; } onDragStart(e, index); }}
+      onDragOver={(e) => { if (selectMode) return; onDragOver(e, index); }}
+      onDrop={(e) => { if (selectMode) return; onDrop(e, index); }}
       onDragEnd={onDragEnd}
       onClick={(e) => {
         if (e.target.closest('.block-minimap-del')) return;
         onClick(block.id);
       }}
-      title={`第 ${index + 1} 块 · 拖拽排序 · 点击放大编辑`}
+      title={selectMode ? `第 ${index + 1} 块 · 点击选择/取消` : `第 ${index + 1} 块 · 拖拽排序 · 点击放大编辑`}
     >
       <span className="block-minimap-index">{index + 1}</span>
-      <button
-        type="button"
-        className="block-minimap-del"
-        draggable={false}
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); onRemove(block.id); }}
-        title="删除此块"
-        aria-label="删除此块"
-      >
-        ×
-      </button>
+      {!selectMode ? (
+        <button
+          type="button"
+          className="block-minimap-del"
+          draggable={false}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onRemove(block.id); }}
+          title="删除此块"
+          aria-label="删除此块"
+        >
+          ×
+        </button>
+      ) : null}
       <div className="block-minimap-main">
         <div className="block-minimap-type-row">
           <span className="block-minimap-type">{BLOCK_TYPE_SHORT[block.type] || block.type}</span>
@@ -1683,6 +1701,8 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   const [fileDropIndex, setFileDropIndex] = useState(null);
   const [fileDropPosition, setFileDropPosition] = useState(null);
   const [fileDropEmpty, setFileDropEmpty] = useState(false);
+  const [compactMultiSelect, setCompactMultiSelect] = useState(false);
+  const [compactSelectedIds, setCompactSelectedIds] = useState([]);
   const minimapDragMovedRef = useRef(false);
   const coverImageBlockId = findCoverImageBlock(blocks)?.id ?? null;
   // 行内超链接弹窗：{ blockId, start, end, label, url }，为 null 时关闭
@@ -1858,6 +1878,38 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
       if (block) revokeBlockPendingMedia(block);
       return prev.filter(b => b.id !== id);
     });
+    setCompactSelectedIds(prev => prev.filter(x => x !== id));
+  };
+
+  const toggleCompactMultiSelect = () => {
+    clearFileDrop();
+    setCompactMultiSelect(prev => {
+      if (prev) setCompactSelectedIds([]);
+      return !prev;
+    });
+  };
+
+  const toggleCompactBlockSelect = (id) => {
+    setCompactSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const removeSelectedBlocks = () => {
+    if (!compactSelectedIds.length) return;
+    const idSet = new Set(compactSelectedIds);
+    setBlocks(prev => {
+      prev.forEach(b => {
+        if (idSet.has(b.id)) revokeBlockPendingMedia(b);
+      });
+      return prev.filter(b => !idSet.has(b.id));
+    });
+    setCompactSelectedIds([]);
+  };
+
+  const exitCompactMultiSelect = () => {
+    setCompactMultiSelect(false);
+    setCompactSelectedIds([]);
   };
 
   // === 🖼️ 图片：本地预览，发布/保存时再上传图床 ===
@@ -1922,6 +1974,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   };
 
   const handleEmptyFileDragOver = (e) => {
+    if (compactMultiSelect) return;
     if (!isFileDragEvent(e)) return;
     e.preventDefault();
     e.stopPropagation();
@@ -2155,6 +2208,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   const handleMinimapDragOver = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
+    if (compactMultiSelect) return;
     if (isFileDragEvent(e) && dragIndex === null) {
       const rect = e.currentTarget.getBoundingClientRect();
       const position = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
@@ -2179,6 +2233,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   const handleMinimapContainerDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (compactMultiSelect) return;
     if (isFileDragEvent(e) && dragIndex === null) {
       if (!blocks.length) {
         setFileDropEmpty(true);
@@ -2248,6 +2303,10 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
 
   const handleMinimapClick = (blockId) => {
     if (minimapDragMovedRef.current) return;
+    if (compactMultiSelect) {
+      toggleCompactBlockSelect(blockId);
+      return;
+    }
     focusBlockInExpandedView(blockId);
   };
 
@@ -2318,14 +2377,43 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
           <ViewModeButton
             label="放大视图"
             active={blockViewMode === 'expanded'}
-            onClick={() => setBlockViewMode('expanded')}
+            onClick={() => {
+              exitCompactMultiSelect();
+              setBlockViewMode('expanded');
+            }}
           />
           <ViewModeButton
             label="缩小视图"
             active={blockViewMode === 'compact'}
             onClick={() => setBlockViewMode('compact')}
           />
+          {blockViewMode === 'compact' ? (
+            <button
+              type="button"
+              className={`block-compact-select-toggle${compactMultiSelect ? ' is-active' : ''}`}
+              onClick={toggleCompactMultiSelect}
+              aria-pressed={compactMultiSelect}
+              title={compactMultiSelect ? '退出多选模式' : '多选内容块以批量删除'}
+            >
+              <span className="view-mode-text">{compactMultiSelect ? '多选中' : '多选'}</span>
+            </button>
+          ) : null}
         </div>
+        {blockViewMode === 'compact' && compactMultiSelect ? (
+          <div className="block-compact-multiselect-bar">
+            <span className="block-compact-multiselect-count">
+              已选 {compactSelectedIds.length} 项
+            </span>
+            <button
+              type="button"
+              className="block-compact-multiselect-del"
+              disabled={!compactSelectedIds.length}
+              onClick={removeSelectedBlocks}
+            >
+              删除选中
+            </button>
+          </div>
+        ) : null}
       </div>
       <BlockCoverHint />
       {blockViewMode === 'compact' ? (
@@ -2367,9 +2455,11 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                     index={index}
                     isCover={b.id === coverImageBlockId}
                     isDragging={dragIndex === index}
-                    isDropBefore={isBlockDropBefore(index)}
-                    isDropAfter={isBlockDropAfter(index)}
+                    isDropBefore={!compactMultiSelect && isBlockDropBefore(index)}
+                    isDropAfter={!compactMultiSelect && isBlockDropAfter(index)}
                     justMoved={movingId === b.id}
+                    selectMode={compactMultiSelect}
+                    isSelected={compactSelectedIds.includes(b.id)}
                     onDragStart={handleMinimapDragStart}
                     onDragOver={handleMinimapDragOver}
                     onDrop={handleMinimapDrop}
