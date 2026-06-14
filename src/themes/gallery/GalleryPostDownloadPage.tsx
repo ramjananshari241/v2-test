@@ -9,6 +9,7 @@ import { GalleryAdBanner } from './GalleryAdBanner'
 import { GalleryBreadcrumb } from './GalleryBreadcrumb'
 import { GalleryPostDownloadActions } from './GalleryPostDownloadActions'
 import { GalleryPostStats } from './GalleryPostStats'
+import { GalleryPostTitleDownloadMeta } from './GalleryPostTitleDownloadMeta'
 import { galleryEpicBarTitleClass, galleryDownloadInstructionsClass } from './galleryFonts'
 
 type GalleryPostDownloadPageProps = {
@@ -30,7 +31,6 @@ export function GalleryPostDownloadPage({
 }: GalleryPostDownloadPageProps) {
   const cover = post.cover?.light?.src
   const downloadValue = post.options?.download?.trim() ?? ''
-  const downloadSize = post.options?.downloadSize?.trim() ?? ''
   const postHref = `/post/${post.slug}`
 
   const categorySubTitle = getSubTitleInfo(CATEGORY, {
@@ -59,16 +59,15 @@ export function GalleryPostDownloadPage({
 
       <main className="flex flex-1 flex-col bg-white px-6 py-5 pb-10">
         <div className="w-full">
-          <div className="mb-5 flex items-start justify-between gap-4 border-b border-neutral-200 pb-3">
-              <h1 className={`min-w-0 flex-1 ${galleryEpicBarTitleClass}`}>
-                {post.title}
-              </h1>
-              {downloadSize ? (
-                <span className="shrink-0 font-gallery text-[13px] font-normal text-neutral-500">
-                  {downloadSize}
-                </span>
-              ) : null}
-            </div>
+          <div className="mb-5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-neutral-200 pb-3">
+            <h1 className={`min-w-0 ${galleryEpicBarTitleClass}`}>
+              {post.title}
+            </h1>
+            <GalleryPostTitleDownloadMeta
+              post={post}
+              titleClass={galleryEpicBarTitleClass}
+            />
+          </div>
 
             <GalleryPostStats
               postSlug={post.slug}
