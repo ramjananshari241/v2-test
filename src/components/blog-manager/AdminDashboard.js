@@ -3498,7 +3498,11 @@ const [mounted, setMounted] = useState(false);
     const newTitle = prompt("请输入新的网站标题:", siteTitle);
     if (newTitle && newTitle !== siteTitle) {
         setLoading(true);
-        await fetch('/api/admin/config', { method: 'POST', body: JSON.stringify({ title: newTitle }) });
+        await fetch('/api/admin/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle }),
+        });
         setSiteTitle(newTitle);
         const rev = await triggerShellBlogRefresh();
         showRevalidateFeedback(rev, showAdminToast);

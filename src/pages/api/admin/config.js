@@ -23,6 +23,13 @@ const withRetry = async (fn, retries = 4) => {
   throw lastErr;
 };
 
+function joinNotionTitlePlain(titleItems) {
+  const parts = (titleItems || []).map((t) => t.plain_text)
+  const raw = parts.join('')
+  if (/\s/.test(raw) || parts.length <= 1) return raw.trim()
+  return parts.map((p) => p.trim()).filter(Boolean).join(' ')
+}
+
 export default async function handler(req, res) {
   const notion = new Client({ auth: process.env.NOTION_KEY || process.env.NOTION_TOKEN });
   const databaseId = process.env.NOTION_DATABASE_ID || process.env.NOTION_PAGE_ID;
@@ -52,7 +59,7 @@ export default async function handler(req, res) {
     const response = await withRetry(() =>
       notion.databases.retrieve({ database_id: databaseId })
     );
-    const title = response.title?.[0]?.plain_text || 'PROBLOG';
+    const title = joinNotionTitlePlain(response.title) || 'PROBLOG';
 
     res.status(200).json({ success: true, siteInfo: { title } });
   } catch (error) {

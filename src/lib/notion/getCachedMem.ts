@@ -2,6 +2,7 @@ import { CachedNav, Page, Title } from '@/src/types/blog'
 import { DatabaseObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 import { formatPages } from '../blog/format/page'
 import { getPages } from './getBlogData'
+import { joinRichTextPlain } from './readProperty'
 import { getDatabaseIcon, getDatabaseTitle } from './getDatabase'
 
 const DEBUG_CACHING = process.env.NODE_ENV !== 'production'
@@ -47,9 +48,10 @@ export async function getCachedNavFooter(cacheTimeInSeconds = 60): Promise<{
   const databaseTitle = await getDatabaseTitle()
   const databaseIcon = await getDatabaseIcon()
 
+  const titleText = joinRichTextPlain(databaseTitle, { splitRunsWithSpace: true }).trim()
   const title = {
-    text: databaseTitle[0].plain_text,
-    color: databaseTitle[0].annotations.color,
+    text: titleText || 'PRO BLOG',
+    color: databaseTitle[0]?.annotations?.color,
     slug: '/',
   }
 

@@ -1,4 +1,19 @@
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
+import { RichTextItemResponse } from '@notionhq/client/build/src/api-endpoints'
+
+/** 合并 Notion rich_text / title 数组为完整 plain text（保留段内与段间空格） */
+export function joinRichTextPlain(
+  items: RichTextItemResponse[] | undefined | null,
+  options?: { splitRunsWithSpace?: boolean }
+): string {
+  if (!items?.length) return ''
+  const parts = items.map((t) => t.plain_text)
+  const raw = parts.join('')
+  if (!options?.splitRunsWithSpace) return raw
+  // Notion 有时将各词拆成独立 run 且 run 之间无空格字符，直接 join 会得到 CosGallery
+  if (/\s/.test(raw) || items.length <= 1) return raw.trim()
+  return parts.map((p) => p.trim()).filter(Boolean).join(' ')
+}
 
 /** 读取 Notion rich_text 属性全文（支持多段 rich_text） */
 export function readRichTextPlain(
