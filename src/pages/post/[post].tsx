@@ -143,10 +143,23 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         /ECONNRESET|ETIMEDOUT|ENOTFOUND|429|502|503|504|fetch failed|network/i.test(
           message
         )
-      if (isTransient) {
-        throw error
+      if (isTransient) throw error
+      // 非网络类错误降级，避免单篇数据异常导致全站文章页 500
+      return {
+        props: JSON.parse(
+          JSON.stringify({
+            ...sharedPageStaticProps.props,
+            post: null,
+            blocks: [],
+            navigation: { previousPost: null, nextPost: null },
+            sidebarRecommendations: [],
+            bottomRecommendations: [],
+            postStats: null,
+            galleryAdBanner: null,
+          })
+        ),
+        revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
       }
-      throw error
     }
   }
 )

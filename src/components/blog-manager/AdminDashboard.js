@@ -1159,8 +1159,8 @@ const PublishConfirmModal = ({ open, closing, isUpdate, onConfirm, onCancel }) =
   const title = isUpdate ? '确认保存修改？' : '确认发布？';
   const confirmLabel = isUpdate ? '确认保存' : '确认发布';
   const desc = isUpdate
-    ? '请确认内容已编辑完成。保存后修改将进入发布队列并同步到博客，确认无误后再继续。'
-    : '请确认内容已编辑完成。发布后文章将进入发布队列并对外展示，确认无误后再继续。';
+    ? '请确认内容已编辑完成，确认无误后再继续。'
+    : '请确认内容已编辑完成，确认无误后再继续。';
 
   return (
     <div
