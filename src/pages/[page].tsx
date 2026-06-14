@@ -55,25 +55,50 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
     if (!page) {
       return {
-        props: {
-          ...sharedPageStaticProps.props,
-          page: null,
-          blocks: [],
-        },
+        props: JSON.parse(
+          JSON.stringify({
+            ...sharedPageStaticProps.props,
+            page: null,
+            blocks: [],
+          })
+        ),
         revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
       }
     }
 
-    const blocks = await getAllBlocks(page?.id ?? '')
-    const formattedBlocks = await formatBlocks(blocks)
+    try {
+      const blocks = await getAllBlocks(page?.id ?? '')
+      const formattedBlocks = await formatBlocks(blocks)
 
-    return {
-      props: {
-        ...sharedPageStaticProps.props,
-        page: page,
-        blocks: formattedBlocks,
-      },
-      revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
+      return {
+        props: JSON.parse(
+          JSON.stringify({
+            ...sharedPageStaticProps.props,
+            page: page,
+            blocks: formattedBlocks,
+          })
+        ),
+        revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
+      }
+    } catch (error) {
+      console.error(`[page/${slug}] render error:`, error)
+      const message = error instanceof Error ? error.message : String(error)
+      const isTransient =
+        /ECONNRESET|ETIMEDOUT|ENOTFOUND|429|502|503|504|fetch failed|network/i.test(
+          message
+        )
+      if (isTransient) throw error
+      // 正文块格式化失败时降级为空内容，避免整页 500（自定义页如 announcement 仍可打开）
+      return {
+        props: JSON.parse(
+          JSON.stringify({
+            ...sharedPageStaticProps.props,
+            page: page,
+            blocks: [],
+          })
+        ),
+        revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
+      }
     }
   }
 )

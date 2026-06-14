@@ -1139,15 +1139,17 @@ export const Code = ({ block }: BlockComponentType) => {
 
 export const Video = ({ block }: BlockComponentType) => {
   const { video } = block as VideoBlockObjectResponse
+  if (!video) return null
   const { type, caption } = video
 
   let videoSrc = ''
 
-  if (type === 'external') {
+  if (type === 'external' && video.external?.url) {
     videoSrc = video.external.url
-  } else if (type === 'file') {
+  } else if (type === 'file' && video.file?.url) {
     videoSrc = video.file.url
   }
+  if (!videoSrc) return null
 
   const [error, setError] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -1186,14 +1188,16 @@ export const Video = ({ block }: BlockComponentType) => {
 
 export const Image = ({ block }: BlockComponentType) => {
   const { image } = block as ImageBlockType
+  if (!image) return null
   const { caption, type } = image
   let src = ''
 
-  if (type === 'external') {
+  if (type === 'external' && image.external?.url) {
     src = image.external.url
-  } else if (type === 'file') {
+  } else if (type === 'file' && image.file?.url) {
     src = image.file.url
   }
+  if (!src) return null
   const imageInfo = (block as ImageBlockType).info
   const width = imageInfo?.width
   const height = imageInfo?.height

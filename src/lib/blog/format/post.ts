@@ -116,10 +116,13 @@ const formatPost = async (
 
   // =========================================================
 
-  const postCategory = category.type === 'select' && {
-    ...category.select,
-    id: slugify(category.select?.name ?? randomUUID()),
-  }
+  const postCategory =
+    category.type === 'select' && category.select
+      ? {
+          ...category.select,
+          id: slugify(category.select.name ?? randomUUID()),
+        }
+      : null
   const postTags =
     tags.type === 'multi_select' &&
     tags.multi_select.map((tag) => {

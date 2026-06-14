@@ -21,21 +21,25 @@ export async function formatBlocks(blocks: BlockResponse[]) {
 
   async function formatBlock(mergedListBlocks: BlockDataType[]) {
     for (const block of mergedListBlocks) {
-      if (block.children && block.children.length > 0) {
-        await formatBlock(block.children as BlockDataType[])
-      }
-      if (block.type === BlockEnum.bookmark) {
-        const metadata = await getBookmarkMetadata(block)
-        ;(block as BookmarkBlockType).bookmark = metadata
-      }
-      if (block.type === BlockEnum.quote) {
-        await formatQuoteBlock(block)
-      }
-      if (block.type === BlockEnum.code) {
-        await formatCodeBlock(block)
-      }
-      if (block.type === BlockEnum.image) {
-        await formatImageBlock(block)
+      try {
+        if (block.children && block.children.length > 0) {
+          await formatBlock(block.children as BlockDataType[])
+        }
+        if (block.type === BlockEnum.bookmark) {
+          const metadata = await getBookmarkMetadata(block)
+          ;(block as BookmarkBlockType).bookmark = metadata
+        }
+        if (block.type === BlockEnum.quote) {
+          await formatQuoteBlock(block)
+        }
+        if (block.type === BlockEnum.code) {
+          await formatCodeBlock(block)
+        }
+        if (block.type === BlockEnum.image) {
+          await formatImageBlock(block)
+        }
+      } catch (err) {
+        console.warn('[formatBlocks] skip block due to error:', block?.type, block?.id, err)
       }
     }
   }
@@ -47,11 +51,20 @@ export async function formatBlocks(blocks: BlockResponse[]) {
 
 async function formatImageBlock(block: BlockDataType) {
   const { image } = block as ImageBlockType
+  if (!image || !image.type) {
+    ;(block as ImageBlockType).info = {
+      width: 1200,
+      height: 630,
+      placeholder: '',
+      type: 'jpg',
+    }
+    return
+  }
   let src = ''
-  if (image.type === 'external') {
+  if (image.type === 'external' && image.external?.url) {
     src = image.external.url
   }
-  if (image.type === 'file') {
+  if (image.type === 'file' && image.file?.url) {
     src = image.file.url
   }
   const { width, height, placeholder, type } = await getImageInfo(src)
@@ -60,8 +73,9 @@ async function formatImageBlock(block: BlockDataType) {
 
 async function formatCodeBlock(block: BlockDataType) {
   const { code } = block as CodeBlockType
+  if (!code?.rich_text) return
   const { language, rich_text: richText } = code
-  const html = await codesToHtml(richText!, language)
+  const html = await codesToHtml(richText, language)
   code.html = html
   delete code.rich_text
 }
@@ -69,11 +83,14 @@ async function formatCodeBlock(block: BlockDataType) {
 async function formatQuoteBlock(block: BlockDataType) {
   const quoteBlock = block as QuoteBlockType
   const { rich_text: richText } = quoteBlock.quote
+  if (!richText || richText.length === 0) return
+  const last = richText[richText.length - 1]
+  if (!last) return
   const {
     plain_text: plainText,
     annotations,
     href,
-  } = richText[richText.length - 1]
+  } = last
   const requiredAnnotation = CONFIG.STRICT_QUOTE_CARD
     ? { underline: true, code: true }
     : { code: true }

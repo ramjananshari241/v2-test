@@ -370,8 +370,8 @@ const GlobalStyle = () => (
     .block-add-btn { position: absolute; right: 22px; bottom: -47px; height: 36px; padding: 0 24px; border-radius: 10px; background: greenyellow; color: #000; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: bold; line-height: 1; cursor: pointer; box-shadow: 0 3px 12px rgba(0,0,0,0.4); transition: transform 0.15s, background 0.15s, box-shadow 0.15s; z-index: 6; }
     .block-add-btn:hover { transform: translateY(-2px); background: #c4f74a; box-shadow: 0 5px 16px rgba(0,0,0,0.45); }
     .block-add-btn.open { background: #c4f74a; }
-    .block-type-menu { position: absolute; z-index: 30; background: #1f1f24; border: 1px solid #3a3a42; border-radius: 10px; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
-    .block-type-menu .bt-item { padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #ddd; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+    .block-type-menu { position: absolute; z-index: 100; background: #1f1f24; border: 1px solid #3a3a42; border-radius: 12px; padding: 8px; box-shadow: 0 12px 36px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 4px; min-width: 210px; }
+    .block-type-menu .bt-item { padding: 12px 18px; border-radius: 8px; font-size: 15px; color: #ddd; cursor: pointer; white-space: nowrap; transition: background 0.15s; line-height: 1.3; }
     .block-type-menu .bt-item:hover { background: #2f7cf6; color: #fff; }
     .block-empty-add { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 26px; border: 2px dashed #555; border-radius: 12px; background: transparent; color: #ccc; font-size: 15px; font-weight: bold; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
     .block-empty-add:hover { border-color: greenyellow; color: greenyellow; }
@@ -1132,6 +1132,58 @@ const CoverMissingModal = ({ open, closing, onConfirm, onCancel }) => {
           </button>
           <button type="button" className="cover-modal-btn cover-modal-btn-primary" onClick={onConfirm}>
             确认发布
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** 发布/保存前的确认弹窗（避免误点底部发布按钮） */
+const PublishConfirmModal = ({ open, closing, isUpdate, onConfirm, onCancel }) => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (open && !closing) {
+      setVisible(false);
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    if (!open || closing) setVisible(false);
+  }, [open, closing]);
+
+  if (!open && !closing) return null;
+
+  const title = isUpdate ? '确认保存修改？' : '确认发布？';
+  const confirmLabel = isUpdate ? '确认保存' : '确认发布';
+  const desc = isUpdate
+    ? '请确认内容已编辑完成。保存后修改将进入发布队列并同步到博客，确认无误后再继续。'
+    : '请确认内容已编辑完成。发布后文章将进入发布队列并对外展示，确认无误后再继续。';
+
+  return (
+    <div
+      className={`cover-modal-backdrop ${visible && !closing ? 'is-visible' : ''} ${closing ? 'is-closing' : ''}`}
+      onClick={onCancel}
+      role="presentation"
+    >
+      <div
+        className="cover-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="publish-confirm-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="cover-modal-icon" aria-hidden>📤</div>
+        <h3 id="publish-confirm-modal-title" className="cover-modal-title">{title}</h3>
+        <p className="cover-modal-desc">{desc}</p>
+        <div className="cover-modal-actions">
+          <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onCancel}>
+            继续编辑
+          </button>
+          <button type="button" className="cover-modal-btn cover-modal-btn-primary" onClick={onConfirm}>
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -2006,7 +2058,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
               title="在此块下方添加新块"
               onClick={(e) => { e.stopPropagation(); setAddMenuFor(addMenuFor === b.id ? null : b.id); }}
             ><span style={{ fontSize: '16px', lineHeight: 1 }}>＋</span> 添加块</div>
-            {addMenuFor === b.id && renderBlockTypeMenu((type) => addBlockAfter(index, type), { right: '22px', top: 'calc(100% + 53px)' })}
+            {addMenuFor === b.id && renderBlockTypeMenu((type) => addBlockAfter(index, type), { right: '22px', bottom: 'calc(-47px + 36px + 8px)' })}
             </div>
             <div className="block-del" onClick={()=>removeBlock(b.id)} title="删除此块"><Icons.Trash /></div>
           </div>
@@ -2152,6 +2204,9 @@ const [mounted, setMounted] = useState(false);
   const [coverModalOpen, setCoverModalOpen] = useState(false);
   const [coverModalClosing, setCoverModalClosing] = useState(false);
   const coverModalTimerRef = useRef(null);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+  const [publishConfirmClosing, setPublishConfirmClosing] = useState(false);
+  const publishConfirmTimerRef = useRef(null);
   const [themeDoneModalOpen, setThemeDoneModalOpen] = useState(false);
   const [themeDoneModalClosing, setThemeDoneModalClosing] = useState(false);
   const [themeDoneModalNote, setThemeDoneModalNote] = useState('');
@@ -2205,6 +2260,32 @@ const [mounted, setMounted] = useState(false);
     }, 240);
   };
 
+  const closePublishConfirmModal = () => {
+    if (publishConfirmTimerRef.current) clearTimeout(publishConfirmTimerRef.current);
+    setPublishConfirmClosing(true);
+    publishConfirmTimerRef.current = setTimeout(() => {
+      setPublishConfirmOpen(false);
+      setPublishConfirmClosing(false);
+    }, 240);
+  };
+
+  const proceedPublishAfterConfirm = () => {
+    closePublishConfirmModal();
+    setTimeout(() => {
+      const isPostArticle =
+        form?.type !== 'Widget' &&
+        form?.type !== 'Page' &&
+        !isSimpleCustomPage(form?.slug) &&
+        (form?.type === 'Post' || !form?.type);
+      if (isPostArticle && !hasEditorImageBlock(editorBlocksRef.current || [])) {
+        setCoverModalClosing(false);
+        setCoverModalOpen(true);
+        return;
+      }
+      enqueuePublish();
+    }, 260);
+  };
+
   const openThemeDoneModal = (extraNote = '') => {
     if (themeDoneModalTimerRef.current) clearTimeout(themeDoneModalTimerRef.current);
     setThemeDoneModalNote(extraNote);
@@ -2236,19 +2317,8 @@ const [mounted, setMounted] = useState(false);
   const attemptSave = () => {
     const msg = getMissingFieldMsg();
     if (msg) { alert('⚠️ ' + msg); return; }
-
-    const isPostArticle =
-      form?.type !== 'Widget' &&
-      form?.type !== 'Page' &&
-      !isSimpleCustomPage(form?.slug) &&
-      (form?.type === 'Post' || !form?.type);
-    if (isPostArticle && !hasEditorImageBlock(editorBlocksRef.current || [])) {
-      setCoverModalClosing(false);
-      setCoverModalOpen(true);
-      return;
-    }
-
-    enqueuePublish();
+    setPublishConfirmClosing(false);
+    setPublishConfirmOpen(true);
   };
 
   const confirmCoverAndSave = () => {
@@ -3114,6 +3184,13 @@ const [mounted, setMounted] = useState(false);
         closing={coverModalClosing}
         onConfirm={confirmCoverAndSave}
         onCancel={closeCoverModal}
+      />
+      <PublishConfirmModal
+        open={publishConfirmOpen}
+        closing={publishConfirmClosing}
+        isUpdate={!!currentId}
+        onConfirm={proceedPublishAfterConfirm}
+        onCancel={closePublishConfirmModal}
       />
       <ThemeSwitchDoneModal
         open={themeDoneModalOpen}
