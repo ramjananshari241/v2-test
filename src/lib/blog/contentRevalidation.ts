@@ -8,6 +8,7 @@ import { getAllCategories } from '@/src/lib/blog/format/category'
 import { formatPages } from '@/src/lib/blog/format/page'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { getAllTags } from '@/src/lib/blog/format/tag'
+import { ANNOUNCEMENT_SLUG } from '@/src/lib/blog/pinnedPosts'
 import { clearCachedNavFooter } from '@/src/lib/notion/getCachedMem'
 import {
   clearRemoteThemeCache,
@@ -250,6 +251,31 @@ export function collectShellRevalidatePaths(): string[] {
   ]
 }
 
+/** 所有 Notion Page 自定义页 + 站长公告 Post 路由 */
+export async function collectCustomNavPageRevalidatePaths(): Promise<string[]> {
+  const pagesRaw = await getPages()
+  const formatted = formatPages(pagesRaw)
+  const paths = new Set<string>()
+
+  for (const page of formatted) {
+    if (page.status !== 'Published') continue
+    paths.add(resolvePublicPagePath(page.slug))
+  }
+
+  paths.add(`/post/${ANNOUNCEMENT_SLUG}`)
+
+  return Array.from(paths)
+}
+
+/** 壳层 + 全部自定义页面（手动刷新 BLOG 时使用） */
+export async function collectShellWithCustomPagePaths(): Promise<string[]> {
+  const paths = new Set<string>(collectShellRevalidatePaths())
+  for (const path of await collectCustomNavPageRevalidatePaths()) {
+    paths.add(path)
+  }
+  return Array.from(paths)
+}
+
 /** 计算文章在归档分页中的路径（仅刷新相关页，不扫全部分页） */
 async function collectArchivePathsForSlugs(
   slugs: string[]
@@ -380,8 +406,14 @@ export function collectPageRevalidatePaths(
 ): string[] {
   const paths = new Set<string>(collectShellRevalidatePaths())
   paths.add(resolvePublicPagePath(slug))
+  if (slug === ANNOUNCEMENT_SLUG) {
+    paths.add(`/post/${ANNOUNCEMENT_SLUG}`)
+  }
   if (options?.previousSlug && options.previousSlug !== slug) {
     paths.add(resolvePublicPagePath(options.previousSlug))
+    if (options.previousSlug === ANNOUNCEMENT_SLUG) {
+      paths.add(`/post/${ANNOUNCEMENT_SLUG}`)
+    }
   }
   return Array.from(paths)
 }

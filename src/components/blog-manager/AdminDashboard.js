@@ -1087,7 +1087,7 @@ const PublishQueuePanel = ({ jobs, onRetry, onRemove, onForceComplete }) => {
   useEffect(() => {
     const hasRunning = jobs.some((j) => j.status === 'running');
     if (!hasRunning) return;
-    const timer = setInterval(() => setElapsedTick((n) => n + 1), 10000);
+    const timer = setInterval(() => setElapsedTick((n) => n + 1), 1000);
     return () => clearInterval(timer);
   }, [jobs]);
   if (!jobs || jobs.length === 0) return null;
@@ -3048,12 +3048,10 @@ const [mounted, setMounted] = useState(false);
       if (!d.success) throw new Error(d.error || '保存失败');
 
       const newId = d.id || payload.currentId;
-
-      // 前台刷新不阻塞队列（避免长时间停在「正在写入文章」）
-      updateJob(job.id, { phase: 'refresh' });
-      void triggerShellBlogRefresh({ contentChange: true }).then((shellRev) =>
-        showRevalidateFeedback(shellRev, showAdminToast)
-      );
+      const saveSlug = payload.form.slug || '';
+      const saveType = payload.form.type || 'Post';
+      const saveScope = resolveSaveRevalidateScope(saveType, saveSlug);
+      const previousSlug = payload.previousSlug || '';
 
       // 3) 上传图库
       if (payload.willSyncGallery) {
@@ -3076,53 +3074,66 @@ const [mounted, setMounted] = useState(false);
       }
       if (bailIfCancelled()) return;
 
+      updateJob(job.id, { phase: 'refresh', progress: null });
+
+      try {
+        if (saveScope === 'post') {
+          void triggerShellBlogRefresh({ contentChange: true }).then((rev) =>
+            showRevalidateFeedback(rev, showAdminToast)
+          );
+          void triggerContentRevalidation({
+            scope: 'post',
+            slug: saveSlug,
+            category: payload.form.category || '',
+            tags: payload.form.tags || '',
+            previousSlug,
+          }).catch((e) => console.warn('文章内页增量刷新失败', e));
+        } else if (saveScope === 'page' && saveSlug === 'download') {
+          void runBatchedRevalidation({
+            listScope: 'download-instructions',
+            freshTheme: true,
+            contentChange: true,
+            progressLabels: {
+              listing: '正在统计文章下载页…',
+              running: '正在更新下载说明与文章下载页…',
+              doneOk: '下载说明已同步到全部文章下载页',
+              donePartial: '部分文章下载页需稍后自动更新',
+              hintPartial: '个页面未能更新，可重新保存下载说明或点右上角刷新',
+              hintOk: '全部文章下载页已更新',
+            },
+          }).catch((e) => console.warn('下载说明增量刷新失败', e));
+        } else if (saveScope === 'page') {
+          const rev = await triggerContentRevalidation({
+            scope: 'page',
+            slug: saveSlug,
+            previousSlug,
+            warmPaths: true,
+            contentChange: true,
+          });
+          showRevalidateFeedback(rev, showAdminToast);
+        } else if (saveScope === 'gallery-ad') {
+          void runBatchedRevalidation({
+            listScope: 'gallery-ad',
+            freshTheme: true,
+            contentChange: true,
+          }).catch((e) => console.warn('Gallery 广告增量刷新失败', e));
+        } else if (saveScope === 'widget') {
+          const rev = await triggerContentRevalidation({
+            scope: 'widget',
+            warmPaths: true,
+            contentChange: true,
+          });
+          showRevalidateFeedback(rev, showAdminToast);
+        }
+      } catch (revErr) {
+        console.warn('发布增量刷新失败', revErr);
+        showAdminToast('内容已保存，但前台刷新未完成，请点右上角「刷新BLOG」');
+      }
+
       updateJob(job.id, { status: 'success', phase: '', progress: null });
       // 后台静默刷新列表，完成的文章无感知出现在内容列表中
       fetchPosts({ silent: true });
       loadGalleryStorage();
-
-      const saveSlug = payload.form.slug || '';
-      const saveType = payload.form.type || 'Post';
-      const saveScope = resolveSaveRevalidateScope(saveType, saveSlug);
-      const previousSlug = payload.previousSlug || '';
-
-      if (saveScope === 'post') {
-        void triggerContentRevalidation({
-          scope: 'post',
-          slug: saveSlug,
-          category: payload.form.category || '',
-          tags: payload.form.tags || '',
-          previousSlug,
-        }).catch((e) => console.warn('文章内页增量刷新失败', e));
-      } else if (saveScope === 'page' && saveSlug === 'download') {
-        void runBatchedRevalidation({
-          listScope: 'download-instructions',
-          freshTheme: true,
-          contentChange: true,
-          progressLabels: {
-            listing: '正在统计文章下载页…',
-            running: '正在更新下载说明与文章下载页…',
-            doneOk: '下载说明已同步到全部文章下载页',
-            donePartial: '部分文章下载页需稍后自动更新',
-            hintPartial: '个页面未能更新，可重新保存下载说明或点右上角刷新',
-            hintOk: '全部文章下载页已更新',
-          },
-        }).catch((e) => console.warn('下载说明增量刷新失败', e));
-      } else if (saveScope === 'page') {
-        void triggerContentRevalidation({
-          scope: 'page',
-          slug: saveSlug,
-          previousSlug,
-        }).catch((e) => console.warn('自定义页面增量刷新失败', e));
-      } else if (saveScope === 'gallery-ad') {
-        void triggerContentRevalidation({ scope: 'gallery-ad' }).catch((e) =>
-          console.warn('Gallery 广告增量刷新失败', e)
-        );
-      } else if (saveScope === 'widget') {
-        void triggerContentRevalidation({ scope: 'widget' }).catch((e) =>
-          console.warn('组件页增量刷新失败', e)
-        );
-      }
 
       // 成功项稍后自动移除，保持队列整洁
       setTimeout(() => dismissJob(job.id), 6000);
@@ -3478,7 +3489,7 @@ const [mounted, setMounted] = useState(false);
                title={
                  blogRefreshCooldownSec > 0
                    ? `刷新冷却中（${blogRefreshCooldownSec}s）`
-                   : '刷新首页、归档与分类/标签列表（不重建全部文章内页）'
+                   : '刷新首页、自定义页面、归档与分类/标签列表（不重建全部文章内页）'
                }
              >
                {blogRefreshBusy ? (

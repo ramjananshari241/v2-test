@@ -9,6 +9,7 @@ import {
   collectPageRevalidatePaths,
   collectPostRevalidatePaths,
   collectShellRevalidatePaths,
+  collectShellWithCustomPagePaths,
   collectThemePostRevalidatePaths,
   revalidateMany,
   resolveRevalidateOrigin,
@@ -73,7 +74,7 @@ export default async function handler(req, res) {
       if (listScope === 'full') {
         paths = await collectAllRevalidatePaths()
       } else if (listScope === 'shell') {
-        paths = collectShellRevalidatePaths()
+        paths = await collectShellWithCustomPagePaths()
       } else if (listScope === 'theme') {
         paths = await collectGalleryAdRevalidatePaths()
       } else if (listScope === 'theme-posts') {
@@ -99,7 +100,7 @@ export default async function handler(req, res) {
     } else if (scope === 'full') {
       paths = await collectAllRevalidatePaths()
     } else if (scope === 'shell') {
-      paths = collectShellRevalidatePaths()
+      paths = await collectShellWithCustomPagePaths()
     } else if (scope === 'gallery-ad') {
       paths = await collectGalleryAdRevalidatePaths()
     } else if (scope === 'delete' && slug) {
