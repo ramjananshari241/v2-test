@@ -316,12 +316,18 @@ async function notionToEditorBlocks(blocks) {
       } else {
         out.push({ type: 'text', content: txt, ...annFrom(rt[0]) });
       }
+    } else if (t === 'numbered_list_item' || t === 'bulleted_list_item' || t === 'to_do') {
+      // 列表项：作为文本块导入，保留行内链接（之前落到 else 用 plainText 会丢链接）
+      const rts = blk[t].rich_text || [];
+      const content = richTextHasLink(rts) ? richToInlineMd(rts) : plainText(rts);
+      if (content) out.push({ type: 'text', content, ...annFrom(rts[0]) });
     } else if (t === 'divider') {
       // 分割线跳过 (加密块内部的分隔已在 lock 处理)
     } else {
       const data = blk[t];
-      const text = data && data.rich_text ? plainText(data.rich_text) : '';
-      if (text) out.push({ type: 'text', content: text });
+      const rts = (data && data.rich_text) || [];
+      const content = richTextHasLink(rts) ? richToInlineMd(rts) : plainText(rts);
+      if (content) out.push({ type: 'text', content, ...annFrom(rts[0]) });
     }
   }
   // 合并相邻、同样式的纯文本块，避免按行碎片化

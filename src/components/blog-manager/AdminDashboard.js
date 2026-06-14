@@ -1383,6 +1383,22 @@ const BlockMinimapItem = ({
   );
 };
 
+// 后台被包裹在 #admin-container（position:fixed; overflow:auto）中，
+// 真正的滚动容器是它而非 window，所以这里直接滚该容器。
+// 提升为模块级函数，供主组件右下角悬浮按钮直接调用（避免跨组件作用域报错）。
+function scrollEditView(where) {
+  if (typeof document === 'undefined') return;
+  const container =
+    document.getElementById('admin-container') ||
+    document.scrollingElement ||
+    document.documentElement;
+  if (!container) return;
+  container.scrollTo({
+    top: where === 'top' ? 0 : container.scrollHeight,
+    behavior: 'smooth',
+  });
+}
+
 const BlockBuilder = ({ blocks, setBlocks }) => {
   const [movingId, setMovingId] = useState(null);
   const [blockViewMode, setBlockViewMode] = useState('expanded');
@@ -1397,21 +1413,6 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
        const el = document.getElementById(`block-${id}`);
        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, delay);
-  };
-
-  // 后台被包裹在 #admin-container（position:fixed; overflow:auto）中，
-  // 真正的滚动容器是它而非 window，所以这里直接滚该容器。
-  const scrollEditView = (where) => {
-    const container =
-      (typeof document !== 'undefined' &&
-        document.getElementById('admin-container')) ||
-      document.scrollingElement ||
-      document.documentElement;
-    if (!container) return;
-    container.scrollTo({
-      top: where === 'top' ? 0 : container.scrollHeight,
-      behavior: 'smooth',
-    });
   };
 
   const focusBlockInExpandedView = (blockId) => {
