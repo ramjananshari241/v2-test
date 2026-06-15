@@ -13,7 +13,7 @@
 }
 
 .gallery-card-grid,
-.gallery-media-grid,
+.gallery-card-grid,
 .gallery-pill-grid,
 .gallery-recommend-grid,
 .gallery-tag-grid {
@@ -23,6 +23,43 @@
     auto-fill,
     minmax(min(100%, var(--gallery-col-min)), 1fr)
   );
+}
+
+/*
+ * 文章内页图库：固定列数阶梯（非 auto-fill），缩窗时先减列数、单元格随列宽平滑缩小，
+ * 避免在临界宽度突然掉到 2 列且单图被 1fr 撑得过大。
+ * 参考 Gallery Epic：宽屏 4–5 列 → 中屏保持 3–4 列 → 小屏 2 列。
+ */
+.gallery-media-grid {
+  display: grid;
+  width: 100%;
+  gap: 0.625rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container gallery (min-width: 26rem) {
+  .gallery-media-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container gallery (min-width: 38rem) {
+  .gallery-media-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+@container gallery (min-width: 50rem) {
+  .gallery-media-grid {
+    gap: 1rem;
+  }
+}
+
+@container gallery (min-width: 62rem) {
+  .gallery-media-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
 }
 
 /*
@@ -38,24 +75,6 @@
 @container gallery (max-width: 22rem) {
   .gallery-card-grid {
     --gallery-col-min: 10.5rem;
-  }
-}
-
-/* 文章内页图库：略小单元格，正文区较窄时 3–4 列 */
-.gallery-media-grid {
-  --gallery-col-min: 13.75rem;
-  gap: 0.75rem;
-}
-
-@container gallery (min-width: 48rem) {
-  .gallery-media-grid {
-    gap: 1rem;
-  }
-}
-
-@container gallery (max-width: 20rem) {
-  .gallery-media-grid {
-    --gallery-col-min: 9rem;
   }
 }
 
