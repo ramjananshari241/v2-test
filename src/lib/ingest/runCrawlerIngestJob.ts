@@ -11,7 +11,6 @@ import {
   markCrawlerQueueRow,
   type CrawlerQueueRow,
 } from '@/src/lib/ingest/crawlerQueueDb'
-import { isGalleryThemeActive } from '@/src/lib/ingest/galleryThemeCheck'
 import { processCrawlerGalleryRow } from '@/src/lib/ingest/processCrawlerGalleryRow'
 import { slugify } from '@/src/lib/util'
 
@@ -120,11 +119,7 @@ export async function runCrawlerIngestJob(
   res: NextApiResponse
 ): Promise<CrawlerIngestRunResult> {
   if (!isGalleryTenantConfigured()) {
-    throw new Error('Gallery 图库未配置（Supabase + BLOG_SITE_ID）')
-  }
-
-  if (!(await isGalleryThemeActive())) {
-    throw new Error('当前站点非 Gallery 主题，爬虫入库已跳过')
+    throw new Error('爬虫入库未配置（需 Supabase + BLOG_SITE_ID）')
   }
 
   const batchSize = parseBatchSize()

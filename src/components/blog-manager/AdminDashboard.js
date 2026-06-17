@@ -129,6 +129,8 @@ function formatJobElapsed(startedAt) {
 }
 /** 发布 API 请求超时 */
 const PUBLISH_POST_FETCH_TIMEOUT_MS = 90_000;
+/** 爬虫入库：Notion + 图库 + 多页 revalidate，允许较长等待 */
+const CRAWLER_INGEST_FETCH_TIMEOUT_MS = 300_000;
 const PUBLISH_QUEUE_META_KEY = 'admin_publish_queue_meta';
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = PUBLISH_POST_FETCH_TIMEOUT_MS) {
@@ -2768,6 +2770,9 @@ const [mounted, setMounted] = useState(false);
   const [fullRedeployCooldownSec, setFullRedeployCooldownSec] = useState(0);
   const fullRedeployCooldownUntilRef = useRef(0);
   const [fullRedeployConfigured, setFullRedeployConfigured] = useState(true);
+  const [crawlerIngestBusy, setCrawlerIngestBusy] = useState(false);
+  const [crawlerIngestConfigured, setCrawlerIngestConfigured] = useState(false);
+  const [crawlerIngestSummary, setCrawlerIngestSummary] = useState(null);
   const adminToastTimerRef = useRef(null);
   const [adminToast, setAdminToast] = useState({ message: '', visible: false, closing: false });
   const [smartParseText, setSmartParseText] = useState('');
@@ -3125,9 +3130,22 @@ const [mounted, setMounted] = useState(false);
       console.warn('读取全量刷新状态失败', e);
     }
   };
+
+  const fetchCrawlerIngestStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/crawler-ingest');
+      const data = await res.json();
+      if (!res.ok || !data.success) return;
+      setCrawlerIngestConfigured(Boolean(data.configured));
+      if (data.summary) setCrawlerIngestSummary(data.summary);
+    } catch (e) {
+      console.warn('读取爬虫队列状态失败', e);
+    }
+  };
   useEffect(() => {
     if (!mounted) return;
     fetchFullRedeployStatus();
+    fetchCrawlerIngestStatus();
   }, [mounted]);
   useEffect(() => { if (mounted) fetchPosts(); }, [mounted]);
   useEffect(() => {
@@ -3839,6 +3857,57 @@ const [mounted, setMounted] = useState(false);
       .finally(() => { setBlogRefreshBusy(false); });
   };
 
+  const handleCrawlerIngestRun = async () => {
+    if (isThemeLoading || crawlerIngestBusy) return;
+    if (!crawlerIngestConfigured) {
+      showAdminToast('爬虫入库未配置（Supabase + BLOG_SITE_ID）');
+      return;
+    }
+    setCrawlerIngestBusy(true);
+    try {
+      const statusRes = await fetch('/api/admin/crawler-ingest');
+      const statusData = await statusRes.json();
+      if (!statusRes.ok || !statusData.success) {
+        throw new Error(statusData.error || '无法读取爬虫队列');
+      }
+      if (statusData.summary) setCrawlerIngestSummary(statusData.summary);
+      const pendingCount = statusData.summary?.pending ?? 0;
+      if (pendingCount <= 0) {
+        showAdminToast('队列中暂无待入库内容（pending 为 0）');
+        return;
+      }
+      showAdminToast(`正在入库 ${pendingCount} 篇待处理内容…`);
+      const res = await fetchWithTimeout(
+        '/api/admin/crawler-ingest',
+        { method: 'POST' },
+        CRAWLER_INGEST_FETCH_TIMEOUT_MS
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '爬虫入库失败');
+      }
+      await fetchCrawlerIngestStatus();
+      await fetchPosts();
+      const failedItems = (data.items || []).filter((it) => it.status === 'failed');
+      if (data.failed > 0 && failedItems.length > 0) {
+        const firstErr = failedItems[0]?.error || '';
+        showAdminToast(
+          `入库完成：成功 ${data.succeeded}，失败 ${data.failed}。${firstErr ? ` 例：${firstErr}` : ''}`
+        );
+      } else if (data.processed === 0) {
+        showAdminToast('没有待入库内容');
+      } else {
+        showAdminToast(
+          `爬虫入库完成：成功 ${data.succeeded} 篇，已更新前台页面`
+        );
+      }
+    } catch (e) {
+      showAdminToast(e?.message || '爬虫入库失败');
+    } finally {
+      setCrawlerIngestBusy(false);
+    }
+  };
+
   const executeFullRedeploy = async () => {
     setFullRedeployBusy(true);
     try {
@@ -4217,6 +4286,52 @@ const [mounted, setMounted] = useState(false);
            </div>
            
            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexShrink: 0 }}>
+             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+               <button
+                 type="button"
+                 onClick={handleCrawlerIngestRun}
+                 disabled={
+                   isThemeLoading ||
+                   crawlerIngestBusy ||
+                   !crawlerIngestConfigured
+                 }
+                 style={{
+                   background: '#1a4d5c',
+                   border: '1px solid #3db8d9',
+                   padding: '10px 16px',
+                   borderRadius: '8px',
+                   color: '#7ee8fc',
+                   cursor:
+                     isThemeLoading ||
+                     crawlerIngestBusy ||
+                     !crawlerIngestConfigured
+                       ? 'not-allowed'
+                       : 'pointer',
+                   opacity:
+                     isThemeLoading ||
+                     crawlerIngestBusy ||
+                     !crawlerIngestConfigured
+                       ? 0.45
+                       : 1,
+                   fontSize: '13px',
+                   fontWeight: 'bold',
+                   whiteSpace: 'nowrap',
+                   boxShadow: '0 2px 8px rgba(61,184,217,0.25)',
+                 }}
+                 title={
+                   !crawlerIngestConfigured
+                     ? '未配置 Supabase 图库租户，请联系管理'
+                     : '立即消费 Supabase 爬虫队列：写入 Notion + 图库并刷新相关前台页面'
+                 }
+               >
+                 {crawlerIngestBusy ? '入库中…' : '爬虫入库'}
+               </button>
+               {crawlerIngestConfigured && crawlerIngestSummary && (
+                 <span style={{ fontSize: '11px', color: '#888', lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+                   待入库 {crawlerIngestSummary.pending ?? 0} · 已完成 {crawlerIngestSummary.done ?? 0}
+                 </span>
+               )}
+             </div>
              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                <button
                  type="button"

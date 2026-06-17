@@ -1,4 +1,5 @@
 import { verifyAdminRequest } from '@/src/lib/admin/verifyAdminRequest'
+import { isGalleryTenantConfigured } from '@/src/lib/gallery/blogSite'
 import { getCrawlerQueueSummary } from '@/src/lib/ingest/crawlerQueueDb'
 import { runCrawlerIngestJob } from '@/src/lib/ingest/runCrawlerIngestJob'
 
@@ -14,7 +15,11 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const summary = await getCrawlerQueueSummary()
-      return res.status(200).json({ success: true, summary })
+      return res.status(200).json({
+        success: true,
+        configured: isGalleryTenantConfigured(),
+        summary,
+      })
     }
 
     if (req.method === 'POST') {
