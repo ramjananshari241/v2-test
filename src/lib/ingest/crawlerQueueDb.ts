@@ -148,6 +148,7 @@ export async function markCrawlerQueueRow(
   id: string,
   patch: Partial<{
     status: CrawlerQueueStatus
+    slug: string
     notion_page_id: string | null
     error_message: string | null
     processed_at: string | null

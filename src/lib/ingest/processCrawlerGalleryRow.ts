@@ -1,5 +1,9 @@
 import { Client, isFullPage } from '@notionhq/client'
 import CONFIG from '@/blog.config'
+import {
+  generateUniquePostSlug,
+  readSlugFromNotionPage,
+} from '@/src/lib/blog/generateAdminPostSlug'
 import { syncGalleryImages } from '@/src/lib/gallery/galleryDb'
 import {
   findNotionPropertyKey,
@@ -8,8 +12,6 @@ import {
   DOWNLOAD_COUNT_PROPERTY_NAMES,
   DOWNLOAD_SIZE_PROPERTY_NAMES,
 } from '@/src/lib/notion/readProperty'
-import { slugEqualsFilter } from '@/src/lib/notion/filter'
-import { queryDatabasePages } from '@/src/lib/notion/getDatabase'
 import type { CrawlerQueueRow } from '@/src/lib/ingest/crawlerQueueDb'
 
 const notion = new Client({
@@ -143,6 +145,7 @@ function buildCoverProperty(
 
 function buildNotionProperties(
   row: CrawlerQueueRow,
+  postSlug: string,
   coverUrl: string,
   targetProps: NotionPropsSchema
 ): Record<string, unknown> {
@@ -156,7 +159,7 @@ function buildNotionProperties(
   props[titleKey] = {
     title: [{ text: { content: row.title.trim() || '无标题' } }],
   }
-  props.slug = { rich_text: [{ text: { content: row.slug.trim() } }] }
+  props.slug = { rich_text: [{ text: { content: postSlug.trim() } }] }
   props.excerpt = {
     rich_text: [{ text: { content: (row.excerpt || '').trim() } }],
   }
@@ -238,16 +241,6 @@ async function replacePageBody(pageId: string, content: string) {
   }
 }
 
-async function findNotionPageIdBySlug(slug: string): Promise<string | null> {
-  const trimmed = slug.trim()
-  if (!trimmed) return null
-  const results = await queryDatabasePages(slugEqualsFilter(trimmed), {
-    pageSize: 1,
-  })
-  const page = results[0]
-  return page?.id ?? null
-}
-
 export type ProcessCrawlerRowResult = {
   notionPageId: string
   slug: string
@@ -258,13 +251,12 @@ export type ProcessCrawlerRowResult = {
 /**
  * 将队列行写入 Notion（Post）并同步 Gallery 图库。
  * 封面 = image_urls[0]；正文优先 content，否则 excerpt。
+ * slug 由 BLOG 生成（p- 时间戳），不使用爬虫队列中的 slug 字段。
  */
 export async function processCrawlerGalleryRow(
-  row: CrawlerQueueRow
+  row: CrawlerQueueRow,
+  occupiedSlugs: Set<string>
 ): Promise<ProcessCrawlerRowResult> {
-  const slug = row.slug.trim()
-  if (!slug) throw new Error('slug 不能为空')
-
   const imageUrls = row.image_urls.filter((u) => u.startsWith('http'))
   if (imageUrls.length === 0) {
     throw new Error('image_urls 至少需一张兰空图链')
@@ -273,16 +265,24 @@ export async function processCrawlerGalleryRow(
   const coverUrl = imageUrls[0]
   const bodyContent = (row.content || '').trim() || (row.excerpt || '').trim()
 
-  let pageId = row.notion_page_id?.trim() || null
+  const notionPageId = row.notion_page_id?.trim() || null
+  let pageId = notionPageId
   let action: 'created' | 'updated' = 'updated'
-
-  if (!pageId) {
-    pageId = await findNotionPageIdBySlug(slug)
-  }
+  let postSlug: string
 
   if (pageId) {
+    const page = await withRetry(() =>
+      notion.pages.retrieve({ page_id: pageId! })
+    )
+    if (!isFullPage(page)) {
+      throw new Error('Notion 页面不存在或数据不完整')
+    }
+    postSlug = readSlugFromNotionPage(page)
+    if (!postSlug) {
+      throw new Error('已有文章缺少 slug，请在后台编辑保存一次')
+    }
     const targetProps = await loadTargetProps(pageId)
-    const props = buildNotionProperties(row, coverUrl, targetProps)
+    const props = buildNotionProperties(row, postSlug, coverUrl, targetProps)
     await withRetry(() =>
       notion.pages.update({
         page_id: pageId!,
@@ -291,8 +291,10 @@ export async function processCrawlerGalleryRow(
     )
     await replacePageBody(pageId!, bodyContent)
   } else {
+    postSlug = generateUniquePostSlug(occupiedSlugs)
+    occupiedSlugs.add(postSlug)
     const targetProps = await loadTargetProps(null)
-    const props = buildNotionProperties(row, coverUrl, targetProps)
+    const props = buildNotionProperties(row, postSlug, coverUrl, targetProps)
     const children = contentToNotionChildren(bodyContent)
     const page = await withRetry(() =>
       notion.pages.create({
@@ -306,7 +308,7 @@ export async function processCrawlerGalleryRow(
   }
 
   const galleryResult = await syncGalleryImages({
-    postSlug: slug,
+    postSlug,
     postNotionId: pageId,
     title: row.title,
     images: imageUrls.map((url) => ({ url, thumb_url: url })),
@@ -314,7 +316,7 @@ export async function processCrawlerGalleryRow(
 
   return {
     notionPageId: pageId!,
-    slug,
+    slug: postSlug,
     imageCount: galleryResult.imageCount,
     action,
   }

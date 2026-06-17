@@ -29,6 +29,7 @@ import {
   inferRulesFromExample,
   findExistingOption,
 } from '@/src/lib/blog/smartPostParse';
+import { generateAdminPostSlug } from '@/src/lib/blog/generateAdminPostSlug';
 import {
   getAllSmartParseTemplates,
   addSmartParseTemplate,
@@ -1409,6 +1410,10 @@ const CrawlerIngestModal = ({
           {configured
             ? `待入库 ${summary?.pending ?? 0} · 处理中 ${summary?.processing ?? 0} · 已完成 ${summary?.done ?? 0} · 失败 ${summary?.failed ?? 0}`
             : '未配置 Supabase 图库租户（BLOG_SITE_ID）'}
+          <br />
+          <span style={{ fontSize: '12px', color: '#888' }}>
+            入库后 slug 由 BLOG 自动生成（p- 时间戳），不使用爬虫源站 ID；列表中 slug 为博客地址。
+          </span>
         </p>
         <div
           style={{
@@ -3505,7 +3510,7 @@ const [mounted, setMounted] = useState(false);
       revokePendingEditorMedia(prev);
       return [];
     });
-    setForm({ title: '', slug: 'p-'+Date.now().toString(36), excerpt:'', content:'', category:'', tags:'', cover:'', status:'Published', type: 'Post', date: new Date().toISOString().split('T')[0], download: '', download_size: '', download_count: '' });
+    setForm({ title: '', slug: generateAdminPostSlug(), excerpt:'', content:'', category:'', tags:'', cover:'', status:'Published', type: 'Post', date: new Date().toISOString().split('T')[0], download: '', download_size: '', download_count: '' });
     resetSmartParseState();
     setCurrentId(null);
     editingSlugRef.current = null;

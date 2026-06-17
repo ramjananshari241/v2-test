@@ -7,6 +7,7 @@ import {
   resolveRevalidateOrigin,
 } from '@/src/lib/blog/contentRevalidation'
 import { isGalleryTenantConfigured } from '@/src/lib/gallery/blogSite'
+import { loadOccupiedPostSlugs } from '@/src/lib/blog/generateAdminPostSlug'
 import {
   listPendingCrawlerQueueRows,
   markCrawlerQueueRow,
@@ -83,11 +84,12 @@ async function processOneRow(
   })
 
   try {
-    const result = await processCrawlerGalleryRow(row)
+    const result = await processCrawlerGalleryRow(row, occupiedSlugs)
 
     await markCrawlerQueueRow(row.id, {
       status: 'done',
       notion_page_id: result.notionPageId,
+      slug: result.slug,
       error_message: null,
       processed_at: new Date().toISOString(),
     })
@@ -125,6 +127,7 @@ export async function runCrawlerIngestJob(
 
   const batchSize = parseBatchSize()
   const pending = await listPendingCrawlerQueueRows(batchSize)
+  const occupiedSlugs = await loadOccupiedPostSlugs()
 
   const items: CrawlerIngestRunItem[] = []
   let succeeded = 0
