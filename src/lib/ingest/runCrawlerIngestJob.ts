@@ -9,7 +9,7 @@ import {
 import { isGalleryTenantConfigured } from '@/src/lib/gallery/blogSite'
 import { loadOccupiedPostSlugs } from '@/src/lib/blog/generateAdminPostSlug'
 import {
-  listPendingCrawlerQueueRows,
+  claimCrawlerQueueRows,
   markCrawlerQueueRow,
   type CrawlerQueueRow,
 } from '@/src/lib/ingest/crawlerQueueDb'
@@ -121,14 +121,21 @@ async function processOneRow(
 }
 
 export async function runCrawlerIngestJob(
-  res: NextApiResponse
+  res: NextApiResponse,
+  options?: { ids?: string[] }
 ): Promise<CrawlerIngestRunResult> {
   if (!isGalleryTenantConfigured()) {
     throw new Error('爬虫入库未配置（需 Supabase + BLOG_SITE_ID）')
   }
 
   const batchSize = parseBatchSize()
-  const pending = await listPendingCrawlerQueueRows(batchSize)
+  const claimLimit = options?.ids?.length
+    ? Math.min(options.ids.length, 50)
+    : batchSize
+  const pending = await claimCrawlerQueueRows({
+    ids: options?.ids,
+    limit: claimLimit,
+  })
   const occupiedSlugs = await loadOccupiedPostSlugs()
 
   const items: CrawlerIngestRunItem[] = []

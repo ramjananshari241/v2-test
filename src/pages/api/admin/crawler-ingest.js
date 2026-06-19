@@ -1,7 +1,9 @@
 import { verifyAdminRequest } from '@/src/lib/admin/verifyAdminRequest'
 import { isGalleryTenantConfigured } from '@/src/lib/gallery/blogSite'
 import {
+  deleteCrawlerQueueRows,
   getCrawlerQueueSummary,
+  listAllPendingCrawlerQueueRows,
   listRecentCrawlerQueueRows,
   retryCrawlerQueueRow,
 } from '@/src/lib/ingest/crawlerQueueDb'
@@ -19,7 +21,17 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const summary = await getCrawlerQueueSummary()
-      const items = await listRecentCrawlerQueueRows(50)
+      const tab = typeof req.query.tab === 'string' ? req.query.tab : ''
+      if (tab === 'pending') {
+        const pendingItems = await listAllPendingCrawlerQueueRows(500)
+        return res.status(200).json({
+          success: true,
+          configured: isGalleryTenantConfigured(),
+          summary,
+          pendingItems,
+        })
+      }
+      const items = await listRecentCrawlerQueueRows(100)
       return res.status(200).json({
         success: true,
         configured: isGalleryTenantConfigured(),
@@ -37,14 +49,44 @@ export default async function handler(req, res) {
       if (body.action === 'retry' && body.id) {
         await retryCrawlerQueueRow(String(body.id))
         const summary = await getCrawlerQueueSummary()
-        const items = await listRecentCrawlerQueueRows(50)
+        const items = await listRecentCrawlerQueueRows(100)
         return res.status(200).json({ success: true, summary, items })
       }
 
-      const result = await runCrawlerIngestJob(res)
+      if (body.action === 'delete' && Array.isArray(body.ids) && body.ids.length) {
+        const deleted = await deleteCrawlerQueueRows(
+          body.ids.map((id) => String(id))
+        )
+        const summary = await getCrawlerQueueSummary()
+        const pendingItems = await listAllPendingCrawlerQueueRows(500)
+        const items = await listRecentCrawlerQueueRows(100)
+        return res.status(200).json({
+          success: true,
+          deleted,
+          summary,
+          pendingItems,
+          items,
+        })
+      }
+
+      const ingestIds =
+        body.action === 'ingest' && Array.isArray(body.ids) && body.ids.length
+          ? body.ids.map((id) => String(id))
+          : undefined
+
+      const result = await runCrawlerIngestJob(res, {
+        ids: ingestIds,
+      })
       const summary = await getCrawlerQueueSummary()
-      const items = await listRecentCrawlerQueueRows(50)
-      return res.status(200).json({ success: true, ...result, summary, items })
+      const pendingItems = await listAllPendingCrawlerQueueRows(500)
+      const items = await listRecentCrawlerQueueRows(100)
+      return res.status(200).json({
+        success: true,
+        ...result,
+        summary,
+        pendingItems,
+        items,
+      })
     }
 
     res.setHeader('Allow', 'GET, POST')

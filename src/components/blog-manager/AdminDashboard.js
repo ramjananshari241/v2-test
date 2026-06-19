@@ -568,6 +568,13 @@ const GlobalStyle = () => (
     .header-actions-menu-item:hover:not(:disabled) { background: #3a3a3e; }
     .header-actions-menu-item:disabled { opacity: 0.45; cursor: not-allowed; }
     .header-actions-menu-item__hint { display: block; margin-top: 4px; font-size: 11px; font-weight: 400; line-height: 1.35; color: #888; }
+    .admin-list-select-btn { padding: 8px 14px; border-radius: 10px; border: 1px solid #555; background: #2a2a2e; color: #ccc; font-size: 12px; font-weight: bold; cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; flex-shrink: 0; }
+    .admin-list-select-btn:hover:not(:disabled) { border-color: greenyellow; color: greenyellow; }
+    .admin-list-select-btn.is-active { border-color: greenyellow; color: greenyellow; background: rgba(173,255,47,0.1); }
+    .admin-list-select-btn.is-delete { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
+    .admin-card-select-mark { position: absolute; top: 10px; left: 10px; z-index: 5; width: 22px; height: 22px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.85); background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .admin-card-select-mark.is-checked { background: greenyellow; border-color: greenyellow; color: #000; font-size: 14px; font-weight: 800; }
+    .card-item.is-selected { outline: 2px solid greenyellow; outline-offset: 2px; box-shadow: 0 0 0 1px rgba(173,255,47,0.35); }
     .cover-modal-backdrop { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,0); backdrop-filter: blur(0px); pointer-events: none; transition: background 0.28s ease, backdrop-filter 0.28s ease; }
     .cover-modal-backdrop.is-visible { background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); pointer-events: auto; }
     .cover-modal-backdrop.is-closing { background: rgba(0,0,0,0); backdrop-filter: blur(0px); pointer-events: none; }
@@ -1372,36 +1379,29 @@ const CRAWLER_INGEST_STATUS_META = {
   skipped: { label: '跳过', color: '#a3a3a3' },
 };
 
-const CrawlerIngestModal = ({
-  open,
-  closing,
-  busy,
-  progress,
+const CrawlerIngestPanel = ({
   configured,
   summary,
-  items,
-  onRun,
+  tab,
+  onTabChange,
+  pendingItems,
+  logItems,
+  selectedIds,
+  onToggleRow,
+  onSelectAllPending,
+  onClearSelection,
+  busy,
+  progress,
+  onIngestSelected,
+  onIngestAll,
+  onDeleteSelected,
   onCancel,
   onRetry,
   onRefresh,
-  onClose,
+  onBack,
 }) => {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (open && !closing) {
-      setVisible(false);
-      const id = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setVisible(true));
-      });
-      return () => cancelAnimationFrame(id);
-    }
-    if (!open || closing) setVisible(false);
-  }, [open, closing]);
-
-  if (!open && !closing) return null;
-
   const pendingCount = summary?.pending ?? 0;
+  const selectedCount = selectedIds.length;
   const progressPct =
     progress && progress.initialPending > 0
       ? Math.min(
@@ -1421,213 +1421,272 @@ const CrawlerIngestModal = ({
     return d.toLocaleString('zh-CN', { hour12: false });
   };
 
-  return (
-    <div
-      className={`cover-modal-backdrop ${visible && !closing ? 'is-visible' : ''} ${closing ? 'is-closing' : ''}`}
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="cover-modal-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="crawler-ingest-modal-title"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '720px', width: 'min(720px, 94vw)' }}
-      >
-        <div className="cover-modal-icon" aria-hidden>📥</div>
-        <h3 id="crawler-ingest-modal-title" className="cover-modal-title">爬虫入库队列</h3>
-        <p className="cover-modal-desc" style={{ marginBottom: '12px' }}>
-          {configured
-            ? `待入库 ${summary?.pending ?? 0} · 处理中 ${summary?.processing ?? 0} · 已完成 ${summary?.done ?? 0} · 失败 ${summary?.failed ?? 0}`
-            : '未配置 Supabase 图库租户（BLOG_SITE_ID）'}
-          <br />
-          <span style={{ fontSize: '12px', color: '#888' }}>
-            入库后 slug 由 BLOG 自动生成（p- 时间戳），不使用爬虫源站 ID；列表中 slug 为博客地址。
-            {pendingCount > 0 && !busy ? (
-              <>
-                <br />
-                点击「全部入库」将每批 {CRAWLER_INGEST_BATCH_HINT} 条自动连续处理，直至待入库清空。
-              </>
-            ) : null}
-          </span>
-        </p>
-        {busy && progress ? (
-          <div
-            style={{
-              marginBottom: '12px',
-              padding: '12px 14px',
-              background: '#1a4d5c',
-              borderRadius: '8px',
-              border: '1px solid #3db8d9',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: '12px',
-                color: '#7ee8fc',
-                marginBottom: '8px',
-                gap: '12px',
-              }}
-            >
-              <span style={{ fontWeight: 700 }}>
-                第 {progress.batchIndex} 批入库中…
-              </span>
-              <span style={{ color: '#bde8f5' }}>
-                剩余 {progress.remainingPending} / 共 {progress.initialPending}
-              </span>
-            </div>
-            <div
-              style={{
-                height: '6px',
-                background: '#0d2a33',
-                borderRadius: '3px',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  width: `${progressPct}%`,
-                  background: 'linear-gradient(90deg, #3db8d9, #7ee8fc)',
-                  transition: 'width 0.35s ease',
-                }}
-              />
-            </div>
-            <p style={{ marginTop: '8px', fontSize: '11px', color: '#aaa', lineHeight: 1.45 }}>
-              已成功 {progress.succeededTotal} · 失败 {progress.failedTotal} · 每批约{' '}
-              {CRAWLER_INGEST_BATCH_HINT} 条
-              {(summary?.processing ?? 0) > 0
-                ? ` · 处理中卡住 ${summary.processing}（可刷新后重试）`
-                : ''}
-            </p>
-          </div>
+  const renderRow = (row, { selectable = false }) => {
+    const meta = CRAWLER_INGEST_STATUS_META[row.status] || CRAWLER_INGEST_STATUS_META.pending;
+    const checked = selectedIds.includes(row.id);
+    return (
+      <tr key={row.id} style={{ borderTop: '1px solid #3a3a3f' }}>
+        {selectable ? (
+          <td style={{ padding: '8px 10px', width: '36px' }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={busy}
+              onChange={() => onToggleRow(row.id)}
+              aria-label={`选择 ${row.title || row.slug}`}
+            />
+          </td>
         ) : null}
-        <div
+        <td style={{ padding: '8px 10px', color: meta.color, fontWeight: 600 }}>
+          {meta.label}
+        </td>
+        <td style={{ padding: '8px 10px', color: '#eee', maxWidth: '220px' }}>
+          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {row.title || '—'}
+          </div>
+          {row.error_message ? (
+            <div style={{ color: '#f87171', fontSize: '11px', marginTop: '4px', lineHeight: 1.4 }}>
+              {row.error_message}
+            </div>
+          ) : null}
+        </td>
+        <td style={{ padding: '8px 10px', color: '#bbb' }}>{row.slug}</td>
+        <td style={{ padding: '8px 10px', color: '#bbb' }}>
+          {(row.image_urls && row.image_urls.length) || 0}
+        </td>
+        <td style={{ padding: '8px 10px', color: '#888', whiteSpace: 'nowrap' }}>
+          {formatQueueTime(row.updated_at)}
+        </td>
+        <td style={{ padding: '8px 10px' }}>
+          {row.status === 'failed' || row.status === 'done' ? (
+            <button
+              type="button"
+              onClick={() => onRetry(row.id)}
+              disabled={busy}
+              style={{
+                background: 'none',
+                border: row.status === 'failed' ? '1px solid #f87171' : '1px solid #3db8d9',
+                color: row.status === 'failed' ? '#f87171' : '#7ee8fc',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                cursor: busy ? 'not-allowed' : 'pointer',
+                fontSize: '11px',
+              }}
+            >
+              {row.status === 'failed' ? '重试' : '重新入库'}
+            </button>
+          ) : (
+            <span style={{ color: '#666' }}>—</span>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const listRows = tab === 'pending' ? pendingItems : logItems;
+
+  return (
+    <div style={{ background: '#424242', padding: 28, borderRadius: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
+        <div>
+          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff' }}>📥 爬虫入库管理</div>
+          <div style={{ fontSize: '12px', color: '#888', marginTop: 6, lineHeight: 1.5 }}>
+            {configured
+              ? `待入库 ${summary?.pending ?? 0} · 处理中 ${summary?.processing ?? 0} · 已完成 ${summary?.done ?? 0} · 失败 ${summary?.failed ?? 0}`
+              : '未配置 Supabase 图库租户（BLOG_SITE_ID）'}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onBack}
           style={{
-            maxHeight: '360px',
-            overflow: 'auto',
-            border: '1px solid #444',
-            borderRadius: '8px',
+            padding: '10px 16px',
+            borderRadius: '10px',
+            border: '1px solid #555',
             background: '#2a2a2e',
+            color: '#ccc',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: 'bold',
           }}
         >
-          {(!items || items.length === 0) ? (
-            <p style={{ padding: '16px', color: '#888', fontSize: '13px', textAlign: 'center' }}>
-              暂无队列记录
-            </p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-              <thead>
-                <tr style={{ background: '#333', color: '#ccc', textAlign: 'left' }}>
-                  <th style={{ padding: '8px 10px' }}>状态</th>
-                  <th style={{ padding: '8px 10px' }}>标题</th>
-                  <th style={{ padding: '8px 10px' }}>slug</th>
-                  <th style={{ padding: '8px 10px' }}>图</th>
-                  <th style={{ padding: '8px 10px' }}>更新时间</th>
-                  <th style={{ padding: '8px 10px' }}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((row) => {
-                  const meta = CRAWLER_INGEST_STATUS_META[row.status] || CRAWLER_INGEST_STATUS_META.pending;
-                  return (
-                    <tr key={row.id} style={{ borderTop: '1px solid #3a3a3f' }}>
-                      <td style={{ padding: '8px 10px', color: meta.color, fontWeight: 600 }}>
-                        {meta.label}
-                      </td>
-                      <td style={{ padding: '8px 10px', color: '#eee', maxWidth: '180px' }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {row.title || '—'}
-                        </div>
-                        {row.error_message ? (
-                          <div style={{ color: '#f87171', fontSize: '11px', marginTop: '4px', lineHeight: 1.4 }}>
-                            {row.error_message}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td style={{ padding: '8px 10px', color: '#bbb' }}>{row.slug}</td>
-                      <td style={{ padding: '8px 10px', color: '#bbb' }}>
-                        {(row.image_urls && row.image_urls.length) || 0}
-                      </td>
-                      <td style={{ padding: '8px 10px', color: '#888', whiteSpace: 'nowrap' }}>
-                        {formatQueueTime(row.updated_at)}
-                      </td>
-                      <td style={{ padding: '8px 10px' }}>
-                        {row.status === 'failed' || row.status === 'done' ? (
-                          <button
-                            type="button"
-                            onClick={() => onRetry(row.id)}
-                            disabled={busy}
-                            style={{
-                              background: 'none',
-                              border: row.status === 'failed' ? '1px solid #f87171' : '1px solid #3db8d9',
-                              color: row.status === 'failed' ? '#f87171' : '#7ee8fc',
-                              borderRadius: '6px',
-                              padding: '4px 8px',
-                              cursor: busy ? 'not-allowed' : 'pointer',
-                              fontSize: '11px',
-                            }}
-                          >
-                            {row.status === 'failed' ? '重试' : '重新入库'}
-                          </button>
-                        ) : (
-                          <span style={{ color: '#666' }}>—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <div className="cover-modal-actions" style={{ marginTop: '16px' }}>
+          返回列表
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {[
+          { id: 'pending', label: `待入库（${pendingCount}）` },
+          { id: 'log', label: '入库记录' },
+        ].map((t) => (
           <button
+            key={t.id}
             type="button"
-            className="cover-modal-btn cover-modal-btn-secondary"
-            onClick={onRefresh}
-            disabled={busy}
+            onClick={() => onTabChange(t.id)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              border: tab === t.id ? '1px solid #3db8d9' : '1px solid #555',
+              background: tab === t.id ? 'rgba(61,184,217,0.15)' : '#2a2a2e',
+              color: tab === t.id ? '#7ee8fc' : '#aaa',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
           >
-            刷新列表
+            {t.label}
           </button>
-          {busy ? (
-            <button
-              type="button"
-              className="cover-modal-btn cover-modal-btn-secondary"
-              onClick={onCancel}
-              style={{ borderColor: '#f87171', color: '#f87171' }}
-            >
-              停止入库
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="cover-modal-btn"
-              onClick={onRun}
-              disabled={!configured || pendingCount <= 0}
+        ))}
+      </div>
+
+      {busy && progress ? (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: '12px 14px',
+            background: '#1a4d5c',
+            borderRadius: '8px',
+            border: '1px solid #3db8d9',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#7ee8fc', marginBottom: 8 }}>
+            <span style={{ fontWeight: 700 }}>第 {progress.batchIndex} 批入库中…</span>
+            <span style={{ color: '#bde8f5' }}>
+              剩余 {progress.remainingPending} / 共 {progress.initialPending}
+            </span>
+          </div>
+          <div style={{ height: 6, background: '#0d2a33', borderRadius: 3, overflow: 'hidden' }}>
+            <div
               style={{
-                background: pendingCount <= 0 ? '#424242' : '#3db8d9',
+                height: '100%',
+                width: `${progressPct}%`,
+                background: 'linear-gradient(90deg, #3db8d9, #7ee8fc)',
+                transition: 'width 0.35s ease',
+              }}
+            />
+          </div>
+          <p style={{ marginTop: 8, fontSize: 11, color: '#aaa' }}>
+            已成功 {progress.succeededTotal} · 失败 {progress.failedTotal} · 每批 {CRAWLER_INGEST_BATCH_HINT} 条
+          </p>
+        </div>
+      ) : null}
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+        <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onRefresh} disabled={busy}>
+          刷新
+        </button>
+        {tab === 'pending' && configured ? (
+          <>
+            <button
+              type="button"
+              disabled={busy || pendingCount <= 0}
+              onClick={onIngestAll}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '10px',
+                border: '1px solid #3db8d9',
+                background: busy || pendingCount <= 0 ? '#333' : '#3db8d9',
                 color: '#fff',
-                boxShadow:
-                  pendingCount <= 0 ? 'none' : '0 4px 14px rgba(61,184,217,0.35)',
+                fontWeight: 'bold',
+                fontSize: '13px',
+                cursor: busy || pendingCount <= 0 ? 'not-allowed' : 'pointer',
               }}
             >
-              {pendingCount > 0 ? `全部入库（${pendingCount}）` : '暂无待入库'}
+              {busy ? '入库中…' : `全部入库（${pendingCount}）`}
             </button>
-          )}
-          <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onClose}>
-            {busy ? '关闭（后台继续）' : '关闭'}
-          </button>
-        </div>
-        {busy ? (
-          <p style={{ marginTop: '10px', fontSize: '11px', color: '#888', textAlign: 'center' }}>
-            入库在浏览器中自动分批执行；关闭窗口不会中断，可点「停止入库」在当前批次结束后暂停。
-          </p>
+            <button
+              type="button"
+              disabled={busy || selectedCount <= 0}
+              onClick={onIngestSelected}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '10px',
+                border: '1px solid #7ee8fc',
+                background: 'transparent',
+                color: '#7ee8fc',
+                fontWeight: 'bold',
+                fontSize: '13px',
+                cursor: busy || selectedCount <= 0 ? 'not-allowed' : 'pointer',
+                opacity: busy || selectedCount <= 0 ? 0.45 : 1,
+              }}
+            >
+              入库所选（{selectedCount}）
+            </button>
+            <button
+              type="button"
+              disabled={busy || selectedCount <= 0}
+              onClick={onDeleteSelected}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '10px',
+                border: '1px solid #f87171',
+                background: 'transparent',
+                color: '#f87171',
+                fontWeight: 'bold',
+                fontSize: '13px',
+                cursor: busy || selectedCount <= 0 ? 'not-allowed' : 'pointer',
+                opacity: busy || selectedCount <= 0 ? 0.45 : 1,
+              }}
+            >
+              删除所选（{selectedCount}）
+            </button>
+            <button
+              type="button"
+              disabled={busy || !pendingItems.length}
+              onClick={onSelectAllPending}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #555',
+                background: '#2a2a2e',
+                color: '#ccc',
+                fontSize: '12px',
+                cursor: busy || !pendingItems.length ? 'not-allowed' : 'pointer',
+              }}
+            >
+              全选待入库
+            </button>
+            {selectedCount > 0 ? (
+              <button type="button" disabled={busy} onClick={onClearSelection} style={{ fontSize: 12, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>
+                清空选择
+              </button>
+            ) : null}
+          </>
         ) : null}
+        {busy ? (
+          <button type="button" onClick={onCancel} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #f87171', background: 'transparent', color: '#f87171', fontSize: 12, fontWeight: 'bold', cursor: 'pointer' }}>
+            停止入库
+          </button>
+        ) : null}
+      </div>
+
+      <p style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
+        勾选待入库条目后可「入库所选」；「全部入库」将每批 {CRAWLER_INGEST_BATCH_HINT} 条自动连续处理。入库进行中无法重复启动，避免重复写入。
+      </p>
+
+      <div style={{ maxHeight: '520px', overflow: 'auto', border: '1px solid #444', borderRadius: 8, background: '#2a2a2e' }}>
+        {!listRows || listRows.length === 0 ? (
+          <p style={{ padding: 16, color: '#888', fontSize: 13, textAlign: 'center' }}>
+            {tab === 'pending' ? '暂无待入库元数据' : '暂无入库记录'}
+          </p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: '#333', color: '#ccc', textAlign: 'left' }}>
+                {tab === 'pending' ? <th style={{ padding: '8px 10px', width: 36 }} /> : null}
+                <th style={{ padding: '8px 10px' }}>状态</th>
+                <th style={{ padding: '8px 10px' }}>标题</th>
+                <th style={{ padding: '8px 10px' }}>slug</th>
+                <th style={{ padding: '8px 10px' }}>图</th>
+                <th style={{ padding: '8px 10px' }}>更新时间</th>
+                <th style={{ padding: '8px 10px' }}>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listRows.map((row) => renderRow(row, { selectable: tab === 'pending' }))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -1650,7 +1709,6 @@ const AdminHeaderActionsMenu = ({
   crawlerIngestProgress,
   crawlerIngestConfigured,
   crawlerIngestSummary,
-  onCrawlerIngest,
   onOpenIngestList,
 }) => {
   const shellRefreshDisabled =
@@ -1660,8 +1718,7 @@ const AdminHeaderActionsMenu = ({
     fullRedeployBusy ||
     fullRedeployCooldownSec > 0 ||
     !fullRedeployConfigured;
-  const crawlerIngestDisabled =
-    isThemeLoading || crawlerIngestBusy || !crawlerIngestConfigured;
+  const crawlerIngestDisabled = isThemeLoading || !crawlerIngestConfigured;
   const ingestListDisabled = isThemeLoading || !crawlerIngestConfigured;
 
   const runAndClose = (fn) => {
@@ -1735,33 +1792,27 @@ const AdminHeaderActionsMenu = ({
             role="menuitem"
             className="header-actions-menu-item"
             disabled={crawlerIngestDisabled}
-            onClick={() => runAndClose(onCrawlerIngest)}
+            onClick={() => runAndClose(onOpenIngestList)}
             title={
               !crawlerIngestConfigured
                 ? '未配置 Supabase 图库租户，请联系管理'
-                : '每批约 20 条自动连续入库，直至待入库清空'
+                : '打开爬虫入库管理：待入库列表、勾选入库与记录'
             }
           >
-            {crawlerIngestBusy ? (
-              crawlerIngestProgress ? (
-                <>
-                  入库 {crawlerIngestProgress.initialPending - crawlerIngestProgress.remainingPending}/
-                  {crawlerIngestProgress.initialPending}
-                  <span className="header-actions-menu-item__hint">
-                    第 {crawlerIngestProgress.batchIndex} 批 · 剩 {crawlerIngestProgress.remainingPending} · 成功{' '}
-                    {crawlerIngestProgress.succeededTotal}
-                  </span>
-                </>
-              ) : (
-                '入库中…'
-              )
+            {crawlerIngestBusy && crawlerIngestProgress ? (
+              <>
+                入库中 {crawlerIngestProgress.initialPending - crawlerIngestProgress.remainingPending}/
+                {crawlerIngestProgress.initialPending}
+                <span className="header-actions-menu-item__hint">
+                  第 {crawlerIngestProgress.batchIndex} 批 · 剩 {crawlerIngestProgress.remainingPending}
+                </span>
+              </>
             ) : (
-              '全部入库'
+              '爬虫入库'
             )}
-            {crawlerIngestConfigured && crawlerIngestSummary ? (
+            {crawlerIngestConfigured && crawlerIngestSummary && !crawlerIngestBusy ? (
               <span className="header-actions-menu-item__hint">
-                待入库 {crawlerIngestSummary.pending ?? 0} · 已完成{' '}
-                {crawlerIngestSummary.done ?? 0}
+                待入库 {crawlerIngestSummary.pending ?? 0} · 已完成 {crawlerIngestSummary.done ?? 0}
               </span>
             ) : null}
           </button>
@@ -1771,7 +1822,7 @@ const AdminHeaderActionsMenu = ({
             className="header-actions-menu-item"
             disabled={ingestListDisabled}
             onClick={() => runAndClose(onOpenIngestList)}
-            title="查看爬虫入库队列与任务进度"
+            title="查看待入库与入库记录"
           >
             入库列表
             {crawlerIngestConfigured && crawlerIngestSummary ? (
@@ -3215,11 +3266,13 @@ const [mounted, setMounted] = useState(false);
   const [crawlerIngestConfigured, setCrawlerIngestConfigured] = useState(false);
   const [crawlerIngestSummary, setCrawlerIngestSummary] = useState(null);
   const [crawlerIngestList, setCrawlerIngestList] = useState([]);
-  const [crawlerIngestModalOpen, setCrawlerIngestModalOpen] = useState(false);
-  const [crawlerIngestModalClosing, setCrawlerIngestModalClosing] = useState(false);
-  const crawlerIngestModalTimerRef = useRef(null);
+  const [crawlerIngestPendingList, setCrawlerIngestPendingList] = useState([]);
+  const [crawlerIngestTab, setCrawlerIngestTab] = useState('pending');
+  const [crawlerIngestSelectedIds, setCrawlerIngestSelectedIds] = useState([]);
   const [crawlerIngestProgress, setCrawlerIngestProgress] = useState(null);
   const crawlerIngestCancelRef = useRef(false);
+  const [listSelectMode, setListSelectMode] = useState(false);
+  const [selectedPostIds, setSelectedPostIds] = useState([]);
   const [headerActionsMenuOpen, setHeaderActionsMenuOpen] = useState(false);
   const headerActionsMenuRef = useRef(null);
   const adminToastTimerRef = useRef(null);
@@ -3597,7 +3650,7 @@ const [mounted, setMounted] = useState(false);
     try {
       const res = await fetch('/api/admin/crawler-ingest');
       const data = await res.json();
-      if (!res.ok || !data.success) return;
+      if (!res.ok || !data.success) return null;
       setCrawlerIngestConfigured(Boolean(data.configured));
       if (data.summary) setCrawlerIngestSummary(data.summary);
       if (data.items) setCrawlerIngestList(data.items);
@@ -3608,21 +3661,50 @@ const [mounted, setMounted] = useState(false);
     }
   };
 
-  const closeCrawlerIngestModal = () => {
-    if (crawlerIngestModalTimerRef.current) clearTimeout(crawlerIngestModalTimerRef.current);
-    setCrawlerIngestModalClosing(true);
-    crawlerIngestModalTimerRef.current = setTimeout(() => {
-      setCrawlerIngestModalOpen(false);
-      setCrawlerIngestModalClosing(false);
-    }, 220);
+  const fetchCrawlerPendingList = async () => {
+    try {
+      const res = await fetch('/api/admin/crawler-ingest?tab=pending');
+      const data = await res.json();
+      if (!res.ok || !data.success) return null;
+      setCrawlerIngestConfigured(Boolean(data.configured));
+      if (data.summary) setCrawlerIngestSummary(data.summary);
+      if (data.pendingItems) setCrawlerIngestPendingList(data.pendingItems);
+      return data;
+    } catch (e) {
+      console.warn('读取待入库列表失败', e);
+      return null;
+    }
   };
 
-  const openCrawlerIngestModal = async () => {
-    if (crawlerIngestModalTimerRef.current) clearTimeout(crawlerIngestModalTimerRef.current);
-    setCrawlerIngestModalClosing(false);
-    setCrawlerIngestModalOpen(true);
+  const refreshCrawlerIngestPanel = async () => {
     await fetchCrawlerIngestStatus();
+    if (crawlerIngestTab === 'pending') await fetchCrawlerPendingList();
   };
+
+  const openCrawlerIngestView = async () => {
+    setView('crawler-ingest');
+    setCrawlerIngestTab('pending');
+    setCrawlerIngestSelectedIds([]);
+    await refreshCrawlerIngestPanel();
+  };
+
+  const leaveCrawlerIngestView = () => {
+    setView('list');
+    setCrawlerIngestSelectedIds([]);
+  };
+
+  const toggleCrawlerIngestRow = (id) => {
+    setCrawlerIngestSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllCrawlerPending = () => {
+    setCrawlerIngestSelectedIds(crawlerIngestPendingList.map((r) => r.id));
+  };
+
+  const clearCrawlerIngestSelection = () => setCrawlerIngestSelectedIds([]);
+
   useEffect(() => {
     if (!mounted) return;
     fetchFullRedeployStatus();
@@ -3643,6 +3725,19 @@ const [mounted, setMounted] = useState(false);
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, [view]);
+
+  useEffect(() => {
+    if (view === 'crawler-ingest' && crawlerIngestTab === 'pending') {
+      fetchCrawlerPendingList();
+    }
+  }, [view, crawlerIngestTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'Post') {
+      setListSelectMode(false);
+      setSelectedPostIds([]);
+    }
+  }, [activeTab]);
 
   // 双模状态机解析
   const parseContentToBlocks = (md) => {
@@ -4351,6 +4446,7 @@ const [mounted, setMounted] = useState(false);
       if (!res.ok || !data.success) throw new Error(data.error || '重试失败');
       if (data.summary) setCrawlerIngestSummary(data.summary);
       if (data.items) setCrawlerIngestList(data.items);
+      if (data.pendingItems) setCrawlerIngestPendingList(data.pendingItems);
       showAdminToast('已重新加入待入库队列');
     } catch (e) {
       showAdminToast(e?.message || '重试失败');
@@ -4365,22 +4461,30 @@ const [mounted, setMounted] = useState(false);
     showAdminToast('将在当前批次完成后停止入库…');
   };
 
-  const handleCrawlerIngestRun = async () => {
-    if (isThemeLoading || crawlerIngestBusy) return;
+  const runCrawlerIngestBatches = async (targetIds) => {
+    if (isThemeLoading || crawlerIngestBusy) {
+      showAdminToast('入库任务进行中，请勿重复点击');
+      return;
+    }
     if (!crawlerIngestConfigured) {
       showAdminToast('爬虫入库未配置（Supabase + BLOG_SITE_ID）');
       return;
     }
 
+    const ids = [...new Set((targetIds || []).filter(Boolean))];
+    if (!ids.length) {
+      showAdminToast('请先选择待入库条目');
+      return;
+    }
+
     crawlerIngestCancelRef.current = false;
     setCrawlerIngestBusy(true);
-    setCrawlerIngestModalOpen(true);
-    setCrawlerIngestModalClosing(false);
 
+    let remainingIds = [...ids];
+    let batchIndex = 0;
     let succeededTotal = 0;
     let failedTotal = 0;
-    let batchIndex = 0;
-    let initialPending = 0;
+    const initialPending = ids.length;
 
     const pushProgress = (remainingPending) => {
       setCrawlerIngestProgress({
@@ -4393,30 +4497,24 @@ const [mounted, setMounted] = useState(false);
     };
 
     try {
-      const statusData = await fetchCrawlerIngestStatus();
-      if (!statusData) throw new Error('无法读取爬虫队列');
-      initialPending = statusData.summary?.pending ?? 0;
-      if (initialPending <= 0) {
-        showAdminToast('队列中暂无待入库内容（pending 为 0）');
-        return;
-      }
-
       pushProgress(initialPending);
-      showAdminToast(
-        `开始全部入库：共 ${initialPending} 条，每批 ${CRAWLER_INGEST_BATCH_HINT} 条自动连续处理`
-      );
+      showAdminToast(`开始入库 ${initialPending} 条（每批 ${CRAWLER_INGEST_BATCH_HINT} 条）`);
 
-      let remaining = initialPending;
-
-      while (true) {
+      while (remainingIds.length > 0) {
         if (crawlerIngestCancelRef.current) break;
 
         batchIndex += 1;
-        pushProgress(remaining);
+        const batchIds = remainingIds.slice(0, CRAWLER_INGEST_BATCH_HINT);
+        remainingIds = remainingIds.slice(CRAWLER_INGEST_BATCH_HINT);
+        pushProgress(remainingIds.length);
 
         const res = await fetchWithTimeout(
           '/api/admin/crawler-ingest',
-          { method: 'POST' },
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'ingest', ids: batchIds }),
+          },
           CRAWLER_INGEST_FETCH_TIMEOUT_MS
         );
         const data = await res.json();
@@ -4426,46 +4524,77 @@ const [mounted, setMounted] = useState(false);
 
         succeededTotal += data.succeeded || 0;
         failedTotal += data.failed || 0;
+        if (data.summary) setCrawlerIngestSummary(data.summary);
+        if (data.pendingItems) setCrawlerIngestPendingList(data.pendingItems);
+        if (data.items) setCrawlerIngestList(data.items);
+        setCrawlerIngestSelectedIds((prev) => prev.filter((id) => !batchIds.includes(id)));
 
-        const afterBatch = await fetchCrawlerIngestStatus();
-        remaining = afterBatch?.summary?.pending ?? 0;
-        pushProgress(remaining);
-
-        const processed = data.processed || 0;
-        if (processed === 0 || remaining === 0) break;
         if (crawlerIngestCancelRef.current) break;
-
-        await new Promise((r) => setTimeout(r, 400));
+        if (remainingIds.length > 0) await new Promise((r) => setTimeout(r, 400));
       }
 
       await fetchPosts();
-      const finalStatus = await fetchCrawlerIngestStatus();
-      const finalRemaining = finalStatus?.summary?.pending ?? 0;
+      await refreshCrawlerIngestPanel();
       const cancelled = crawlerIngestCancelRef.current;
+      const finalPending = crawlerIngestSummary?.pending ?? 0;
 
-      if (cancelled && finalRemaining > 0) {
+      if (cancelled) {
         showAdminToast(
-          `已停止：成功 ${succeededTotal}，失败 ${failedTotal}，剩余待入库 ${finalRemaining}`
+          `已停止：成功 ${succeededTotal}，失败 ${failedTotal}，队列剩余约 ${finalPending} 条`
         );
       } else if (failedTotal > 0) {
         showAdminToast(
-          `全部入库结束：成功 ${succeededTotal}，失败 ${failedTotal}（失败项可在列表中重试）`
+          `入库结束：成功 ${succeededTotal}，失败 ${failedTotal}（失败项可在记录中重试）`
         );
       } else if (succeededTotal > 0) {
-        showAdminToast(`全部入库完成：成功 ${succeededTotal} 篇，已更新前台页面`);
-      } else {
-        showAdminToast('没有待入库内容');
+        showAdminToast(`入库完成：成功 ${succeededTotal} 篇`);
       }
     } catch (e) {
-      const partial =
-        succeededTotal > 0 || failedTotal > 0
-          ? `（已完成 ${succeededTotal + failedTotal} 条：成功 ${succeededTotal}，失败 ${failedTotal}）`
-          : '';
-      showAdminToast((e?.message || '爬虫入库失败') + partial);
+      showAdminToast(
+        (e?.message || '爬虫入库失败') +
+          (succeededTotal + failedTotal > 0
+            ? `（已完成 ${succeededTotal + failedTotal} 条）`
+            : '')
+      );
     } finally {
       setCrawlerIngestBusy(false);
       setCrawlerIngestProgress(null);
       crawlerIngestCancelRef.current = false;
+    }
+  };
+
+  const handleCrawlerIngestAll = async () => {
+    const data = await fetchCrawlerPendingList();
+    const pendingIds = (data?.pendingItems || crawlerIngestPendingList).map((r) => r.id);
+    if (!pendingIds.length) {
+      showAdminToast('暂无待入库内容');
+      return;
+    }
+    await runCrawlerIngestBatches(pendingIds);
+  };
+
+  const handleCrawlerIngestSelected = async () => {
+    await runCrawlerIngestBatches(crawlerIngestSelectedIds);
+  };
+
+  const handleCrawlerQueueDeleteSelected = async () => {
+    if (!crawlerIngestSelectedIds.length) return;
+    if (!confirm(`从队列删除 ${crawlerIngestSelectedIds.length} 条待入库元数据？`)) return;
+    try {
+      const res = await fetch('/api/admin/crawler-ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', ids: crawlerIngestSelectedIds }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || '删除失败');
+      setCrawlerIngestSelectedIds([]);
+      if (data.summary) setCrawlerIngestSummary(data.summary);
+      if (data.pendingItems) setCrawlerIngestPendingList(data.pendingItems);
+      if (data.items) setCrawlerIngestList(data.items);
+      showAdminToast(`已删除 ${data.deleted ?? 0} 条队列记录`);
+    } catch (e) {
+      showAdminToast(e?.message || '删除失败');
     }
   };
 
@@ -4577,7 +4706,75 @@ const [mounted, setMounted] = useState(false);
     }
   };
 
-  const renderCardDrawer = (p, { showPin = false } = {}) => (
+  const togglePostSelection = (postId) => {
+    setSelectedPostIds((prev) =>
+      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
+    );
+  };
+
+  const handleListSelectButtonClick = () => {
+    if (listSelectMode && selectedPostIds.length > 0) {
+      handleBulkDeletePosts();
+      return;
+    }
+    if (listSelectMode) {
+      setListSelectMode(false);
+      setSelectedPostIds([]);
+      return;
+    }
+    setListSelectMode(true);
+    setSelectedPostIds([]);
+  };
+
+  const handleBulkDeletePosts = async () => {
+    const ids = [...selectedPostIds];
+    if (!ids.length) return;
+    if (!confirm(`彻底删除 ${ids.length} 篇文章？此操作不可恢复。`)) return;
+    setLoading(true);
+    let ok = 0;
+    let fail = 0;
+    try {
+      for (const id of ids) {
+        const res = await fetch('/api/admin/post?id=' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.success) ok += 1;
+        else fail += 1;
+      }
+      await fetchPosts();
+      const rev = await triggerShellBlogRefresh();
+      showRevalidateFeedback(rev, showAdminToast);
+      setListSelectMode(false);
+      setSelectedPostIds([]);
+      if (fail > 0) showAdminToast(`已删除 ${ok} 篇，失败 ${fail} 篇`);
+      else showAdminToast(`已删除 ${ok} 篇`);
+    } catch (e) {
+      alert('批量删除失败：' + (e.message || '未知错误'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePostCardClick = (p) => {
+    if (listSelectMode && activeTab === 'Post') {
+      togglePostSelection(p.id);
+      return;
+    }
+    handlePreview(p);
+  };
+
+  const renderPostSelectMark = (postId) => {
+    if (!listSelectMode || activeTab !== 'Post') return null;
+    const checked = selectedPostIds.includes(postId);
+    return (
+      <div className={`admin-card-select-mark${checked ? ' is-checked' : ''}`} aria-hidden>
+        {checked ? '✓' : ''}
+      </div>
+    );
+  };
+
+  const renderCardDrawer = (p, { showPin = false } = {}) => {
+    if (listSelectMode && activeTab === 'Post') return null;
+    return (
     <div className="drawer">
       {showPin ? (
         <div
@@ -4592,7 +4789,8 @@ const [mounted, setMounted] = useState(false);
       <div onClick={(e) => { e.stopPropagation(); handleEdit(p); }} style={{ background: 'greenyellow', color: '#000' }} className="dr-btn"><Icons.Edit /></div>
       <div onClick={(e) => { e.stopPropagation(); handleDeletePost(p); }} style={{ background: '#ff4d4f' }} className="dr-btn"><Icons.Trash /></div>
     </div>
-  );
+    );
+  };
 
   const getFilteredPosts = () => {
      let list = posts;
@@ -4828,20 +5026,6 @@ const [mounted, setMounted] = useState(false);
         onConfirm={proceedFullRedeployAfterConfirm}
         onCancel={closeFullRedeployConfirmModal}
       />
-      <CrawlerIngestModal
-        open={crawlerIngestModalOpen}
-        closing={crawlerIngestModalClosing}
-        busy={crawlerIngestBusy}
-        progress={crawlerIngestProgress}
-        configured={crawlerIngestConfigured}
-        summary={crawlerIngestSummary}
-        items={crawlerIngestList}
-        onRun={handleCrawlerIngestRun}
-        onCancel={handleCrawlerIngestCancel}
-        onRetry={handleCrawlerIngestRetry}
-        onRefresh={fetchCrawlerIngestStatus}
-        onClose={closeCrawlerIngestModal}
-      />
       <AdminToast message={adminToast.message} visible={adminToast.visible} closing={adminToast.closing} />
       <PublishQueuePanel
         jobs={publishQueue}
@@ -4878,11 +5062,17 @@ const [mounted, setMounted] = useState(false);
                  crawlerIngestProgress={crawlerIngestProgress}
                  crawlerIngestConfigured={crawlerIngestConfigured}
                  crawlerIngestSummary={crawlerIngestSummary}
-                 onCrawlerIngest={handleCrawlerIngestRun}
-                 onOpenIngestList={openCrawlerIngestModal}
+                 onOpenIngestList={openCrawlerIngestView}
                />
              </div>
-             {view === 'list' ? <AnimatedBtn text="发布新内容" onClick={handleCreate} /> : <AnimatedBtn text="返回列表" onClick={leaveEditView} />}
+             {view === 'list' ? (
+               <AnimatedBtn text="发布新内容" onClick={handleCreate} />
+             ) : (
+               <AnimatedBtn
+                 text="返回列表"
+                 onClick={view === 'crawler-ingest' ? leaveCrawlerIngestView : leaveEditView}
+               />
+             )}
            </div>
         </header>
 
@@ -4952,6 +5142,20 @@ const [mounted, setMounted] = useState(false);
 
               {/* 3. 右侧视图栏 + 发布日期筛选 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative' }}>
+                {activeTab === 'Post' ? (
+                  <button
+                    type="button"
+                    className={`admin-list-select-btn${listSelectMode ? ' is-active' : ''}${listSelectMode && selectedPostIds.length > 0 ? ' is-delete' : ''}`}
+                    onClick={handleListSelectButtonClick}
+                    disabled={loading}
+                  >
+                    {listSelectMode
+                      ? selectedPostIds.length > 0
+                        ? `删除（${selectedPostIds.length}）`
+                        : '取消选择'
+                      : '选择'}
+                  </button>
+                ) : null}
                 <SlidingNav activeIdx={navIdx} onSelect={handleNavClick} />
                 {activeTab === 'Post' && (
                   <>
@@ -5068,7 +5272,19 @@ const [mounted, setMounted] = useState(false);
                         <span>置顶分割线</span>
                       </div>
                     ) : null}
-                  <div onClick={() => handlePreview(p)} className="card-item" style={{ ...(viewMode === 'text' ? { display: 'flex', alignItems: 'center', padding: '16px 20px' } : viewMode === 'gallery' ? { display: 'flex', flexDirection: 'column', height: 'auto' } : {}), background: p.pinned ? '#4a4638' : '#424242', borderRadius: '12px', marginBottom: '8px', border: p.pinned ? '1px solid rgba(251, 191, 36, 0.45)' : `1px solid ${st.borderColor}` }}>
+                  <div
+                    onClick={() => handlePostCardClick(p)}
+                    className={`card-item${listSelectMode && activeTab === 'Post' && selectedPostIds.includes(p.id) ? ' is-selected' : ''}`}
+                    style={{
+                      ...(viewMode === 'text' ? { display: 'flex', alignItems: 'center', padding: '16px 20px' } : viewMode === 'gallery' ? { display: 'flex', flexDirection: 'column', height: 'auto' } : {}),
+                      background: p.pinned ? '#4a4638' : '#424242',
+                      borderRadius: '12px',
+                      marginBottom: '8px',
+                      border: p.pinned ? '1px solid rgba(251, 191, 36, 0.45)' : `1px solid ${st.borderColor}`,
+                      position: listSelectMode && activeTab === 'Post' ? 'relative' : undefined,
+                    }}
+                  >
+                    {renderPostSelectMark(p.id)}
                     {viewMode === 'covered' && <><div style={{ width: '160px', flexShrink: 0, background: '#303030', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.cover ? <img src={p.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '28px', color: '#444' }}>{activeTab[0]}</div>}</div><div style={{ padding: '20px 35px', flex: 1 }}><div style={{ fontWeight: 'bold', fontSize: '20px', color: '#fff', marginBottom: '8px' }}>{pinBadge}{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ border: `1px solid ${st.color}`, color: st.color, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{st.label}</span>{p.category} · {p.date}</div></div></>}
                     {viewMode === 'text' && <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}><div style={{ flex: 1, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: p.pinned ? '#fbbf24' : st.color }}></span>{pinBadge}{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8 }}>{p.category} · {p.date}</div></div>}
                     {viewMode === 'gallery' && <><div style={{ height: '140px', background: '#303030', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}><div style={{ position: 'absolute', top: '10px', left: '10px', background: p.pinned ? '#fbbf24' : 'transparent', color: '#000', padding: p.pinned ? '2px 6px' : 0, borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{p.pinned ? 'PIN' : ''}</div><div style={{ position: 'absolute', top: '10px', right: '10px', background: st.color, color: '#000', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{p.status === 'Draft' ? 'DRAFT' : 'PUB'}</div>{p.cover ? <img src={p.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '40px', color: '#444' }}>{activeTab[0]}</div>}</div><div style={{ padding: '15px' }}><div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8 }}>{p.category} · {p.date}</div></div></>}
@@ -5079,6 +5295,32 @@ const [mounted, setMounted] = useState(false);
               })}
             </div>
           </main>
+        ) : view === 'crawler-ingest' ? (
+          <CrawlerIngestPanel
+            configured={crawlerIngestConfigured}
+            summary={crawlerIngestSummary}
+            tab={crawlerIngestTab}
+            onTabChange={(tab) => {
+              setCrawlerIngestTab(tab);
+              if (tab === 'pending') fetchCrawlerPendingList();
+              else fetchCrawlerIngestStatus();
+            }}
+            pendingItems={crawlerIngestPendingList}
+            logItems={crawlerIngestList}
+            selectedIds={crawlerIngestSelectedIds}
+            onToggleRow={toggleCrawlerIngestRow}
+            onSelectAllPending={selectAllCrawlerPending}
+            onClearSelection={clearCrawlerIngestSelection}
+            busy={crawlerIngestBusy}
+            progress={crawlerIngestProgress}
+            onIngestSelected={handleCrawlerIngestSelected}
+            onIngestAll={handleCrawlerIngestAll}
+            onDeleteSelected={handleCrawlerQueueDeleteSelected}
+            onCancel={handleCrawlerIngestCancel}
+            onRetry={handleCrawlerIngestRetry}
+            onRefresh={refreshCrawlerIngestPanel}
+            onBack={leaveCrawlerIngestView}
+          />
         ) : view === 'gallery-ad' ? (
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>

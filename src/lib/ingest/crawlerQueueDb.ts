@@ -82,6 +82,93 @@ export async function listPendingCrawlerQueueRows(
   return (data || []).map((row) => mapRow(row as Record<string, unknown>))
 }
 
+/** 待入库全量列表（管理界面勾选，上限 500） */
+export async function listAllPendingCrawlerQueueRows(
+  limit = 500
+): Promise<CrawlerQueueRow[]> {
+  const sb = getSupabaseAdmin()
+  const siteId = getBlogSiteIdOrNull()
+  if (!sb || !siteId) return []
+
+  const safeLimit = Math.min(Math.max(limit, 1), 500)
+  const { data, error } = await sb
+    .from('crawler_ingest_queue')
+    .select('*')
+    .eq('site_id', siteId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(safeLimit)
+
+  if (error) throw error
+  return (data || []).map((row) => mapRow(row as Record<string, unknown>))
+}
+
+/**
+ * 原子抢占待入库行（pending → processing），避免并发重复入库
+ */
+export async function claimCrawlerQueueRows(options?: {
+  ids?: string[]
+  limit?: number
+}): Promise<CrawlerQueueRow[]> {
+  const sb = getSupabaseAdmin()
+  const siteId = getBlogSiteIdOrNull()
+  if (!sb || !siteId) return []
+
+  const maxClaim = Math.min(Math.max(options?.limit ?? 20, 1), 50)
+  let candidateQuery = sb
+    .from('crawler_ingest_queue')
+    .select('id')
+    .eq('site_id', siteId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+
+  if (options?.ids?.length) {
+    candidateQuery = candidateQuery.in(
+      'id',
+      options.ids.slice(0, maxClaim)
+    )
+  } else {
+    candidateQuery = candidateQuery.limit(maxClaim)
+  }
+
+  const { data: candidates, error: selectError } = await candidateQuery
+  if (selectError) throw selectError
+  if (!candidates?.length) return []
+
+  const ids = candidates.map((row) => String(row.id))
+  const now = new Date().toISOString()
+  const { data, error } = await sb
+    .from('crawler_ingest_queue')
+    .update({
+      status: 'processing',
+      error_message: null,
+      updated_at: now,
+    })
+    .eq('site_id', siteId)
+    .in('id', ids)
+    .eq('status', 'pending')
+    .select('*')
+
+  if (error) throw error
+  return (data || []).map((row) => mapRow(row as Record<string, unknown>))
+}
+
+export async function deleteCrawlerQueueRows(ids: string[]): Promise<number> {
+  if (!ids.length) return 0
+  const sb = getSupabaseAdmin()
+  if (!sb) throw new Error('Supabase 未配置')
+  const siteId = getBlogSiteId()
+
+  const { error, count } = await sb
+    .from('crawler_ingest_queue')
+    .delete({ count: 'exact' })
+    .eq('site_id', siteId)
+    .in('id', ids)
+
+  if (error) throw error
+  return count ?? 0
+}
+
 export async function getCrawlerQueueSummary(): Promise<{
   pending: number
   processing: number
