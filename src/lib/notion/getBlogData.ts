@@ -147,18 +147,10 @@ function isNotionContentType(
 
 function pickPostBySlugResults(
   results: PageObjectResponse[],
-  scope: ApiScope.Archive | ApiScope.Draft
+  _scope: ApiScope.Archive | ApiScope.Draft
 ): PageObjectResponse | null {
   const posts = results.filter((object) => isNotionContentType(object, 'Post'))
   if (posts.length > 0) return posts[0]
-
-  if (scope === ApiScope.Archive) {
-    const pieces = results.filter((object) =>
-      isNotionContentType(object, 'Piece')
-    )
-    if (pieces.length > 0) return pieces[0]
-  }
-
   return null
 }
 

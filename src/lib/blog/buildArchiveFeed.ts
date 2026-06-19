@@ -10,8 +10,8 @@ import { ApiScope } from '@/src/types/notion'
 const PER_COUNT = CONFIG.ARCHIVE_PER_COUNT
 
 export async function loadSortedArchivePosts(): Promise<Post[]> {
-  const { posts, pieces } = await getPostsAndPieces(ApiScope.Archive)
-  const formatted = await formatPosts([...posts, ...pieces], FORMAT_POST_LIST_OPTIONS)
+  const { posts } = await getPostsAndPieces(ApiScope.Archive)
+  const formatted = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
   return formatted.sort(
     (a, b) =>
       Number(new Date(b.date.created)) - Number(new Date(a.date.created))

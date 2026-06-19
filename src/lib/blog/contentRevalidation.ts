@@ -196,8 +196,8 @@ export function resolveSaveRevalidateScope(
 /** 主题切换：仅首页归档最新一批文章内页（壳层由 collectShellRevalidatePaths 单独刷） */
 export async function collectThemePostRevalidatePaths(): Promise<string[]> {
   const paths = new Set<string>()
-  const { posts, pieces } = await getPostsAndPieces(ApiScope.Archive)
-  const formatted = await formatPosts([...posts, ...pieces], FORMAT_POST_LIST_OPTIONS)
+  const { posts } = await getPostsAndPieces(ApiScope.Archive)
+  const formatted = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
   const sorted = formatted.sort(
     (a, b) =>
       Number(new Date(b.date.created)) - Number(new Date(a.date.created))
@@ -214,11 +214,8 @@ export async function collectThemePostRevalidatePaths(): Promise<string[]> {
 export async function collectGalleryAdRevalidatePaths(): Promise<string[]> {
   const paths = new Set<string>(collectShellRevalidatePaths())
 
-  const { posts, pieces } = await getPostsAndPieces(ApiScope.Archive)
-  const formatted = await formatPosts(
-    [...posts, ...pieces],
-    FORMAT_POST_LIST_OPTIONS
-  )
+  const { posts } = await getPostsAndPieces(ApiScope.Archive)
+  const formatted = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
   for (const post of formatted) {
     paths.add(`/post/${post.slug}`)
     paths.add(`/post/${post.slug}/download`)
@@ -287,8 +284,8 @@ async function collectArchivePathsForSlugs(
     return [`/${ARCHIVE}`]
   }
 
-  const { posts, pieces } = await getPostsAndPieces(ApiScope.Archive)
-  const formatted = await formatPosts([...posts, ...pieces], FORMAT_POST_LIST_OPTIONS)
+  const { posts } = await getPostsAndPieces(ApiScope.Archive)
+  const formatted = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
   const sorted = [...formatted].sort(
     (a, b) =>
       Number(new Date(b.date.created)) - Number(new Date(a.date.created))
@@ -313,29 +310,28 @@ async function collectArchivePathsForSlugs(
 export async function collectAllRevalidatePaths(): Promise<string[]> {
   const paths = new Set<string>(collectShellRevalidatePaths())
 
-  const [{ posts, pieces }, pagesRaw] = await Promise.all([
+  const [{ posts }, pagesRaw] = await Promise.all([
     getPostsAndPieces(ApiScope.Archive),
     getPages(),
   ])
 
   const formattedPosts = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
-  const formattedPieces = await formatPosts(pieces, FORMAT_POST_LIST_OPTIONS)
   const formattedPages = formatPages(pagesRaw)
 
-  for (const post of [...formattedPosts, ...formattedPieces]) {
+  for (const post of formattedPosts) {
     paths.add(`/post/${post.slug}`)
     paths.add(`/post/${post.slug}/download`)
   }
 
-  for (const category of getAllCategories([...formattedPosts, ...formattedPieces])) {
+  for (const category of getAllCategories(formattedPosts)) {
     paths.add(`/category/${category.id}`)
   }
 
-  for (const tag of getAllTags([...formattedPosts, ...formattedPieces])) {
+  for (const tag of getAllTags(formattedPosts)) {
     paths.add(`/tag/${tag.id}`)
   }
 
-  const archiveCount = formattedPosts.length + formattedPieces.length
+  const archiveCount = formattedPosts.length
   const archivePageCount = Math.max(
     1,
     Math.ceil(archiveCount / CONFIG.ARCHIVE_PER_COUNT)
@@ -442,11 +438,8 @@ export async function collectDownloadInstructionsRevalidatePaths(): Promise<
     collectPageRevalidatePaths(downloadSlug)
   )
 
-  const { posts, pieces } = await getPostsAndPieces(ApiScope.Archive)
-  const formatted = await formatPosts(
-    [...posts, ...pieces],
-    FORMAT_POST_LIST_OPTIONS
-  )
+  const { posts } = await getPostsAndPieces(ApiScope.Archive)
+  const formatted = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
   for (const post of formatted) {
     paths.add(`/post/${post.slug}/download`)
   }

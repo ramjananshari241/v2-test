@@ -419,9 +419,27 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const pageId = queryId || body.id;
-      const { pinned } = body;
-      if (!pageId || pinned === undefined) {
-        return res.status(400).json({ success: false, error: '缺少 id 或 pinned' });
+      const { pinned, type } = body;
+      if (!pageId) {
+        return res.status(400).json({ success: false, error: '缺少 id' });
+      }
+
+      if (type !== undefined) {
+        const nextType = String(type).trim();
+        if (!['Post', 'Piece'].includes(nextType)) {
+          return res.status(400).json({ success: false, error: 'type 仅支持 Post 或 Piece' });
+        }
+        await withRetry(() =>
+          notion.pages.update({
+            page_id: pageId,
+            properties: { type: { select: { name: nextType } } },
+          })
+        );
+        return res.status(200).json({ success: true, type: nextType });
+      }
+
+      if (pinned === undefined) {
+        return res.status(400).json({ success: false, error: '缺少 pinned 或 type' });
       }
       const page = await withRetry(() => notion.pages.retrieve({ page_id: pageId }));
       const pinKey = getPinnedPropertyKey(page.properties);

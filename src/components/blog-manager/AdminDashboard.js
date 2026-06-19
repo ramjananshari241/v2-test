@@ -347,6 +347,12 @@ const Icons = {
   Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
   Edit: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>,
   Trash: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+  Restore: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </svg>
+  ),
   Pin: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="19" x2="12" y2="9" />
@@ -572,6 +578,10 @@ const GlobalStyle = () => (
     .admin-list-select-btn:hover:not(:disabled) { border-color: greenyellow; color: greenyellow; }
     .admin-list-select-btn.is-active { border-color: greenyellow; color: greenyellow; background: rgba(173,255,47,0.1); }
     .admin-list-select-btn.is-delete { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
+    .admin-recycle-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #555; background: #2a2a2e; color: #ccc; cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; flex-shrink: 0; position: relative; }
+    .admin-recycle-btn:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
+    .admin-recycle-btn.is-active { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.1); }
+    .admin-recycle-badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: #f87171; color: #111; font-size: 10px; font-weight: 800; line-height: 16px; text-align: center; }
     .admin-card-select-mark { position: absolute; top: 10px; left: 10px; z-index: 5; width: 22px; height: 22px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.85); background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; pointer-events: none; }
     .admin-card-select-mark.is-checked { background: greenyellow; border-color: greenyellow; color: #000; font-size: 14px; font-weight: 800; }
     .card-item.is-selected { outline: 2px solid greenyellow; outline-offset: 2px; box-shadow: 0 0 0 1px rgba(173,255,47,0.35); }
@@ -3348,6 +3358,21 @@ const [mounted, setMounted] = useState(false);
     setView('list');
   };
 
+  const leaveRecycleView = () => {
+    setListSelectMode(false);
+    setSelectedPostIds([]);
+    setView('list');
+  };
+
+  const openRecycleBin = () => {
+    setListSelectMode(false);
+    setSelectedPostIds([]);
+    setSelectedFolder(null);
+    setSelectedPublishDate(null);
+    setDatePickerOpen(false);
+    setView('recycle');
+  };
+
   // 🟢 2. 增强表单校验逻辑：安全处理空值
   const isFormValid = (form?.type === 'Widget')
     ? (form?.title?.trim() || '') !== ''
@@ -4706,7 +4731,66 @@ const [mounted, setMounted] = useState(false);
   };
 
   const handleDeletePost = async (p) => {
-    if (!confirm('彻底删除？')) return;
+    if (!confirm('移到回收站？可在回收站中恢复。')) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/post?id=' + p.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, type: 'Piece' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '移入回收站失败');
+      }
+      await fetchPosts({ silent: true });
+      const rev = await triggerShellBlogRefresh({ contentChange: true });
+      void triggerContentRevalidation({
+        scope: 'delete',
+        slug: p.slug,
+        category: p.category || '',
+        tags: p.tags || '',
+      }).catch((e) => console.warn('归档后页面刷新失败', e));
+      showRevalidateFeedback(rev, showAdminToast);
+      showAdminToast('已移到回收站');
+    } catch (e) {
+      alert('移入回收站失败：' + (e.message || '未知错误'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestorePost = async (p) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/post?id=' + p.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, type: 'Post' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '恢复失败');
+      }
+      await fetchPosts({ silent: true });
+      const rev = await triggerShellBlogRefresh({ contentChange: true });
+      void triggerContentRevalidation({
+        scope: 'post',
+        slug: p.slug,
+        category: p.category || '',
+        tags: p.tags || '',
+      }).catch((e) => console.warn('恢复后页面刷新失败', e));
+      showRevalidateFeedback(rev, showAdminToast);
+      showAdminToast('已恢复文章');
+    } catch (e) {
+      alert('恢复失败：' + (e.message || '未知错误'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePermanentDeletePost = async (p) => {
+    if (!confirm('彻底删除？此操作不可恢复。')) return;
     setLoading(true);
     try {
       const res = await fetch('/api/admin/post?id=' + p.id, { method: 'DELETE' });
@@ -4714,9 +4798,10 @@ const [mounted, setMounted] = useState(false);
       if (!res.ok || !data.success) {
         throw new Error(data.error || '删除失败');
       }
-      await fetchPosts();
+      await fetchPosts({ silent: true });
       const rev = await triggerShellBlogRefresh();
       showRevalidateFeedback(rev, showAdminToast);
+      showAdminToast('已彻底删除');
     } catch (e) {
       alert('删除失败：' + (e.message || '未知错误'));
     } finally {
@@ -4731,8 +4816,22 @@ const [mounted, setMounted] = useState(false);
   };
 
   const handleListSelectButtonClick = () => {
+    if (view === 'recycle') {
+      if (listSelectMode && selectedPostIds.length > 0) {
+        handleBulkPermanentDelete();
+        return;
+      }
+      if (listSelectMode) {
+        setListSelectMode(false);
+        setSelectedPostIds([]);
+        return;
+      }
+      setListSelectMode(true);
+      setSelectedPostIds([]);
+      return;
+    }
     if (listSelectMode && selectedPostIds.length > 0) {
-      handleBulkDeletePosts();
+      handleBulkArchivePosts();
       return;
     }
     if (listSelectMode) {
@@ -4744,7 +4843,56 @@ const [mounted, setMounted] = useState(false);
     setSelectedPostIds([]);
   };
 
-  const handleBulkDeletePosts = async () => {
+  const handleBulkArchivePosts = async () => {
+    const ids = [...selectedPostIds];
+    if (!ids.length) return;
+    if (!confirm(`将 ${ids.length} 篇文章移到回收站？`)) return;
+    setLoading(true);
+    setSavePhase('delete');
+    setSaveProgress({ done: 0, total: ids.length });
+    let ok = 0;
+    let fail = 0;
+    const archived = posts.filter((p) => ids.includes(p.id));
+    try {
+      for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
+        const res = await fetch('/api/admin/post?id=' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, type: 'Piece' }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) ok += 1;
+        else fail += 1;
+        setSaveProgress({ done: i + 1, total: ids.length });
+      }
+      setSaveProgress({ done: ids.length, total: ids.length, hint: '正在刷新列表…' });
+      await fetchPosts({ silent: true });
+      setSaveProgress({ done: ids.length, total: ids.length, hint: '正在刷新前台缓存…' });
+      const rev = await triggerShellBlogRefresh({ contentChange: true });
+      for (const p of archived) {
+        void triggerContentRevalidation({
+          scope: 'delete',
+          slug: p.slug,
+          category: p.category || '',
+          tags: p.tags || '',
+        }).catch((e) => console.warn('归档后页面刷新失败', e));
+      }
+      showRevalidateFeedback(rev, showAdminToast);
+      setListSelectMode(false);
+      setSelectedPostIds([]);
+      if (fail > 0) showAdminToast(`已移入回收站 ${ok} 篇，失败 ${fail} 篇`);
+      else showAdminToast(`已移入回收站 ${ok} 篇`);
+    } catch (e) {
+      alert('批量移入回收站失败：' + (e.message || '未知错误'));
+    } finally {
+      setLoading(false);
+      setSavePhase('');
+      setSaveProgress(null);
+    }
+  };
+
+  const handleBulkPermanentDelete = async () => {
     const ids = [...selectedPostIds];
     if (!ids.length) return;
     if (!confirm(`彻底删除 ${ids.length} 篇文章？此操作不可恢复。`)) return;
@@ -4769,8 +4917,8 @@ const [mounted, setMounted] = useState(false);
       showRevalidateFeedback(rev, showAdminToast);
       setListSelectMode(false);
       setSelectedPostIds([]);
-      if (fail > 0) showAdminToast(`已删除 ${ok} 篇，失败 ${fail} 篇`);
-      else showAdminToast(`已删除 ${ok} 篇`);
+      if (fail > 0) showAdminToast(`已彻底删除 ${ok} 篇，失败 ${fail} 篇`);
+      else showAdminToast(`已彻底删除 ${ok} 篇`);
     } catch (e) {
       alert('批量删除失败：' + (e.message || '未知错误'));
     } finally {
@@ -4781,6 +4929,10 @@ const [mounted, setMounted] = useState(false);
   };
 
   const handlePostCardClick = (p) => {
+    if (view === 'recycle' && listSelectMode) {
+      togglePostSelection(p.id);
+      return;
+    }
     if (listSelectMode && activeTab === 'Post') {
       togglePostSelection(p.id);
       return;
@@ -4789,7 +4941,8 @@ const [mounted, setMounted] = useState(false);
   };
 
   const renderPostSelectMark = (postId) => {
-    if (!listSelectMode || activeTab !== 'Post') return null;
+    if (!listSelectMode) return null;
+    if (view !== 'recycle' && activeTab !== 'Post') return null;
     const checked = selectedPostIds.includes(postId);
     return (
       <div className={`admin-card-select-mark${checked ? ' is-checked' : ''}`} aria-hidden>
@@ -4813,10 +4966,31 @@ const [mounted, setMounted] = useState(false);
         </div>
       ) : null}
       <div onClick={(e) => { e.stopPropagation(); handleEdit(p); }} style={{ background: 'greenyellow', color: '#000' }} className="dr-btn"><Icons.Edit /></div>
-      <div onClick={(e) => { e.stopPropagation(); handleDeletePost(p); }} style={{ background: '#ff4d4f' }} className="dr-btn"><Icons.Trash /></div>
+      <div onClick={(e) => { e.stopPropagation(); handleDeletePost(p); }} style={{ background: '#ff4d4f' }} className="dr-btn" title="移到回收站"><Icons.Trash /></div>
     </div>
     );
   };
+
+  const renderRecycleCardDrawer = (p) => (
+    <div className="drawer">
+      <div
+        onClick={(e) => { e.stopPropagation(); handleRestorePost(p); }}
+        style={{ background: 'greenyellow', color: '#000' }}
+        className="dr-btn"
+        title="恢复文章"
+      >
+        <Icons.Restore />
+      </div>
+      <div
+        onClick={(e) => { e.stopPropagation(); handlePermanentDeletePost(p); }}
+        style={{ background: '#ff4d4f' }}
+        className="dr-btn"
+        title="彻底删除"
+      >
+        <Icons.Trash />
+      </div>
+    </div>
+  );
 
   const getFilteredPosts = () => {
      let list = posts;
@@ -4845,6 +5019,16 @@ const [mounted, setMounted] = useState(false);
      return list;
   };
   const filtered = getFilteredPosts();
+  const recyclePosts = (() => {
+    let list = posts.filter((p) => p.type === 'Piece');
+    if (searchQuery) {
+      list = list.filter((p) =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  })();
+  const recycleCount = posts.filter((p) => p.type === 'Piece').length;
   const siteInfoWidget = posts.find(p => p.type === 'Widget' && p.slug !== 'gallery-ad');
   const pinnedDividerIndex = activeTab === 'Post' ? filtered.findIndex(p => !p.pinned) : -1;
   const publishDatesSet = (() => {
@@ -5062,7 +5246,7 @@ const [mounted, setMounted] = useState(false);
       <div style={{ maxWidth: 900, margin: '0 auto', opacity: adminLocked ? 0.45 : 1, pointerEvents: adminLocked ? 'none' : 'auto', transition: 'opacity 0.25s ease' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-             {view === 'list' && <SearchInput value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />}
+             {(view === 'list' || view === 'recycle') && <SearchInput value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />}
              <div style={{display:'flex', flexDirection:'column', justifyContent:'center'}}>
                 <div style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '1px', display:'flex', alignItems:'center', gap:'10px' }}>
                    {siteTitle} <span onClick={updateSiteTitle} style={{cursor:'pointer', opacity:0.5}} title="修改网站标题"><Icons.Settings /></span>
@@ -5096,7 +5280,13 @@ const [mounted, setMounted] = useState(false);
              ) : (
                <AnimatedBtn
                  text="返回列表"
-                 onClick={view === 'crawler-ingest' ? leaveCrawlerIngestView : leaveEditView}
+                 onClick={
+                   view === 'crawler-ingest'
+                     ? leaveCrawlerIngestView
+                     : view === 'recycle'
+                       ? leaveRecycleView
+                       : leaveEditView
+                 }
                />
              )}
            </div>
@@ -5169,18 +5359,33 @@ const [mounted, setMounted] = useState(false);
               {/* 3. 右侧视图栏 + 发布日期筛选 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative' }}>
                 {activeTab === 'Post' ? (
-                  <button
-                    type="button"
-                    className={`admin-list-select-btn${listSelectMode ? ' is-active' : ''}${listSelectMode && selectedPostIds.length > 0 ? ' is-delete' : ''}`}
-                    onClick={handleListSelectButtonClick}
-                    disabled={loading}
-                  >
-                    {listSelectMode
-                      ? selectedPostIds.length > 0
-                        ? `删除（${selectedPostIds.length}）`
-                        : '取消选择'
-                      : '选择'}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className={`admin-recycle-btn${view === 'recycle' ? ' is-active' : ''}`}
+                      onClick={openRecycleBin}
+                      disabled={loading}
+                      title="回收站"
+                      aria-label="回收站"
+                    >
+                      <Icons.Trash />
+                      {recycleCount > 0 ? (
+                        <span className="admin-recycle-badge">{recycleCount}</span>
+                      ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      className={`admin-list-select-btn${listSelectMode ? ' is-active' : ''}${listSelectMode && selectedPostIds.length > 0 ? ' is-delete' : ''}`}
+                      onClick={handleListSelectButtonClick}
+                      disabled={loading}
+                    >
+                      {listSelectMode
+                        ? selectedPostIds.length > 0
+                          ? `移入回收站（${selectedPostIds.length}）`
+                          : '取消选择'
+                        : '选择'}
+                    </button>
+                  </>
                 ) : null}
                 <SlidingNav activeIdx={navIdx} onSelect={handleNavClick} />
                 {activeTab === 'Post' && (
@@ -5319,6 +5524,68 @@ const [mounted, setMounted] = useState(false);
                   </React.Fragment>
                 );
               })}
+            </div>
+          </main>
+        ) : view === 'recycle' ? (
+          <main>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>回收站</div>
+                <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                  共 {recyclePosts.length} 篇 · 移入回收站的文章不会在前台显示
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  className={`admin-list-select-btn${listSelectMode ? ' is-active' : ''}${listSelectMode && selectedPostIds.length > 0 ? ' is-delete' : ''}`}
+                  onClick={handleListSelectButtonClick}
+                  disabled={loading || recyclePosts.length === 0}
+                >
+                  {listSelectMode
+                    ? selectedPostIds.length > 0
+                      ? `彻底删除（${selectedPostIds.length}）`
+                      : '取消选择'
+                    : '选择'}
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {recyclePosts.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#888', padding: '48px 20px' }}>
+                  回收站为空
+                </div>
+              ) : (
+                recyclePosts.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => handlePostCardClick(p)}
+                    className={`card-item${listSelectMode && selectedPostIds.includes(p.id) ? ' is-selected' : ''}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '16px 20px',
+                      background: '#424242',
+                      borderRadius: '12px',
+                      marginBottom: '8px',
+                      border: '1px solid #555',
+                      position: listSelectMode ? 'relative' : undefined,
+                    }}
+                  >
+                    {renderPostSelectMark(p.id)}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                      <div style={{ flex: 1, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f87171' }} />
+                        {p.title}
+                      </div>
+                      <div style={{ color: '#aaa', fontSize: '12px' }}>
+                        {p.category ? `${p.category} · ` : ''}{p.date || '—'}
+                      </div>
+                    </div>
+                    {!listSelectMode ? renderRecycleCardDrawer(p) : null}
+                  </div>
+                ))
+              )}
             </div>
           </main>
         ) : view === 'crawler-ingest' ? (
