@@ -126,7 +126,7 @@ export function GalleryCardLoading({
         </span>
       ) : stalled ? (
         <span className="pointer-events-auto cursor-pointer rounded bg-black/65 px-2 py-1 text-center text-[11px] font-medium leading-tight text-white">
-          加载较慢，点此重新打开
+         预览加载完成，请再次点击
         </span>
       ) : null}
     </span>
