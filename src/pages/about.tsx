@@ -50,7 +50,6 @@ const About: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
-        announcement={shellWidgets.announcement}
       >
         <TweetArticlePage
           title={heading}

@@ -95,7 +95,6 @@ const TagPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
-        announcement={shellWidgets.announcement}
       >
         <TweetFilteredPosts posts={posts} title={tag.name} emptyLabel="该标签下暂无文章" />
       </TweetShell>

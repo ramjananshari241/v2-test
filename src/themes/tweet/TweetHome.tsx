@@ -7,7 +7,6 @@ import { TweetMobileProfileCard } from './TweetMobileProfileCard'
 import { TweetPostList } from './TweetPostList'
 import { TweetSearchBox } from './TweetSearchBox'
 import { TweetServiceCard } from './TweetServiceCard'
-import { TweetVendingButton } from './TweetVendingButton'
 import { TweetShell } from './TweetShell'
 import { TweetTagList } from './TweetTagList'
 import {
@@ -16,13 +15,10 @@ import {
   readTweetSearchQuery,
 } from './tweetSearch'
 
-type AnnouncementLike = { title?: string; slug?: string }
-
 export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
   const router = useRouter()
   const allPosts = posts?.length ? posts : []
   const profile = widgets?.profile as ProfileWidgetType | undefined
-  const announcement = widgets?.announcement as AnnouncementLike | undefined
 
   const searchQuery = router.isReady ? readTweetSearchQuery(router.query.q) : ''
   const categoryId =
@@ -53,17 +49,12 @@ export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
     <TweetShell
       siteTitle={siteTitle}
       profile={profile}
-      announcement={announcement}
       leftAside={<TweetTagList tags={tags} layout="sidebar" />}
     >
       <TweetTagList tags={tags} layout="mobile" />
       <TweetMobileProfileCard profile={profile} />
       <div className="tweet-service-mobile">
-        <TweetServiceCard
-          announcement={announcement}
-          sectionTitleDesktopOnly={false}
-        />
-        <TweetVendingButton />
+        <TweetServiceCard sectionTitleDesktopOnly={false} />
       </div>
       <TweetSearchBox />
       <TweetFeedHeader posts={allPosts} />

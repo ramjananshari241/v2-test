@@ -35,10 +35,10 @@ export function TweetProfileCard({
         </div>
         <div className="tweet-profile-card__mid">
           <div className="tweet-profile-card__name">{name}</div>
-          {description ? (
-            <p className="tweet-profile-card__bio">{description}</p>
-          ) : null}
         </div>
+        {description ? (
+          <p className="tweet-profile-card__bio">{description}</p>
+        ) : null}
       </div>
     </div>
   )

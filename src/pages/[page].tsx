@@ -130,7 +130,6 @@ const Page: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
-        announcement={shellWidgets.announcement}
       >
         <TweetArticlePage title={page.nav || title} blocks={blocks} />
       </TweetShell>

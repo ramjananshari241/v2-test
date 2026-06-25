@@ -133,7 +133,6 @@ const CategoryPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
-        announcement={shellWidgets.announcement}
       >
         <TweetFilteredPosts
           posts={posts}

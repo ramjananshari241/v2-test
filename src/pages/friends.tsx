@@ -58,7 +58,6 @@ const Freinds: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
-        announcement={shellWidgets.announcement}
       >
         <TweetFriendsPage title={title} blocks={blocks} friends={friends} />
       </TweetShell>

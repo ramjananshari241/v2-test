@@ -4,12 +4,10 @@ import { ReactNode } from 'react'
 import { TweetFeedGrid } from './TweetHeader'
 import { TweetRightAside } from './TweetRightAside'
 import { buildTweetProfileData } from './tweetProfile'
-import type { TweetAnnouncementLike } from './tweetShellWidgets'
 
 type TweetShellProps = {
   siteTitle?: Title
   profile?: ProfileWidgetType | null
-  announcement?: TweetAnnouncementLike | null
   leftAside?: ReactNode
   children: ReactNode
 }
@@ -17,7 +15,6 @@ type TweetShellProps = {
 export function TweetShell({
   siteTitle,
   profile,
-  announcement,
   leftAside,
   children,
 }: TweetShellProps) {
@@ -28,9 +25,7 @@ export function TweetShell({
     <TweetFeedGrid
       siteName={siteName}
       leftAside={leftAside}
-      rightAside={
-        <TweetRightAside profile={profileData} announcement={announcement} />
-      }
+      rightAside={<TweetRightAside profile={profileData} />}
     >
       {children}
     </TweetFeedGrid>

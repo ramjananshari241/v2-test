@@ -226,7 +226,6 @@ const PostPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
-        announcement={shellWidgets.announcement}
       >
         <TweetPostPage post={post} blocks={blocks} />
       </TweetShell>

@@ -32,7 +32,6 @@ const AnnouncementPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
-        announcement={shellWidgets.announcement}
       >
         <TweetArticlePage title={title} blocks={blocks} backHref="/" backLabel="返回首页" />
       </TweetShell>
