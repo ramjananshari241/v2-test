@@ -4,9 +4,13 @@ import { TweetFeedMediaMap } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { Post } from '@/src/types/blog'
 import { formatTweetDate } from './tweetSearch'
 import { TweetPostCardAuthor } from './TweetPostCardAuthor'
+import { TweetPostCardCoverLazy } from './TweetPostCardCoverLazy'
 import { TweetPostCardMedia } from './TweetPostCardMedia'
 import { TweetPostCardShare } from './TweetPostCardShare'
-import { resolveTweetCardMedia } from './tweetFeedMedia'
+import {
+  isDeferredTweetBodyImage,
+  resolveTweetCardMedia,
+} from './tweetFeedMedia'
 
 type TweetPostCardProps = {
   post: Post
@@ -25,6 +29,8 @@ export function TweetPostCard({
   const dateLabel = formatTweetDate(post.date?.created)
   const excerpt = post.excerpt?.trim()
   const media = resolveTweetCardMedia(post, feedMedia)
+  const lazyBodyCover = isDeferredTweetBodyImage(post.slug, feedMedia)
+  const showMedia = media.mode !== 'none' || lazyBodyCover
   const postHref = `/post/${post.slug}`
 
   return (
@@ -45,9 +51,13 @@ export function TweetPostCard({
               <p className="tweet-post-card__excerpt">{excerpt}</p>
             ) : null}
 
-            {media.mode !== 'none' ? (
+            {showMedia ? (
               <div className="tweet-post-card__media-block">
-                <TweetPostCardMedia media={media} />
+                {media.mode !== 'none' ? (
+                  <TweetPostCardMedia media={media} />
+                ) : (
+                  <TweetPostCardCoverLazy slug={post.slug} />
+                )}
               </div>
             ) : null}
 

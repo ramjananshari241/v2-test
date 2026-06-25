@@ -28,3 +28,10 @@ export function resolveTweetCardMedia(
 
   return { mode: 'none' }
 }
+
+export function isDeferredTweetBodyImage(
+  slug: string,
+  feedMedia?: TweetFeedMediaMap | null
+): boolean {
+  return !!feedMedia?.deferredBodyImageSlugs?.includes(slug)
+}

@@ -1116,6 +1116,13 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
   background-color: var(--tweet-gray4);
 }
 
+.tweet-post-card__cover-wrap--lazy {
+  min-height: 0;
+  height: 0;
+  overflow: hidden;
+  background-color: transparent;
+}
+
 .tweet-post-card__footer {
   display: flex;
   justify-content: flex-end;

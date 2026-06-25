@@ -1,3 +1,4 @@
+import CONFIG from '@/blog.config'
 import Link from 'next/link'
 import { Post, Tag } from '@/src/types/blog'
 import { resolveGalleryListCoverSrc } from '@/src/lib/gallery/postCover'
