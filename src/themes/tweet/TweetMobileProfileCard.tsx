@@ -13,7 +13,7 @@ export function TweetMobileProfileCard({
 
   return (
     <div className="tweet-feed__profile-mobile">
-      <TweetSectionTitle emoji="👤" label="Profile" />
+      <TweetSectionTitle emoji="🙂" label="作者" />
       <div className="tweet-profile__stack">
         <div className="tweet-profile-mobile">
           <div className="tweet-profile-mobile__row">

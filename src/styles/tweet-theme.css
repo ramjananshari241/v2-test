@@ -1043,8 +1043,8 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
 
 .tweet-post-card__title {
   margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-  line-height: 1.375rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
   font-weight: 500;
   color: var(--tweet-gray12);
 }
@@ -1063,7 +1063,7 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
   margin-bottom: 0.625rem;
   font-size: 0.8125rem;
   line-height: 1.375rem;
-  color: var(--tweet-muted);
+  color: var(--tweet-gray12);
 }
 
 .tweet-post-card__media-block {

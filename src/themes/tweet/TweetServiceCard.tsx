@@ -2,8 +2,8 @@ import CONFIG from '@/blog.config'
 import Link from 'next/link'
 import {
   AiOutlineDownload,
-  AiOutlineFileText,
   AiOutlineLink,
+  AiOutlineQuestionCircle,
 } from 'react-icons/ai'
 import { TweetSectionTitle } from './TweetSectionTitle'
 
@@ -23,13 +23,13 @@ export function TweetServiceCard({
       {showSectionTitle ? (
         <TweetSectionTitle
           emoji="🌟"
-          label="Service"
+          label="游客"
           desktopOnly={sectionTitleDesktopOnly}
         />
       ) : null}
       <div className="tweet-service__card">
         <Link href="/announcement" className="tweet-service__link">
-          <AiOutlineFileText className="tweet-service__icon" aria-hidden />
+          <AiOutlineQuestionCircle className="tweet-service__icon" aria-hidden />
           <span className="tweet-service__name">使用说明</span>
         </Link>
         <Link href="/download" className="tweet-service__link">

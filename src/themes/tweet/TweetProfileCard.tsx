@@ -18,7 +18,7 @@ export function TweetProfileCard({
   return (
     <div className="tweet-profile">
       {showSectionTitle ? (
-        <TweetSectionTitle emoji="👤" label="Profile" desktopOnly />
+        <TweetSectionTitle emoji="🙂" label="作者" desktopOnly />
       ) : null}
       <div className="tweet-profile__stack">
         <div className="tweet-profile-card">
