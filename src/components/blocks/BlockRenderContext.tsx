@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
-export type BlockRenderVariant = 'default' | 'gallery'
+export type BlockRenderVariant = 'default' | 'gallery' | 'tweet'
 
 const BlockRenderContext = createContext<BlockRenderVariant>('default')
 

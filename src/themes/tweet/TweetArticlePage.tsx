@@ -29,7 +29,7 @@ export function TweetArticlePage({
       ) : null}
       <MathJaxContext>
         <div className="prose-tweet overflow-hidden break-words">
-          <BlockRender blocks={blocks} />
+          <BlockRender blocks={blocks} variant="tweet" />
         </div>
       </MathJaxContext>
     </article>

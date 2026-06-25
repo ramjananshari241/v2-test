@@ -1,5 +1,5 @@
-import CONFIG from '@/blog.config'
 import { GetStaticProps, GetStaticPropsContext, NextPage } from 'next'
+import CONFIG from '@/blog.config'
 import { BlockRender } from '@/src/components/blocks/BlockRender'
 import { BlogLayoutPure } from '@/src/components/layout/BlogLayout'
 import ContainerLayout from '@/src/components/post/ContainerLayout'
@@ -8,10 +8,15 @@ import { Section404 } from '@/src/components/section/Section404'
 import withNavFooter from '@/src/components/withNavFooter'
 import { GALLERY_DOWNLOAD_INSTRUCTIONS_SLUG } from '@/src/lib/gallery/galleryDownloadPaths'
 import { formatBlocks } from '@/src/lib/blog/format/block'
+import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
 import { getAllBlocks } from '@/src/lib/notion/getBlocks'
 import { addSubTitle } from '@/src/lib/util'
 import { GalleryArticlePage } from '@/src/themes/gallery/GalleryArticlePage'
+import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
+import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
+import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import { NextPageWithLayout, Page, SharedNavFooterStaticProps } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
 
@@ -20,7 +25,9 @@ const DownloadInstructionsPage: NextPage<{
   title: string
   page: Page | null
   activeTheme?: string
-}> = ({ blocks, title, page, activeTheme }) => {
+  siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
+  widgets?: Record<string, unknown>
+}> = ({ blocks, title, page, activeTheme, siteTitle, widgets }) => {
   if (!page) return <Section404 />
 
   if (activeTheme === 'gallery') {
@@ -32,6 +39,22 @@ const DownloadInstructionsPage: NextPage<{
         breadcrumbLabel={heading}
         excerpt={page.title && page.title !== page.nav ? page.title : null}
       />
+    )
+  }
+
+  if (activeTheme === 'tweet') {
+    const shellWidgets = pickTweetShellWidgets(widgets)
+    const heading = page.nav || title
+    return (
+      <TweetShell siteTitle={siteTitle} profile={shellWidgets.profile}>
+        <TweetArticlePage
+          title={heading}
+          blocks={blocks}
+          excerpt={page.title && page.title !== page.nav ? page.title : null}
+          backHref="/"
+          backLabel="返回首页"
+        />
+      </TweetShell>
     )
   }
 
@@ -68,6 +91,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
           page,
           blocks: formattedBlocks || [],
           title: safeTitle,
+          widgets: await loadHomeWidgets(),
         })
       ),
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
@@ -77,11 +101,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
 const withNavPage = withNavFooter(DownloadInstructionsPage)
 
-;(withNavPage as NextPageWithLayout).getLayout = (page) => {
-  if ((page.props as { activeTheme?: string })?.activeTheme === 'gallery') {
-    return page
-  }
-  return <BlogLayoutPure>{page}</BlogLayoutPure>
-}
+;(withNavPage as NextPageWithLayout).getLayout = (page) =>
+  applyThemePageLayout(page, (p) => <BlogLayoutPure>{p}</BlogLayoutPure>)
 
 export default withNavPage

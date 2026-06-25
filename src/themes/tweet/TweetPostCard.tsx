@@ -19,43 +19,53 @@ export function TweetPostCard({
   feedMedia,
 }: TweetPostCardProps) {
   const categoryName = post.category?.name?.trim()
+  const categoryId = post.category?.id
   const tags = post.tags?.filter((t) => t.name) ?? []
   const dateLabel = formatTweetDate(post.date?.created)
   const excerpt = post.excerpt?.trim()
   const media = resolveTweetCardMedia(post, feedMedia)
+  const postHref = `/post/${post.slug}`
 
   return (
-    <Link href={`/post/${post.slug}`} className="tweet-post-card">
-      <article className="tweet-post-card__article">
-        <div className="tweet-post-card__body">
-          <TweetPostCardAuthor profile={profile} categoryName={categoryName} />
+    <article className="tweet-post-card">
+      <div className="tweet-post-card__shell">
+        <TweetPostCardAuthor
+          profile={profile}
+          categoryName={categoryName}
+          categoryId={categoryId}
+        />
+        <Link href={postHref} className="tweet-post-card__article">
+          <div className="tweet-post-card__body">
+            <div className="tweet-post-card__title-row">
+              <h2 className="tweet-post-card__title">{post.title}</h2>
+              {dateLabel ? (
+                <time
+                  className="tweet-post-card__date"
+                  dateTime={post.date?.created}
+                >
+                  {dateLabel}
+                </time>
+              ) : null}
+            </div>
 
-          <div className="tweet-post-card__title-row">
-            <h2 className="tweet-post-card__title">{post.title}</h2>
-            {dateLabel ? (
-              <time className="tweet-post-card__date" dateTime={post.date?.created}>
-                {dateLabel}
-              </time>
+            {excerpt ? (
+              <p className="tweet-post-card__excerpt">{excerpt}</p>
+            ) : null}
+
+            <TweetPostCardMedia media={media} />
+
+            {tags.length > 0 ? (
+              <div className="tweet-post-card__tags">
+                {tags.map((tag) => (
+                  <span key={tag.id} className="tweet-post-card__tag">
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
             ) : null}
           </div>
-
-          {excerpt ? (
-            <p className="tweet-post-card__excerpt">{excerpt}</p>
-          ) : null}
-
-          <TweetPostCardMedia media={media} />
-
-          {tags.length > 0 ? (
-            <div className="tweet-post-card__tags">
-              {tags.map((tag) => (
-                <span key={tag.id} className="tweet-post-card__tag">
-                  {tag.name}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </article>
-    </Link>
+        </Link>
+      </div>
+    </article>
   )
 }

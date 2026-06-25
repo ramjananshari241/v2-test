@@ -87,21 +87,24 @@ export const Text = ({
     const isHref = href ? true : false
     const isAt = href && plainText.startsWith('@') ? true : false
     const isGallery = variant === 'gallery'
+    const isTweet = variant === 'tweet'
+    const isThemedLink = isGallery || isTweet
+    const themedLinkClass = isTweet ? 'tweet-block-link' : 'gallery-block-link'
     return (
       <span
         className={classNames(
           annotationsToStyles(annotations, outerColor, {
-            href: isHref && !isGallery,
-            at: isAt && !isGallery,
+            href: isHref && !isThemedLink,
+            at: isAt && !isThemedLink,
           })
         )}
       >
         {href ? (
           <a
             className={
-              isGallery
+              isThemedLink
                 ? classNames(
-                    'gallery-block-link',
+                    themedLinkClass,
                     annotations.bold ? 'font-bold' : '',
                     annotations.italic ? 'italic' : '',
                     annotations.strikethrough ? 'line-through' : '',

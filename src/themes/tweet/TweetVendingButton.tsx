@@ -13,7 +13,7 @@ export function TweetVendingButton() {
       className="tweet-vending-btn"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="购买我的作品"
+      aria-label="贩售机"
     >
       <span className="tweet-vending-btn__ring">
         <span className="tweet-vending-btn__ring-blur">
@@ -72,7 +72,7 @@ export function TweetVendingButton() {
           </svg>
           <span className="tweet-vending-btn__icon-shine" />
         </span>
-        <span className="tweet-vending-btn__label">购买我的作品</span>
+        <span className="tweet-vending-btn__label">贩售机</span>
       </span>
     </a>
   )

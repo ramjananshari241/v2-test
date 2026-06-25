@@ -28,7 +28,7 @@ export function TweetPostContent({ postSlug, blocks }: TweetPostContentProps) {
         {ready && showBody ? (
           <div className={hasGallery ? 'tweet-post-content__body mt-6' : ''}>
             <div className="prose-tweet">
-              <BlockRender blocks={bodyBlocks} />
+              <BlockRender blocks={bodyBlocks} variant="tweet" />
             </div>
           </div>
         ) : null}
