@@ -15,6 +15,7 @@ import { addSubTitle } from '@/src/lib/util'
 import { GalleryArticlePage } from '@/src/themes/gallery/GalleryArticlePage'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import { NextPageWithLayout, Page, SharedNavFooterStaticProps } from '@/src/types/blog'
@@ -42,7 +43,7 @@ const DownloadInstructionsPage: NextPage<{
     )
   }
 
-  if (activeTheme === 'tweet') {
+  if (isTweetTheme(activeTheme)) {
     const shellWidgets = pickTweetShellWidgets(widgets)
     const heading = page.nav || title
     return (

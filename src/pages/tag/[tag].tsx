@@ -9,6 +9,7 @@ import { GalleryFilteredPosts } from '@/src/themes/gallery/GalleryFilteredPosts'
 import { TweetFilteredPosts } from '@/src/themes/tweet/TweetFilteredPosts'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
 import { buildTweetProfileData } from '@/src/themes/tweet/tweetProfile'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout, usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
@@ -50,7 +51,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     const tag = postsByTag[0].tags.find((t) => t.id === tagId)
 
     const tweetFeedMedia =
-      sharedPageStaticProps.props.activeTheme === 'tweet'
+      isTweetTheme(sharedPageStaticProps.props.activeTheme)
         ? await loadTweetFeedMedia(postsByTag)
         : null
 
@@ -100,7 +101,7 @@ const TagPage: NextPage<{
     )
   }
 
-  if (activeTheme === 'tweet') {
+  if (isTweetTheme(activeTheme)) {
     const shellWidgets = pickTweetShellWidgets(widgets)
     const profileData = buildTweetProfileData(shellWidgets.profile, siteTitle)
     return (

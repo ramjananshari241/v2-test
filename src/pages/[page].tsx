@@ -16,6 +16,7 @@ import { addSubTitle } from '../lib/util'
 import { buildNavPageSeo } from '@/src/lib/seo/lightSeo'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '../lib/blog/loadHomeWidgets'
@@ -124,7 +125,7 @@ const Page: NextPage<{
 
   const { title } = page
 
-  if (activeTheme === 'tweet') {
+  if (isTweetTheme(activeTheme)) {
     const shellWidgets = pickTweetShellWidgets(widgets)
     return (
       <TweetShell

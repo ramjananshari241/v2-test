@@ -2346,7 +2346,8 @@ const ADMIN_THEMES = [
   { id: 'v1', label: 'Standard V1', color: '#3b82f6', desc: '标准排版 · 经典风格' },
   { id: 'v2', label: 'Standard V2', color: '#a855f7', desc: '标准排版 · 现代风格' },
   { id: 'gallery', label: 'Gallery', color: '#f97316', desc: '图库风格 · 卡片直链下载' },
-  { id: 'tweet', label: 'Tweet', color: '#0ea5e9', desc: '时间线卡片 · morethan-log 风格' },
+  { id: 'tweet', label: 'Tweet（暗色）', color: '#0ea5e9', desc: '时间线卡片 · 默认深色' },
+  { id: 'tweet-light', label: 'Tweet（浅色）', color: '#38bdf8', desc: '时间线卡片 · 固定浅色' },
 ];
 const lightSpinStyle = { width: '13px', height: '13px', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'imgspin 0.8s linear infinite', verticalAlign: 'middle' };
 const blogRefreshSpinStyle = { width: '13px', height: '13px', border: '2px solid rgba(173,255,47,0.25)', borderTopColor: 'greenyellow', borderRadius: '50%', display: 'inline-block', animation: 'imgspin 0.8s linear infinite', verticalAlign: 'middle', flexShrink: 0 };

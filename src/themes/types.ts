@@ -1,7 +1,7 @@
 import { Page, Post, Title } from '@/src/types/blog'
 import { TweetFeedMediaMap } from '@/src/lib/tweet/loadTweetFeedMedia'
 
-export type ThemeId = 'anzifan' | 'touchgal' | 'gallery' | 'tweet'
+export type ThemeId = 'anzifan' | 'touchgal' | 'gallery' | 'tweet' | 'tweet-light'
 
 /**
  * 各主题首页组件共用 props。

@@ -1627,3 +1627,38 @@ html.tweet-theme .tweet-gallery-section .gallery-load-more-btn:hover {
   font-size: 0.75rem;
   color: var(--tweet-muted);
 }
+
+/* —— Tweet 浅色变体（tweet-light）：页面底与卡片对比更清晰 —— */
+html.tweet-theme.tweet-theme--light {
+  --tweet-gray2: #eceae8;
+  --tweet-gray3: #e4e2df;
+  --tweet-gray4: #dcd9d5;
+  --tweet-gray5: #d4d1cc;
+  --tweet-card-bg: #ffffff;
+  color-scheme: light;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-post-card__shell {
+  border: 1px solid var(--tweet-gray6);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+html.tweet-theme.tweet-theme--light .tweet-profile-card,
+html.tweet-theme.tweet-theme--light .tweet-profile-mobile,
+html.tweet-theme.tweet-theme--light .tweet-service__card {
+  border: 1px solid var(--tweet-gray6);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+html.tweet-theme.tweet-theme--light .tweet-post-card:hover .tweet-post-card__shell {
+  box-shadow:
+    0 10px 22px -8px rgba(0, 0, 0, 0.12),
+    0 4px 10px -4px rgba(0, 0, 0, 0.06);
+}
+
+html.tweet-theme.tweet-theme--light .tweet-search__box {
+  border: 1px solid var(--tweet-gray6);
+  background-color: var(--tweet-card-bg);
+}

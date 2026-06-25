@@ -21,6 +21,7 @@ import { BlockResponse } from '../types/notion'
 import { GalleryFriendsPage } from '@/src/themes/gallery/GalleryFriendsPage'
 import { TweetFriendsPage } from '@/src/themes/tweet/TweetFriendsPage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '../lib/blog/loadHomeWidgets'
@@ -52,7 +53,7 @@ const Freinds: NextPage<{
     )
   }
 
-  if (activeTheme === 'tweet') {
+  if (isTweetTheme(activeTheme)) {
     const shellWidgets = pickTweetShellWidgets(widgets)
     return (
       <TweetShell

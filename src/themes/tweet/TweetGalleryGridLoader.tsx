@@ -1,13 +1,13 @@
 'use client'
 
 import Lottie from 'lottie-react'
-import tweetGalleryLoaderHello from './tweet-gallery-loader-hello.json'
+import tweetGalleryLoaderCat from './tweet-gallery-loader-cat.json'
 
 type TweetGalleryGridLoaderProps = {
   compact?: boolean
 }
 
-/** Tweet 内页图库加载：Hello 手写动画 */
+/** Tweet 内页图库加载：猫咪动画 */
 export function TweetGalleryGridLoader({
   compact = false,
 }: TweetGalleryGridLoaderProps) {
@@ -24,12 +24,12 @@ export function TweetGalleryGridLoader({
       aria-label="加载中"
     >
       <Lottie
-        animationData={tweetGalleryLoaderHello}
+        animationData={tweetGalleryLoaderCat}
         loop
         className="tweet-gallery-loader__lottie"
         style={{
-          width: compact ? 80 : 120,
-          height: compact ? 80 : 120,
+          width: compact ? 96 : 140,
+          height: compact ? 96 : 140,
         }}
       />
     </div>

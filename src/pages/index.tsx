@@ -13,6 +13,7 @@ import { getPosts } from '../lib/notion/getBlogData'
 import { NextPageWithLayout, Post, SharedNavFooterStaticProps } from '../types/blog'
 import { ApiScope } from '../types/notion'
 import { buildHomePageSeo } from '../lib/seo/lightSeo'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { loadTweetFeedMedia } from '../lib/tweet/loadTweetFeedMedia'
 import { getThemeHomeComponent } from '../themes/registry'
 import { ThemeId } from '../themes/types'
@@ -70,7 +71,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
       const activeTheme = sharedPageStaticProps.props.activeTheme
       const tweetFeedMedia =
-        activeTheme === 'tweet'
+        isTweetTheme(activeTheme)
           ? await loadTweetFeedMedia(filteredPosts)
           : null
 

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import CONFIG from '@/blog.config'
 import { resolveThemeId } from '@/src/themes/registry'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { clearGalleryAdBannerCache } from '@/src/lib/gallery/loadGalleryAdBanner'
 import { clearGalleryPostsCache } from '@/src/lib/gallery/galleryPostsCache'
 import { clearArchiveNavCache } from '@/src/lib/blog/archiveNavCache'
@@ -82,7 +83,7 @@ function htmlMatchesTheme(html: string, themeCode: string): boolean {
   const hasGalleryMarkup = html.includes('font-gallery')
   const hasTweetMarkup = html.includes('font-tweet')
   if (themeId === 'gallery') return hasGalleryMarkup
-  if (themeId === 'tweet') return hasTweetMarkup
+  if (isTweetTheme(themeId)) return hasTweetMarkup
   return !hasGalleryMarkup && !hasTweetMarkup
 }
 

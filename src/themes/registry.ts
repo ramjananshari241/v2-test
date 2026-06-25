@@ -10,6 +10,7 @@ export const THEME_HOME: Record<ThemeId, ComponentType<ThemeHomeProps>> = {
   touchgal: TouchgalLayout as ComponentType<ThemeHomeProps>,
   gallery: GalleryHome,
   tweet: TweetHome,
+  'tweet-light': TweetHome,
 }
 
 /**
@@ -22,8 +23,10 @@ export function resolveThemeId(code: string | null | undefined): ThemeId {
   const c = (code || '').trim().toLowerCase()
   if (c === 'v2' || c === 'touchgal') return 'touchgal'
   if (c === 'gallery') return 'gallery'
+  if (c === 'tweet-light' || c === 'tweet_light') return 'tweet-light'
   if (
     c === 'tweet' ||
+    c === 'tweet-dark' ||
     c === 'morethan-log' ||
     c === 'morethanlog' ||
     c === 'v3'

@@ -4,12 +4,13 @@ import { GalleryPageLayout } from '@/src/themes/gallery/GalleryPageLayout'
 import { GalleryShell } from '@/src/themes/gallery/GalleryShell'
 import { TweetPageLayout } from '@/src/themes/tweet/TweetPageLayout'
 import { resolveThemeId } from '@/src/themes/registry'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { ThemeId } from '@/src/themes/types'
 
 /** Gallery / Tweet 等自带完整壳层，不走默认 Navbar + Footer */
 export function usesStandaloneThemeLayout(activeTheme?: string | null): boolean {
   const id = resolveThemeId(activeTheme)
-  return id === 'gallery' || id === 'tweet'
+  return id === 'gallery' || isTweetTheme(id)
 }
 
 export function resolvePageThemeId(activeTheme?: string | null): ThemeId {
@@ -48,7 +49,7 @@ export function ThemeNavShell({
     )
   }
 
-  if (themeId === 'tweet') {
+  if (isTweetTheme(themeId)) {
     return <TweetPageLayout>{children}</TweetPageLayout>
   }
 

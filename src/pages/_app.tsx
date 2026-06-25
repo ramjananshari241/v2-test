@@ -26,6 +26,7 @@ import {
   useActiveTheme,
 } from '@/src/components/theme/ActiveThemeProvider'
 import { LightSeoMeta } from '@/src/components/seo/LightSeoMeta'
+import { isTweetLightTheme, isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import type { PageSeoFlat } from '@/src/lib/seo/lightSeo'
 import { NextPageWithLayout } from '../types/blog'
 
@@ -61,18 +62,29 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
     if (activeTheme === 'gallery' && !isAdminRoute) {
       root.classList.add('gallery-theme')
       root.classList.remove('tweet-theme')
-    } else if (activeTheme === 'tweet' && !isAdminRoute) {
+      root.classList.remove('tweet-theme--light')
+    } else if (isTweetTheme(activeTheme) && !isAdminRoute) {
       root.classList.add('tweet-theme')
       root.classList.remove('gallery-theme')
+      if (isTweetLightTheme(activeTheme)) {
+        root.classList.add('tweet-theme--light')
+      } else {
+        root.classList.remove('tweet-theme--light')
+      }
     } else {
       root.classList.remove('gallery-theme')
       root.classList.remove('tweet-theme')
+      root.classList.remove('tweet-theme--light')
     }
     return () => {
       root.classList.remove('gallery-theme')
       root.classList.remove('tweet-theme')
+      root.classList.remove('tweet-theme--light')
     }
   }, [activeTheme, isAdminRoute])
+
+  const tweetLightLocked = isTweetLightTheme(activeTheme)
+  const tweetDarkDefault = activeTheme === 'tweet'
 
   return (
     <>
@@ -176,7 +188,12 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
         `}
       </Script>
 
-     <ThemeProvider attribute="class">
+     <ThemeProvider
+      attribute="class"
+      forcedTheme={tweetLightLocked ? 'light' : undefined}
+      defaultTheme={tweetDarkDefault ? 'dark' : undefined}
+      enableSystem={!tweetLightLocked}
+    >
       <Head>
         <meta
           name="viewport"
@@ -187,7 +204,7 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
         ) : (
           <GalleryFaviconLinks activeTheme={activeTheme} />
         )}
-        {!isAdminRoute && activeTheme !== 'gallery' && activeTheme !== 'tweet' ? (
+        {!isAdminRoute && !isTweetTheme(activeTheme) && activeTheme !== 'gallery' ? (
           <link rel="manifest" href="/site.webmanifest" />
         ) : null}
       </Head>

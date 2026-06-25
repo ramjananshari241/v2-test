@@ -1,6 +1,7 @@
 import Footer from './footer/Footer'
 import Navbar from './nav/Navbar'
 import { ThemeNavShell } from '@/src/themes/themeLayout'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { Page, SharedNavFooterStaticProps } from '@/src/types/blog'
 
 export default function withNavFooter(
@@ -12,7 +13,7 @@ export default function withNavFooter(
     props: SharedNavFooterStaticProps['props'] & { activeTheme?: string }
   ) {
     const themeId = props.activeTheme
-    if (themeId === 'gallery' || themeId === 'tweet') {
+    if (themeId === 'gallery' || isTweetTheme(themeId)) {
       return (
         <ThemeNavShell activeTheme={themeId} siteTitle={props.siteTitle}>
           <WrappedComponent {...props} />

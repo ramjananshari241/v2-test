@@ -12,6 +12,7 @@ import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProp
 import { getAllBlocks } from '@/src/lib/notion/getBlocks'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import { NextPageWithLayout, SharedNavFooterStaticProps } from '@/src/types/blog'
@@ -26,7 +27,7 @@ const AnnouncementPage: NextPage<{
 }> = ({ title, blocks, activeTheme, siteTitle, widgets }) => {
   if (!title) return <Section404 />
 
-  if (activeTheme === 'tweet') {
+  if (isTweetTheme(activeTheme)) {
     const shellWidgets = pickTweetShellWidgets(widgets)
     return (
       <TweetShell

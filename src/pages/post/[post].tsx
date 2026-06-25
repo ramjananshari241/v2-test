@@ -13,6 +13,7 @@ import withNavFooter from '../../components/withNavFooter'
 import { GalleryPost } from '@/src/themes/gallery/GalleryPost'
 import { TweetPostPage } from '@/src/themes/tweet/TweetPostPage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import {
@@ -118,13 +119,13 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       const formattedBlocks = await formatBlocks(blocks)
 
       let galleryAdBanner = null
-      if (activeTheme === 'gallery' || activeTheme === 'tweet') {
+      if (activeTheme === 'gallery' || isTweetTheme(activeTheme)) {
         clearGalleryAdBannerCache()
         galleryAdBanner = await loadGalleryAdBanner()
       }
 
       const widgets =
-        activeTheme === 'tweet' ? await loadHomeWidgets() : null
+        isTweetTheme(activeTheme) ? await loadHomeWidgets() : null
 
       // 🛡️ JSON 暴力清洗：杜绝 undefined 导致的 500 报错
       const safeData = JSON.parse(JSON.stringify({
@@ -220,7 +221,7 @@ const PostPage: NextPage<{
     )
   }
 
-  if (activeTheme === 'tweet') {
+  if (isTweetTheme(activeTheme)) {
     const shellWidgets = pickTweetShellWidgets(widgets)
     return (
       <TweetShell

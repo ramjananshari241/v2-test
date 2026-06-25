@@ -16,6 +16,7 @@ import { BlockResponse } from '../types/notion'
 import { GalleryArticlePage } from '@/src/themes/gallery/GalleryArticlePage'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 
@@ -43,7 +44,7 @@ const About: NextPage<{
     )
   }
 
-  if (activeTheme === 'tweet') {
+  if (isTweetTheme(activeTheme)) {
     const heading = page?.nav || title
     const shellWidgets = pickTweetShellWidgets(widgets)
     return (
