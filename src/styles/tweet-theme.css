@@ -29,7 +29,7 @@ html.tweet-theme {
 
 html.tweet-theme.dark {
   --tweet-gray1: #111110;
-  --tweet-gray2: #191918;
+  --tweet-gray2: #1c1c1c;
   --tweet-gray3: #222221;
   --tweet-gray4: #2a2a28;
   --tweet-gray5: #31312e;
@@ -120,21 +120,22 @@ html.tweet-theme ul {
 
 .tweet-header__nav a {
   color: var(--tweet-muted);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
   cursor: pointer;
 }
 
-.tweet-header__nav a:hover {
-  color: var(--tweet-gray12);
+.tweet-header__nav-about {
+  font-size: 1.0625rem;
+  font-weight: 500;
 }
 
 .tweet-header__theme-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   color: var(--tweet-muted);
   background: none;
   border: none;
@@ -143,6 +144,10 @@ html.tweet-theme ul {
 }
 
 .tweet-header__theme-btn:hover {
+  color: var(--tweet-gray12);
+}
+
+.tweet-header__nav a:hover {
   color: var(--tweet-gray12);
 }
 
@@ -320,13 +325,13 @@ html.tweet-theme ul {
 
 .tweet-tags__item {
   display: block;
-  padding: 0.125rem 0.75rem;
-  margin-top: 0.0625rem;
-  margin-bottom: 0.0625rem;
+  padding: 0.1875rem 0.75rem;
+  margin-top: 0.125rem;
+  margin-bottom: 0.125rem;
   border-radius: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: var(--tweet-muted);
+  color: #7e7e7e;
   flex-shrink: 0;
   cursor: pointer;
   white-space: nowrap;
@@ -334,10 +339,11 @@ html.tweet-theme ul {
 
 .tweet-tags__item:hover {
   background-color: var(--tweet-gray4);
+  color: #7e7e7e;
 }
 
 .tweet-tags__item[data-active='true'] {
-  color: var(--tweet-gray12);
+  color: #7e7e7e;
   background-color: var(--tweet-gray4);
 }
 
@@ -485,13 +491,17 @@ html.tweet-theme ul {
   gap: 0.75rem;
   align-items: center;
   border-radius: 1rem;
-  color: var(--tweet-muted);
+  color: #7e7e7e;
   cursor: pointer;
 }
 
 .tweet-service__link:hover {
-  color: var(--tweet-gray12);
   background-color: var(--tweet-gray5);
+}
+
+.tweet-service__link:hover .tweet-service__name,
+.tweet-service__link:hover .tweet-service__icon {
+  color: var(--tweet-gray12);
 }
 
 .tweet-service__icon {
@@ -500,11 +510,13 @@ html.tweet-theme ul {
   height: 1.5rem;
   font-size: 1.5rem;
   line-height: 1;
+  color: #7e7e7e;
 }
 
 .tweet-service__name {
   font-size: 0.875rem;
   line-height: 1.25rem;
+  color: #7e7e7e;
 }
 
 /* —— Feed header (CategorySelect + Order) —— */
@@ -604,9 +616,10 @@ html.tweet-theme ul {
   margin-bottom: 1.5rem;
   border-radius: 1rem;
   background-color: var(--tweet-card-bg);
-  transition-property: box-shadow;
-  transition-duration: 300ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
 }
 
 @media (min-width: 768px) {
@@ -616,9 +629,16 @@ html.tweet-theme ul {
 }
 
 .tweet-post-card:hover .tweet-post-card__article {
+  transform: translateY(-3px);
   box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    0 14px 22px -6px rgba(0, 0, 0, 0.18),
+    0 6px 10px -4px rgba(0, 0, 0, 0.1);
+}
+
+html.tweet-theme.dark .tweet-post-card:hover .tweet-post-card__article {
+  box-shadow:
+    0 14px 28px -6px rgba(0, 0, 0, 0.45),
+    0 6px 12px -4px rgba(0, 0, 0, 0.35);
 }
 
 .tweet-post-card__category-wrap {

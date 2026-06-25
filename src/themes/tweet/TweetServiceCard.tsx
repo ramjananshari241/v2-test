@@ -1,12 +1,15 @@
+import CONFIG from '@/blog.config'
 import Link from 'next/link'
 import {
   AiFillCodeSandboxCircle,
   AiOutlineDownload,
+  AiOutlineLink,
   AiOutlineSound,
 } from 'react-icons/ai'
 import { TweetSectionTitle } from './TweetSectionTitle'
 
 const VENDING_URL = 'https://store.proplus.onl/buy'
+const { FREINDS } = CONFIG.DEFAULT_SPECIAL_PAGES
 
 type AnnouncementLike = { title?: string; slug?: string }
 
@@ -51,6 +54,10 @@ export function TweetServiceCard({
         <Link href="/download" className="tweet-service__link">
           <AiOutlineDownload className="tweet-service__icon" aria-hidden />
           <span className="tweet-service__name">下载说明</span>
+        </Link>
+        <Link href={`/${FREINDS}`} className="tweet-service__link">
+          <AiOutlineLink className="tweet-service__icon" aria-hidden />
+          <span className="tweet-service__name">友链</span>
         </Link>
       </div>
     </div>
