@@ -1,7 +1,6 @@
 import CONFIG from '@/blog.config'
 import Link from 'next/link'
 import {
-  AiFillCodeSandboxCircle,
   AiOutlineDownload,
   AiOutlineLink,
   AiOutlineSound,
@@ -9,7 +8,6 @@ import {
 import { TweetSectionTitle } from './TweetSectionTitle'
 import type { TweetAnnouncementLike } from './tweetShellWidgets'
 
-const VENDING_URL = 'https://store.proplus.onl/buy'
 const { FREINDS } = CONFIG.DEFAULT_SPECIAL_PAGES
 
 type TweetServiceCardProps = {
@@ -41,15 +39,6 @@ export function TweetServiceCard({
             <span className="tweet-service__name">{announcementTitle}</span>
           </Link>
         ) : null}
-        <a
-          href={VENDING_URL}
-          className="tweet-service__link tweet-service__link--vending"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <AiFillCodeSandboxCircle className="tweet-service__icon" aria-hidden />
-          <span className="tweet-service__name">贩售机</span>
-        </a>
         <Link href="/download" className="tweet-service__link">
           <AiOutlineDownload className="tweet-service__icon" aria-hidden />
           <span className="tweet-service__name">下载说明</span>

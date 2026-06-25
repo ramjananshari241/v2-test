@@ -7,6 +7,7 @@ import { TweetMobileProfileCard } from './TweetMobileProfileCard'
 import { TweetPostList } from './TweetPostList'
 import { TweetSearchBox } from './TweetSearchBox'
 import { TweetServiceCard } from './TweetServiceCard'
+import { TweetVendingButton } from './TweetVendingButton'
 import { TweetShell } from './TweetShell'
 import { TweetTagList } from './TweetTagList'
 import {
@@ -62,6 +63,7 @@ export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
           announcement={announcement}
           sectionTitleDesktopOnly={false}
         />
+        <TweetVendingButton />
       </div>
       <TweetSearchBox />
       <TweetFeedHeader posts={allPosts} />
