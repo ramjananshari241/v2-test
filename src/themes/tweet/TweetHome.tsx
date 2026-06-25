@@ -2,11 +2,11 @@ import { ThemeHomeProps } from '../types'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { useRouter } from 'next/router'
 import { useMemo } from 'react'
-import { TweetAnnouncementBar } from './TweetAnnouncementBar'
 import { TweetFeedHeader } from './TweetFeedHeader'
 import { TweetMobileProfileCard } from './TweetMobileProfileCard'
 import { TweetPostList } from './TweetPostList'
 import { TweetSearchBox } from './TweetSearchBox'
+import { TweetServiceCard } from './TweetServiceCard'
 import { TweetShell } from './TweetShell'
 import { TweetTagList } from './TweetTagList'
 import {
@@ -57,7 +57,12 @@ export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
     >
       <TweetTagList tags={tags} layout="mobile" />
       <TweetMobileProfileCard profile={profile} />
-      <TweetAnnouncementBar announcement={announcement} placement="mobile" />
+      <div className="tweet-service-mobile">
+        <TweetServiceCard
+          announcement={announcement}
+          sectionTitleDesktopOnly={false}
+        />
+      </div>
       <TweetSearchBox />
       <TweetFeedHeader posts={allPosts} />
       <TweetPostList posts={filteredPosts} emptyLabel={emptyMessage} />

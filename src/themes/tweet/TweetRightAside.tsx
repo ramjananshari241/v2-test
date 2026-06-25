@@ -1,5 +1,4 @@
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
-import { TweetAnnouncementBar } from './TweetAnnouncementBar'
 import { TweetProfileCard } from './TweetProfileCard'
 import { TweetServiceCard } from './TweetServiceCard'
 
@@ -17,8 +16,7 @@ export function TweetRightAside({
   return (
     <>
       <TweetProfileCard profile={profile} />
-      <TweetAnnouncementBar announcement={announcement} placement="sidebar" />
-      <TweetServiceCard />
+      <TweetServiceCard announcement={announcement} />
     </>
   )
 }
