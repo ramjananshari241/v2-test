@@ -3,6 +3,8 @@ import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { useRouter } from 'next/router'
 import { useMemo } from 'react'
 import { TweetAnnouncementBar } from './TweetAnnouncementBar'
+import { TweetFeedHeader } from './TweetFeedHeader'
+import { TweetMobileProfileCard } from './TweetMobileProfileCard'
 import { TweetPostList } from './TweetPostList'
 import { TweetSearchBox } from './TweetSearchBox'
 import { TweetShell } from './TweetShell'
@@ -22,23 +24,42 @@ export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
   const announcement = widgets?.announcement as AnnouncementLike | undefined
 
   const searchQuery = router.isReady ? readTweetSearchQuery(router.query.q) : ''
+  const categoryId =
+    router.isReady && typeof router.query.category === 'string'
+      ? router.query.category
+      : undefined
+  const order =
+    router.isReady && typeof router.query.order === 'string'
+      ? router.query.order
+      : 'desc'
+
   const filteredPosts = useMemo(
-    () => filterTweetPosts(allPosts, searchQuery),
-    [allPosts, searchQuery]
+    () =>
+      filterTweetPosts(allPosts, {
+        q: searchQuery,
+        categoryId,
+        order,
+      }),
+    [allPosts, searchQuery, categoryId, order]
   )
   const tags = useMemo(() => collectTweetTags(allPosts), [allPosts])
 
   const emptyMessage = searchQuery
     ? `未找到与「${searchQuery}」相关的文章`
-    : '暂无内容'
+    : 'Nothing! 😺'
 
   return (
-    <TweetShell siteTitle={siteTitle} profile={profile} leftAside={<TweetTagList tags={tags} />}>
-      <div className="space-y-4">
-        <TweetSearchBox />
-        <TweetAnnouncementBar announcement={announcement} />
-        <TweetPostList posts={filteredPosts} emptyLabel={emptyMessage} />
-      </div>
+    <TweetShell
+      siteTitle={siteTitle}
+      profile={profile}
+      leftAside={<TweetTagList tags={tags} layout="sidebar" />}
+    >
+      <TweetTagList tags={tags} layout="mobile" />
+      <TweetMobileProfileCard profile={profile} />
+      <TweetSearchBox />
+      <TweetAnnouncementBar announcement={announcement} />
+      <TweetFeedHeader posts={allPosts} />
+      <TweetPostList posts={filteredPosts} emptyLabel={emptyMessage} />
     </TweetShell>
   )
 }

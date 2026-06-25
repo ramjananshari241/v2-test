@@ -1,6 +1,8 @@
 import CONFIG from '@/blog.config'
 import { GetStaticProps, GetStaticPropsContext, NextPage } from 'next'
+import BlogLayout from '../components/layout/BlogLayout'
 import withNavFooter from '../components/withNavFooter'
+import { applyThemePageLayout } from '../themes/themeLayout'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '../lib/blog/format/post'
 import { loadHomeWidgets } from '../lib/blog/loadHomeWidgets'
 import { withNavFooterStaticProps } from '../lib/blog/withNavFooterStaticProps'
@@ -8,7 +10,7 @@ import { buildHomeFeedPosts } from '../lib/blog/postLimits'
 import { ANNOUNCEMENT_SLUG } from '../lib/blog/pinnedPosts'
 import { getAnnouncementPost } from '../lib/blog/loadHomeWidgets'
 import { getPosts } from '../lib/notion/getBlogData'
-import { Post, SharedNavFooterStaticProps } from '../types/blog'
+import { NextPageWithLayout, Post, SharedNavFooterStaticProps } from '../types/blog'
 import { ApiScope } from '../types/notion'
 import { buildHomePageSeo } from '../lib/seo/lightSeo'
 import { getThemeHomeComponent } from '../themes/registry'
@@ -94,4 +96,6 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 )
 
 const withNavPage = withNavFooter(Home, undefined, true)
+;(withNavPage as NextPageWithLayout).getLayout = (page) =>
+  applyThemePageLayout(page, (p) => <BlogLayout>{p}</BlogLayout>)
 export default withNavPage

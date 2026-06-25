@@ -1,4 +1,5 @@
 import { Post } from '@/src/types/blog'
+import { TweetFeedHeader } from './TweetFeedHeader'
 import { TweetPostList } from './TweetPostList'
 
 type TweetFilteredPostsProps = {
@@ -10,15 +11,16 @@ type TweetFilteredPostsProps = {
 export function TweetFilteredPosts({
   posts,
   title,
-  emptyLabel = '暂无文章',
+  emptyLabel = 'Nothing! 😺',
 }: TweetFilteredPostsProps) {
   const listPosts = posts.filter((p) => p.slug !== 'announcement')
 
   return (
     <div>
-      <h1 className="mb-6 font-tweet text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+      <h1 className="tweet-article-title" style={{ marginBottom: '1rem' }}>
         {title}
       </h1>
+      <TweetFeedHeader posts={listPosts} />
       <TweetPostList posts={listPosts} emptyLabel={emptyLabel} />
     </div>
   )

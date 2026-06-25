@@ -1,13 +1,14 @@
 import { ReactNode } from 'react'
+import { tweetShellClass } from './tweetFonts'
 
 type TweetPageLayoutProps = {
   children: ReactNode
 }
 
-/** Tweet 页面外层：浅色/深色背景铺满视口 */
+/** Tweet 主题根节点（背景/字体由 tweet-theme.css + html.tweet-theme 控制） */
 export function TweetPageLayout({ children }: TweetPageLayoutProps) {
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-neutral-50 text-neutral-900 dark:bg-[#111111] dark:text-neutral-100">
+    <div className={`tweet-root ${tweetShellClass} min-h-screen min-h-[100dvh]`}>
       {children}
     </div>
   )

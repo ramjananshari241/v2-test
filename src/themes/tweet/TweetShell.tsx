@@ -1,7 +1,7 @@
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { Title } from '@/src/types/blog'
 import { ReactNode } from 'react'
-import { TweetShellFrame } from './TweetHeader'
+import { TweetFeedGrid } from './TweetHeader'
 import { TweetProfileCard } from './TweetProfileCard'
 import { buildTweetProfileData } from './tweetProfile'
 
@@ -22,12 +22,12 @@ export function TweetShell({
   const profileData = buildTweetProfileData(profile, siteTitle)
 
   return (
-    <TweetShellFrame
+    <TweetFeedGrid
       siteName={siteName}
       leftAside={leftAside}
       rightAside={<TweetProfileCard profile={profileData} />}
     >
       {children}
-    </TweetShellFrame>
+    </TweetFeedGrid>
   )
 }
