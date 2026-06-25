@@ -14,6 +14,9 @@ import { getAllBlocks } from '../lib/notion/getBlocks'
 import { getPages } from '../lib/notion/getBlogData'
 import { addSubTitle } from '../lib/util'
 import { buildNavPageSeo } from '@/src/lib/seo/lightSeo'
+import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
+import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import {
   NextPageWithLayout,
   Page,
@@ -109,10 +112,20 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 const Page: NextPage<{
   page: Page
   blocks: BlockResponse[]
-}> = ({ page, blocks }) => {
+  activeTheme?: string
+  siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
+}> = ({ page, blocks, activeTheme, siteTitle }) => {
   if (!page) return <Section404 />
 
   const { title } = page
+
+  if (activeTheme === 'tweet') {
+    return (
+      <TweetShell siteTitle={siteTitle}>
+        <TweetArticlePage title={page.nav || title} blocks={blocks} />
+      </TweetShell>
+    )
+  }
 
   return (
     <>
@@ -130,8 +143,7 @@ const Page: NextPage<{
   )
 }
 
-;(Page as NextPageWithLayout).getLayout = (page) => {
-  return <BlogLayoutPure>{page}</BlogLayoutPure>
-}
+;(Page as NextPageWithLayout).getLayout = (page) =>
+  applyThemePageLayout(page, (p) => <BlogLayoutPure>{p}</BlogLayoutPure>)
 
 export default withNavFooter(Page)

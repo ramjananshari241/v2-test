@@ -6,6 +6,9 @@ import { Section404 } from '@/src/components/section/Section404'
 import { SubCollection } from '@/src/components/section/SubCollection'
 import withNavFooter from '@/src/components/withNavFooter'
 import { GalleryFilteredPosts } from '@/src/themes/gallery/GalleryFilteredPosts'
+import { TweetFilteredPosts } from '@/src/themes/tweet/TweetFilteredPosts'
+import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { getAllCategories } from '@/src/lib/blog/format/category'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
@@ -96,7 +99,8 @@ const CategoryPage: NextPage<{
   subTitle: Title
   activeTheme?: string
   categoryBannerImage?: string | null
-}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage }) => {
+  siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
+}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage, siteTitle }) => {
   if (!category) return <Section404 />
 
   category.count = posts.length
@@ -119,6 +123,18 @@ const CategoryPage: NextPage<{
     )
   }
 
+  if (activeTheme === 'tweet') {
+    return (
+      <TweetShell siteTitle={siteTitle}>
+        <TweetFilteredPosts
+          posts={posts}
+          title={category.name}
+          emptyLabel="该分类下暂无文章"
+        />
+      </TweetShell>
+    )
+  }
+
   return (
     <SubCollection
       item={category}
@@ -132,7 +148,7 @@ const CategoryPage: NextPage<{
 const withNavPage = withNavFooter(CategoryPage, true)
 
 ;(withNavPage as NextPageWithLayout).getLayout = (page) => {
-  if ((page.props as { activeTheme?: string })?.activeTheme === 'gallery') {
+  if (usesStandaloneThemeLayout((page.props as { activeTheme?: string })?.activeTheme)) {
     return page
   }
   if (!page.props.category) return <BlogLayout>{page}</BlogLayout>

@@ -1,6 +1,6 @@
 import { Page, Post, Title } from '@/src/types/blog'
 
-export type ThemeId = 'anzifan' | 'touchgal' | 'gallery'
+export type ThemeId = 'anzifan' | 'touchgal' | 'gallery' | 'tweet'
 
 /**
  * 各主题首页组件共用 props。

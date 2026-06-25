@@ -4,6 +4,7 @@ import '../styles/globals.css'
 import '../styles/gallery-prose.css'
 import '../styles/gallery-grid.css'
 import '../styles/gallery-category.css'
+import '../styles/tweet-theme.css'
 
 import CONFIG from '@/blog.config'
 import BlogLayout from '@/src/components/layout/BlogLayout'
@@ -59,10 +60,18 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
     const root = document.documentElement
     if (activeTheme === 'gallery' && !isAdminRoute) {
       root.classList.add('gallery-theme')
+      root.classList.remove('tweet-theme')
+    } else if (activeTheme === 'tweet' && !isAdminRoute) {
+      root.classList.add('tweet-theme')
+      root.classList.remove('gallery-theme')
     } else {
       root.classList.remove('gallery-theme')
+      root.classList.remove('tweet-theme')
     }
-    return () => root.classList.remove('gallery-theme')
+    return () => {
+      root.classList.remove('gallery-theme')
+      root.classList.remove('tweet-theme')
+    }
   }, [activeTheme, isAdminRoute])
 
   return (
@@ -178,7 +187,7 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
         ) : (
           <GalleryFaviconLinks activeTheme={activeTheme} />
         )}
-        {!isAdminRoute && activeTheme !== 'gallery' ? (
+        {!isAdminRoute && activeTheme !== 'gallery' && activeTheme !== 'tweet' ? (
           <link rel="manifest" href="/site.webmanifest" />
         ) : null}
       </Head>

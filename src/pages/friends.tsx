@@ -19,6 +19,9 @@ import {
 } from '../types/blog'
 import { BlockResponse } from '../types/notion'
 import { GalleryFriendsPage } from '@/src/themes/gallery/GalleryFriendsPage'
+import { TweetFriendsPage } from '@/src/themes/tweet/TweetFriendsPage'
+import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { applyThemePageLayout } from '@/src/themes/themeLayout'
 
 const { FREINDS } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -31,7 +34,8 @@ const Freinds: NextPage<{
   title: string
   page: Page | null
   activeTheme?: string
-}> = ({ blocks, friendsDatabase, title, page, activeTheme }) => {
+  siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
+}> = ({ blocks, friendsDatabase, title, page, activeTheme, siteTitle }) => {
   const friends = friendsDatabase?.data ?? []
 
   if (activeTheme === 'gallery') {
@@ -42,6 +46,14 @@ const Freinds: NextPage<{
         blocks={blocks}
         friends={friends}
       />
+    )
+  }
+
+  if (activeTheme === 'tweet') {
+    return (
+      <TweetShell siteTitle={siteTitle}>
+        <TweetFriendsPage title={title} blocks={blocks} friends={friends} />
+      </TweetShell>
     )
   }
 
@@ -92,11 +104,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
 const withNavPage = withNavFooter(Freinds)
 
-;(withNavPage as NextPageWithLayout).getLayout = (page) => {
-  if ((page.props as { activeTheme?: string })?.activeTheme === 'gallery') {
-    return page
-  }
-  return <BlogLayoutGradient>{page}</BlogLayoutGradient>
-}
+;(withNavPage as NextPageWithLayout).getLayout = (page) =>
+  applyThemePageLayout(page, (p) => <BlogLayoutGradient>{p}</BlogLayoutGradient>)
 
 export default withNavPage

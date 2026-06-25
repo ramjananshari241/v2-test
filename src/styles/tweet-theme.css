@@ -1,0 +1,18 @@
+/**
+ * Tweet 主题正文与卡片样式
+ */
+
+.prose-tweet {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.prose-tweet img {
+  border-radius: 0.75rem;
+}
+
+html.tweet-theme.dark {
+  color-scheme: dark;
+}

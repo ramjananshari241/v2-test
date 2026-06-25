@@ -14,6 +14,10 @@ import { addSubTitle } from '../lib/util'
 import { NextPageWithLayout, Page, SharedNavFooterStaticProps } from '../types/blog'
 import { BlockResponse } from '../types/notion'
 import { GalleryArticlePage } from '@/src/themes/gallery/GalleryArticlePage'
+import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
+import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
+import { applyThemePageLayout } from '@/src/themes/themeLayout'
 
 const { ABOUT } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -25,7 +29,8 @@ const About: NextPage<{
     [key: string]: unknown
   }
   activeTheme?: string
-}> = ({ blocks, title, page, widgets, activeTheme }) => {
+  siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
+}> = ({ blocks, title, page, widgets, activeTheme, siteTitle }) => {
   if (activeTheme === 'gallery') {
     const heading = page?.nav || title
     return (
@@ -35,6 +40,20 @@ const About: NextPage<{
         breadcrumbLabel={heading}
         excerpt={page?.title && page.title !== page.nav ? page.title : null}
       />
+    )
+  }
+
+  if (activeTheme === 'tweet') {
+    const heading = page?.nav || title
+    const profile = widgets?.profile as ProfileWidgetType | undefined
+    return (
+      <TweetShell siteTitle={siteTitle} profile={profile}>
+        <TweetArticlePage
+          title={heading}
+          blocks={blocks}
+          excerpt={page?.title && page.title !== page.nav ? page.title : null}
+        />
+      </TweetShell>
     )
   }
 
@@ -87,11 +106,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
 const withNavPage = withNavFooter(About)
 
-;(withNavPage as NextPageWithLayout).getLayout = (page) => {
-  if ((page.props as { activeTheme?: string })?.activeTheme === 'gallery') {
-    return page
-  }
-  return <BlogLayoutPure>{page}</BlogLayoutPure>
-}
+;(withNavPage as NextPageWithLayout).getLayout = (page) =>
+  applyThemePageLayout(page, (p) => <BlogLayoutPure>{p}</BlogLayoutPure>)
 
 export default withNavPage

@@ -6,6 +6,9 @@ import { Section404 } from '@/src/components/section/Section404'
 import { SubCollection } from '@/src/components/section/SubCollection'
 import withNavFooter from '@/src/components/withNavFooter'
 import { GalleryFilteredPosts } from '@/src/themes/gallery/GalleryFilteredPosts'
+import { TweetFilteredPosts } from '@/src/themes/tweet/TweetFilteredPosts'
+import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { applyThemePageLayout, usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { getAllTags } from '@/src/lib/blog/format/tag'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
@@ -59,7 +62,8 @@ const TagPage: NextPage<{
   posts: Post[]
   subTitle: Title
   activeTheme?: string
-}> = ({ tag, posts, subTitle, activeTheme }) => {
+  siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
+}> = ({ tag, posts, subTitle, activeTheme, siteTitle }) => {
   if (!tag) return <Section404 />
 
   tag.count = posts.length
@@ -81,6 +85,14 @@ const TagPage: NextPage<{
     )
   }
 
+  if (activeTheme === 'tweet') {
+    return (
+      <TweetShell siteTitle={siteTitle}>
+        <TweetFilteredPosts posts={posts} title={tag.name} emptyLabel="该标签下暂无文章" />
+      </TweetShell>
+    )
+  }
+
   return (
     <SubCollection item={tag} posts={posts} subTitle={subTitle} type={'tag'} />
   )
@@ -89,7 +101,7 @@ const TagPage: NextPage<{
 const withNavPage = withNavFooter(TagPage, true)
 
 ;(withNavPage as NextPageWithLayout).getLayout = (page) => {
-  if ((page.props as { activeTheme?: string })?.activeTheme === 'gallery') {
+  if (usesStandaloneThemeLayout((page.props as { activeTheme?: string })?.activeTheme)) {
     return page
   }
   if (!page.props.tag) return <BlogLayout>{page}</BlogLayout>

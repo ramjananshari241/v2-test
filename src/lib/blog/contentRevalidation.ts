@@ -80,7 +80,10 @@ export function resolveRevalidateOrigin(
 function htmlMatchesTheme(html: string, themeCode: string): boolean {
   const themeId = resolveThemeId(themeCode)
   const hasGalleryMarkup = html.includes('font-gallery')
-  return themeId === 'gallery' ? hasGalleryMarkup : !hasGalleryMarkup
+  const hasTweetMarkup = html.includes('font-tweet')
+  if (themeId === 'gallery') return hasGalleryMarkup
+  if (themeId === 'tweet') return hasTweetMarkup
+  return !hasGalleryMarkup && !hasTweetMarkup
 }
 
 function buildWarmFetchHeaders(): Record<string, string> {
@@ -243,6 +246,7 @@ export function collectShellRevalidatePaths(): string[] {
     '/',
     '/about',
     '/friends',
+    '/announcement',
     '/download',
     `/${ARCHIVE}`,
     `/${CATEGORY}`,
@@ -262,6 +266,7 @@ export async function collectCustomNavPageRevalidatePaths(): Promise<string[]> {
   }
 
   paths.add(`/post/${ANNOUNCEMENT_SLUG}`)
+  paths.add('/announcement')
 
   return Array.from(paths)
 }

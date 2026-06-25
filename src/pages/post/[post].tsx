@@ -11,6 +11,9 @@ import CommentSection from '../../components/section/CommentSection'
 import { Section404 } from '../../components/section/Section404'
 import withNavFooter from '../../components/withNavFooter'
 import { GalleryPost } from '@/src/themes/gallery/GalleryPost'
+import { TweetPostPage } from '@/src/themes/tweet/TweetPostPage'
+import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import {
   buildGalleryRecommendations,
   GalleryRecommendPost,
@@ -180,6 +183,7 @@ const PostPage: NextPage<{
   galleryAdBanner?: GalleryAdBanner | null
   activeTheme?: string
   navPages?: Page[]
+  siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
 }> = ({
   post,
   blocks,
@@ -190,6 +194,7 @@ const PostPage: NextPage<{
   galleryAdBanner = null,
   activeTheme,
   navPages = [],
+  siteTitle,
 }) => {
   if (!post) return <Section404 />
 
@@ -204,6 +209,14 @@ const PostPage: NextPage<{
         galleryAdBanner={galleryAdBanner}
         navPages={navPages}
       />
+    )
+  }
+
+  if (activeTheme === 'tweet') {
+    return (
+      <TweetShell siteTitle={siteTitle}>
+        <TweetPostPage post={post} blocks={blocks} />
+      </TweetShell>
     )
   }
 
@@ -222,9 +235,6 @@ const PostPage: NextPage<{
 }
 
 const withNavPage = withNavFooter(PostPage)
-;(withNavPage as NextPageWithLayout).getLayout = (page) => {
-  const activeTheme = (page.props as { activeTheme?: string })?.activeTheme
-  if (activeTheme === 'gallery') return page
-  return <BlogLayoutPure>{page}</BlogLayoutPure>
-}
+;(withNavPage as NextPageWithLayout).getLayout = (page) =>
+  applyThemePageLayout(page, (p) => <BlogLayoutPure>{p}</BlogLayoutPure>)
 export default withNavPage
