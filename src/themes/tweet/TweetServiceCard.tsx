@@ -6,7 +6,6 @@ import {
   AiOutlineSound,
 } from 'react-icons/ai'
 import { TweetSectionTitle } from './TweetSectionTitle'
-import { TweetVendingButton } from './TweetVendingButton'
 
 const { FREINDS } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -28,7 +27,6 @@ export function TweetServiceCard({
           desktopOnly={sectionTitleDesktopOnly}
         />
       ) : null}
-      <TweetVendingButton />
       <div className="tweet-service__card">
         <Link href="/announcement" className="tweet-service__link">
           <AiOutlineSound className="tweet-service__icon" aria-hidden />
