@@ -5,6 +5,7 @@ import { Post } from '@/src/types/blog'
 import { formatTweetDate } from './tweetSearch'
 import { TweetPostCardAuthor } from './TweetPostCardAuthor'
 import { TweetPostCardMedia } from './TweetPostCardMedia'
+import { TweetPostCardShare } from './TweetPostCardShare'
 import { resolveTweetCardMedia } from './tweetFeedMedia'
 
 type TweetPostCardProps = {
@@ -25,6 +26,7 @@ export function TweetPostCard({
   const excerpt = post.excerpt?.trim()
   const media = resolveTweetCardMedia(post, feedMedia)
   const postHref = `/post/${post.slug}`
+  const hasMedia = media.mode !== 'none'
 
   return (
     <article className="tweet-post-card">
@@ -33,26 +35,23 @@ export function TweetPostCard({
           profile={profile}
           categoryName={categoryName}
           categoryId={categoryId}
+          dateLabel={dateLabel}
+          dateTime={post.date?.created}
         />
         <Link href={postHref} className="tweet-post-card__article">
           <div className="tweet-post-card__body">
-            <div className="tweet-post-card__title-row">
-              <h2 className="tweet-post-card__title">{post.title}</h2>
-              {dateLabel ? (
-                <time
-                  className="tweet-post-card__date"
-                  dateTime={post.date?.created}
-                >
-                  {dateLabel}
-                </time>
-              ) : null}
-            </div>
+            <h2 className="tweet-post-card__title">{post.title}</h2>
 
             {excerpt ? (
               <p className="tweet-post-card__excerpt">{excerpt}</p>
             ) : null}
 
-            <TweetPostCardMedia media={media} />
+            {hasMedia ? (
+              <div className="tweet-post-card__media-block">
+                <TweetPostCardMedia media={media} />
+                <TweetPostCardShare slug={post.slug} />
+              </div>
+            ) : null}
 
             {tags.length > 0 ? (
               <div className="tweet-post-card__tags">

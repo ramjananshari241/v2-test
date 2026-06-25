@@ -1,16 +1,31 @@
 import Link from 'next/link'
-import { Post } from '@/src/types/blog'
+import { GalleryAdBanner as GalleryAdBannerData } from '@/src/lib/gallery/loadGalleryAdBanner'
+import { PartialPost, Post } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
 import { formatTweetDate } from './tweetSearch'
+import { TweetAdBanner } from './TweetAdBanner'
 import { TweetPostContent } from './TweetPostContent'
+import { TweetPostFooter } from './TweetPostFooter'
 
 type TweetPostPageProps = {
   post: Post
   blocks: BlockResponse[]
+  navigation?: {
+    previousPost?: PartialPost | null
+    nextPost?: PartialPost | null
+  }
+  galleryAdBanner?: GalleryAdBannerData | null
 }
 
-export function TweetPostPage({ post, blocks }: TweetPostPageProps) {
+export function TweetPostPage({
+  post,
+  blocks,
+  navigation,
+  galleryAdBanner = null,
+}: TweetPostPageProps) {
   const dateLabel = formatTweetDate(post.date?.created)
+  const previousPost = navigation?.previousPost ?? null
+  const nextPost = navigation?.nextPost ?? null
 
   return (
     <article className="tweet-post-page">
@@ -23,6 +38,8 @@ export function TweetPostPage({ post, blocks }: TweetPostPageProps) {
         <p className="tweet-article-excerpt">{post.excerpt}</p>
       ) : null}
       <TweetPostContent postSlug={post.slug} blocks={blocks} />
+      {galleryAdBanner ? <TweetAdBanner banner={galleryAdBanner} /> : null}
+      <TweetPostFooter previousPost={previousPost} nextPost={nextPost} />
     </article>
   )
 }

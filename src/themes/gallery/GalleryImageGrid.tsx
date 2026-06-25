@@ -7,6 +7,11 @@ import { galleryMediaGridClass } from './galleryFonts'
 import { GalleryGridImage } from './GalleryGridImage'
 import { GalleryGridLoader } from './GalleryGridLoader'
 import { GalleryLightbox } from './GalleryLightbox'
+import type { ComponentType } from 'react'
+
+type GalleryGridLoaderProps = {
+  compact?: boolean
+}
 
 type GalleryApiImage = {
   id: string
@@ -27,6 +32,7 @@ type GalleryApiResponse = {
 type GalleryImageGridProps = {
   postSlug: string
   pageSize?: number
+  GridLoader?: ComponentType<GalleryGridLoaderProps>
 }
 
 type GalleryPageResult = {
@@ -38,6 +44,7 @@ type GalleryPageResult = {
 export function GalleryImageGrid({
   postSlug,
   pageSize = GALLERY_POST_PAGE_SIZE,
+  GridLoader = GalleryGridLoader,
 }: GalleryImageGridProps) {
   const [images, setImages] = useState<GalleryApiImage[]>([])
   const [total, setTotal] = useState(0)
@@ -148,7 +155,7 @@ export function GalleryImageGrid({
   }
 
   if (loading) {
-    return <GalleryGridLoader />
+    return <GridLoader />
   }
 
   if (!active) {
@@ -183,7 +190,7 @@ export function GalleryImageGrid({
         ))}
       </div>
 
-      {loadingMore ? <GalleryGridLoader compact /> : null}
+      {loadingMore ? <GridLoader compact /> : null}
 
       {hasMore ? (
         <div

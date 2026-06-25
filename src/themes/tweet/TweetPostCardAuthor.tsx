@@ -9,12 +9,16 @@ type TweetPostCardAuthorProps = {
   profile?: ProfileWidgetType | null
   categoryName?: string
   categoryId?: string
+  dateLabel?: string
+  dateTime?: string
 }
 
 export function TweetPostCardAuthor({
   profile,
   categoryName,
   categoryId,
+  dateLabel,
+  dateTime,
 }: TweetPostCardAuthorProps) {
   const name = profile?.name?.trim() || 'PRO BLOG'
   const avatar = tweetAvatarSrc(profile)
@@ -40,6 +44,11 @@ export function TweetPostCardAuthor({
           </Link>
         ) : null}
       </div>
+      {dateLabel ? (
+        <time className="tweet-post-card__date" dateTime={dateTime}>
+          {dateLabel}
+        </time>
+      ) : null}
     </div>
   )
 }

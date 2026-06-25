@@ -374,34 +374,36 @@ html.tweet-theme ul {
 }
 
 .tweet-profile-card__avatar-wrap {
-  position: relative;
-  width: 68%;
-  max-width: 7rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  max-width: 7.5rem;
   margin: 0.5rem auto 0;
-  overflow: hidden;
-  border-radius: 0.5rem;
-  background-color: var(--tweet-card-bg);
+  background: transparent;
 }
 
 .tweet-profile-card__avatar-wrap::after {
-  content: '';
-  display: block;
-  padding-bottom: 100%;
+  content: none;
+  display: none;
+  padding-bottom: 0;
 }
 
 .tweet-profile-card__avatar {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position: static;
+  width: auto;
+  max-width: 7.5rem;
+  max-height: 7.5rem;
+  height: auto;
   object-fit: contain;
-  border-radius: 0;
-  background-color: transparent;
+  border-radius: 0.5rem;
+  background: transparent;
 }
 
 .tweet-profile-card__avatar-fallback {
-  position: absolute;
-  inset: 0;
+  width: 5rem;
+  height: 5rem;
+  position: static;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -901,6 +903,7 @@ html.tweet-theme.dark .tweet-post-card:hover .tweet-post-card__shell {
   align-items: center;
   gap: 0.375rem;
   min-width: 0;
+  flex: 1;
 }
 
 .tweet-post-card__author-name {
@@ -953,17 +956,8 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
   background-color: var(--tweet-gray5);
 }
 
-.tweet-post-card__title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.625rem;
-  margin-bottom: 0.25rem;
-}
-
 .tweet-post-card__title {
-  flex: 1;
-  min-width: 0;
+  margin-bottom: 0.25rem;
   font-size: 0.875rem;
   line-height: 1.375rem;
   font-weight: 500;
@@ -972,6 +966,8 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
 
 .tweet-post-card__date {
   flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 0.5rem;
   font-size: 0.75rem;
   line-height: 1.25rem;
   color: var(--tweet-muted);
@@ -985,11 +981,16 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
   color: var(--tweet-muted);
 }
 
+.tweet-post-card__media-block {
+  margin-top: 0.125rem;
+  margin-bottom: 0.5rem;
+}
+
 .tweet-post-card__gallery {
   display: flex;
   gap: 0.1875rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .tweet-post-card__gallery-cell {
@@ -1023,11 +1024,93 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
 }
 
 .tweet-post-card__cover-wrap {
-  margin-top: 0.25rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
   border-radius: 0.375rem;
   overflow: hidden;
   background-color: var(--tweet-gray4);
+}
+
+.tweet-post-card__share {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.375rem;
+}
+
+.tweet-post-card__share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 9999px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--tweet-muted);
+  background-color: var(--tweet-gray4);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.tweet-post-card__share-btn:hover {
+  color: var(--tweet-gray12);
+  background-color: var(--tweet-gray5);
+}
+
+.tweet-post-card__share-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.tweet-post-card__share-pop {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.375rem);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(18rem, calc(100vw - 2rem));
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  background-color: var(--tweet-card-bg);
+  border: 1px solid var(--tweet-gray6);
+  box-shadow:
+    0 10px 24px -8px rgba(0, 0, 0, 0.35),
+    0 4px 8px -4px rgba(0, 0, 0, 0.2);
+}
+
+.tweet-post-card__share-input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--tweet-gray6);
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--tweet-gray12);
+  background-color: var(--tweet-gray3);
+  box-sizing: border-box;
+}
+
+.tweet-post-card__share-copy {
+  align-self: flex-end;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--tweet-gray1);
+  background-color: var(--tweet-gray12);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.tweet-post-card__share-copy:hover {
+  opacity: 0.88;
 }
 
 .tweet-post-card__cover {
@@ -1174,6 +1257,25 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
   margin-bottom: 1.5rem;
 }
 
+.tweet-gallery-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(40vh, 320px);
+  margin-bottom: 1.5rem;
+  padding: 2rem 0;
+}
+
+.tweet-gallery-loader--compact {
+  min-height: auto;
+  margin-bottom: 0;
+  padding: 2rem 0;
+}
+
+.tweet-gallery-loader__lottie {
+  display: block;
+}
+
 .tweet-gallery-section .gallery-grid-panel {
   margin-bottom: 0;
 }
@@ -1205,6 +1307,140 @@ html.tweet-theme .tweet-gallery-section .gallery-load-more-btn:hover {
   text-align: center;
   font-size: 0.875rem;
   color: var(--tweet-muted);
+}
+
+/* —— Tweet post page ad —— */
+.tweet-ad-banner {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tweet-ad-banner__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: var(--tweet-gray4);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .tweet-ad-banner__link {
+    height: 4.5rem;
+  }
+}
+
+.tweet-ad-banner__link:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.tweet-ad-banner__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tweet-ad-banner__fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--tweet-gray5),
+    var(--tweet-gray6),
+    var(--tweet-gray5)
+  );
+}
+
+.tweet-ad-banner__label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 1rem;
+  background-color: rgba(0, 0, 0, 0.45);
+  transition: background-color 0.2s ease;
+}
+
+.tweet-ad-banner__link:hover .tweet-ad-banner__label {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+.tweet-ad-banner__text {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+}
+
+@media (min-width: 640px) {
+  .tweet-ad-banner__text {
+    font-size: 0.8125rem;
+  }
+}
+
+/* —— Tweet post footer (morethan-log Back / Top style) —— */
+.tweet-post-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--tweet-muted);
+}
+
+.tweet-post-footer__action {
+  margin-top: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--tweet-muted);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.tweet-post-footer__action:hover {
+  color: var(--tweet-gray12);
+}
+
+.tweet-post-footer__action--prev {
+  text-align: left;
+}
+
+.tweet-post-footer__action--next {
+  text-align: right;
+}
+
+.tweet-post-footer__action--top {
+  flex-shrink: 0;
+}
+
+.tweet-post-footer__spacer {
+  flex: 1;
+  min-width: 0.5rem;
+}
+
+.tweet-post-footer--solo {
+  justify-content: flex-end;
 }
 
 /* —— Friends page —— */

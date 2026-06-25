@@ -118,7 +118,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       const formattedBlocks = await formatBlocks(blocks)
 
       let galleryAdBanner = null
-      if (activeTheme === 'gallery') {
+      if (activeTheme === 'gallery' || activeTheme === 'tweet') {
         clearGalleryAdBannerCache()
         galleryAdBanner = await loadGalleryAdBanner()
       }
@@ -227,7 +227,12 @@ const PostPage: NextPage<{
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
       >
-        <TweetPostPage post={post} blocks={blocks} />
+        <TweetPostPage
+          post={post}
+          blocks={blocks}
+          navigation={navigation}
+          galleryAdBanner={galleryAdBanner}
+        />
       </TweetShell>
     )
   }
