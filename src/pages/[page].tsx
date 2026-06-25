@@ -16,7 +16,9 @@ import { addSubTitle } from '../lib/util'
 import { buildNavPageSeo } from '@/src/lib/seo/lightSeo'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
+import { loadHomeWidgets } from '../lib/blog/loadHomeWidgets'
 import {
   NextPageWithLayout,
   Page,
@@ -73,6 +75,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     try {
       const blocks = await getAllBlocks(page?.id ?? '')
       const formattedBlocks = await formatBlocks(blocks)
+      const widgets = await loadHomeWidgets()
 
       return {
         props: JSON.parse(
@@ -80,6 +83,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
             ...sharedPageStaticProps.props,
             page: page,
             blocks: formattedBlocks,
+            widgets,
             seo: buildNavPageSeo(page),
           })
         ),
@@ -114,14 +118,20 @@ const Page: NextPage<{
   blocks: BlockResponse[]
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
-}> = ({ page, blocks, activeTheme, siteTitle }) => {
+  widgets?: Record<string, unknown>
+}> = ({ page, blocks, activeTheme, siteTitle, widgets }) => {
   if (!page) return <Section404 />
 
   const { title } = page
 
   if (activeTheme === 'tweet') {
+    const shellWidgets = pickTweetShellWidgets(widgets)
     return (
-      <TweetShell siteTitle={siteTitle}>
+      <TweetShell
+        siteTitle={siteTitle}
+        profile={shellWidgets.profile}
+        announcement={shellWidgets.announcement}
+      >
         <TweetArticlePage title={page.nav || title} blocks={blocks} />
       </TweetShell>
     )

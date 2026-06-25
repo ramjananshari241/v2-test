@@ -16,7 +16,7 @@ import { BlockResponse } from '../types/notion'
 import { GalleryArticlePage } from '@/src/themes/gallery/GalleryArticlePage'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
-import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
+import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 
 const { ABOUT } = CONFIG.DEFAULT_SPECIAL_PAGES
@@ -45,9 +45,13 @@ const About: NextPage<{
 
   if (activeTheme === 'tweet') {
     const heading = page?.nav || title
-    const profile = widgets?.profile as ProfileWidgetType | undefined
+    const shellWidgets = pickTweetShellWidgets(widgets)
     return (
-      <TweetShell siteTitle={siteTitle} profile={profile}>
+      <TweetShell
+        siteTitle={siteTitle}
+        profile={shellWidgets.profile}
+        announcement={shellWidgets.announcement}
+      >
         <TweetArticlePage
           title={heading}
           blocks={blocks}

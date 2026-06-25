@@ -4,13 +4,12 @@ import { ReactNode } from 'react'
 import { TweetFeedGrid } from './TweetHeader'
 import { TweetRightAside } from './TweetRightAside'
 import { buildTweetProfileData } from './tweetProfile'
-
-type AnnouncementLike = { title?: string; slug?: string }
+import type { TweetAnnouncementLike } from './tweetShellWidgets'
 
 type TweetShellProps = {
   siteTitle?: Title
   profile?: ProfileWidgetType | null
-  announcement?: AnnouncementLike | null
+  announcement?: TweetAnnouncementLike | null
   leftAside?: ReactNode
   children: ReactNode
 }

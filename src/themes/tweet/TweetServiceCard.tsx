@@ -7,14 +7,13 @@ import {
   AiOutlineSound,
 } from 'react-icons/ai'
 import { TweetSectionTitle } from './TweetSectionTitle'
+import type { TweetAnnouncementLike } from './tweetShellWidgets'
 
 const VENDING_URL = 'https://store.proplus.onl/buy'
 const { FREINDS } = CONFIG.DEFAULT_SPECIAL_PAGES
 
-type AnnouncementLike = { title?: string; slug?: string }
-
 type TweetServiceCardProps = {
-  announcement?: AnnouncementLike | null
+  announcement?: TweetAnnouncementLike | null
   showSectionTitle?: boolean
   sectionTitleDesktopOnly?: boolean
 }
@@ -44,7 +43,7 @@ export function TweetServiceCard({
         ) : null}
         <a
           href={VENDING_URL}
-          className="tweet-service__link"
+          className="tweet-service__link tweet-service__link--vending"
           target="_blank"
           rel="noopener noreferrer"
         >

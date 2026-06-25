@@ -13,6 +13,7 @@ import withNavFooter from '../../components/withNavFooter'
 import { GalleryPost } from '@/src/themes/gallery/GalleryPost'
 import { TweetPostPage } from '@/src/themes/tweet/TweetPostPage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import {
   buildGalleryRecommendations,
@@ -28,6 +29,7 @@ import {
   clearGalleryAdBannerCache,
   loadGalleryAdBanner,
 } from '@/src/lib/gallery/loadGalleryAdBanner'
+import { loadHomeWidgets } from '../../lib/blog/loadHomeWidgets'
 import { resolveActiveTheme } from '@/src/themes/getActiveTheme'
 import { formatBlocks } from '../../lib/blog/format/block'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS, getNavigationInfo } from '../../lib/blog/format/post'
@@ -121,6 +123,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         galleryAdBanner = await loadGalleryAdBanner()
       }
 
+      const widgets =
+        activeTheme === 'tweet' ? await loadHomeWidgets() : null
+
       // 🛡️ JSON 暴力清洗：杜绝 undefined 导致的 500 报错
       const safeData = JSON.parse(JSON.stringify({
         ...sharedPageStaticProps.props,
@@ -134,6 +139,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         bottomRecommendations,
         postStats,
         galleryAdBanner,
+        widgets,
         seo: buildPostPageSeo(postForPage),
       }))
 
@@ -184,6 +190,7 @@ const PostPage: NextPage<{
   activeTheme?: string
   navPages?: Page[]
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
+  widgets?: Record<string, unknown>
 }> = ({
   post,
   blocks,
@@ -195,6 +202,7 @@ const PostPage: NextPage<{
   activeTheme,
   navPages = [],
   siteTitle,
+  widgets,
 }) => {
   if (!post) return <Section404 />
 
@@ -213,8 +221,13 @@ const PostPage: NextPage<{
   }
 
   if (activeTheme === 'tweet') {
+    const shellWidgets = pickTweetShellWidgets(widgets)
     return (
-      <TweetShell siteTitle={siteTitle}>
+      <TweetShell
+        siteTitle={siteTitle}
+        profile={shellWidgets.profile}
+        announcement={shellWidgets.announcement}
+      >
         <TweetPostPage post={post} blocks={blocks} />
       </TweetShell>
     )

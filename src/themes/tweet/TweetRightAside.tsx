@@ -1,12 +1,11 @@
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetProfileCard } from './TweetProfileCard'
 import { TweetServiceCard } from './TweetServiceCard'
-
-type AnnouncementLike = { title?: string; slug?: string }
+import type { TweetAnnouncementLike } from './tweetShellWidgets'
 
 type TweetRightAsideProps = {
   profile?: ProfileWidgetType | null
-  announcement?: AnnouncementLike | null
+  announcement?: TweetAnnouncementLike | null
 }
 
 export function TweetRightAside({

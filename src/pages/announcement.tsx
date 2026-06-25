@@ -7,11 +7,12 @@ import ContainerLayout from '@/src/components/post/ContainerLayout'
 import { Section404 } from '@/src/components/section/Section404'
 import withNavFooter from '@/src/components/withNavFooter'
 import { formatBlocks } from '@/src/lib/blog/format/block'
-import { getAnnouncementPost } from '@/src/lib/blog/loadHomeWidgets'
+import { getAnnouncementPost, loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
 import { getAllBlocks } from '@/src/lib/notion/getBlocks'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
 import { NextPageWithLayout, SharedNavFooterStaticProps } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
@@ -21,12 +22,18 @@ const AnnouncementPage: NextPage<{
   blocks: BlockResponse[]
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
-}> = ({ title, blocks, activeTheme, siteTitle }) => {
+  widgets?: Record<string, unknown>
+}> = ({ title, blocks, activeTheme, siteTitle, widgets }) => {
   if (!title) return <Section404 />
 
   if (activeTheme === 'tweet') {
+    const shellWidgets = pickTweetShellWidgets(widgets)
     return (
-      <TweetShell siteTitle={siteTitle}>
+      <TweetShell
+        siteTitle={siteTitle}
+        profile={shellWidgets.profile}
+        announcement={shellWidgets.announcement}
+      >
         <TweetArticlePage title={title} blocks={blocks} backHref="/" backLabel="返回首页" />
       </TweetShell>
     )
@@ -60,6 +67,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
     const blocks = await getAllBlocks(announcement.id)
     const formattedBlocks = await formatBlocks(blocks)
+    const widgets = await loadHomeWidgets({ announcement })
 
     return {
       props: JSON.parse(
@@ -67,6 +75,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
           ...sharedPageStaticProps.props,
           title: announcement.title,
           blocks: formattedBlocks || [],
+          widgets,
         })
       ),
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,

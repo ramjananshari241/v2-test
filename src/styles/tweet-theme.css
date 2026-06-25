@@ -20,6 +20,7 @@ html.tweet-theme {
   --tweet-gray11: #63635e;
   --tweet-gray12: #21201c;
   --tweet-muted: #7e7e7e;
+  --tweet-service-text: #1c1c1c;
   --tweet-card-bg: #ffffff;
   --tweet-header-height: 3rem;
   --tweet-sticky-top: 63px;
@@ -41,6 +42,7 @@ html.tweet-theme.dark {
   --tweet-gray11: #b5b3ad;
   --tweet-gray12: #eeeeec;
   --tweet-muted: #7e7e7e;
+  --tweet-service-text: #7e7e7e;
   --tweet-card-bg: var(--tweet-gray4);
   color-scheme: dark;
 }
@@ -494,13 +496,17 @@ html.tweet-theme ul {
   background-color: var(--tweet-card-bg);
 }
 
+html.tweet-theme a.tweet-service__link {
+  color: var(--tweet-service-text);
+}
+
 .tweet-service__link {
   display: flex;
   padding: 0.75rem;
   gap: 0.75rem;
   align-items: center;
   border-radius: 1rem;
-  color: #1c1c1c;
+  color: var(--tweet-service-text);
   cursor: pointer;
 }
 
@@ -519,13 +525,34 @@ html.tweet-theme ul {
   height: 1.5rem;
   font-size: 1.5rem;
   line-height: 1;
-  color: #1c1c1c;
+  color: var(--tweet-service-text);
 }
 
 .tweet-service__name {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: #1c1c1c;
+  color: var(--tweet-service-text);
+}
+
+/* 贩售机 · 突出按钮 */
+.tweet-service__link--vending {
+  margin: 0.125rem 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+}
+
+.tweet-service__link--vending .tweet-service__name,
+.tweet-service__link--vending .tweet-service__icon {
+  color: #ffffff;
+}
+
+.tweet-service__link--vending:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.tweet-service__link--vending:hover .tweet-service__name,
+.tweet-service__link--vending:hover .tweet-service__icon {
+  color: #ffffff;
 }
 
 /* —— Feed header (CategorySelect + Order) —— */

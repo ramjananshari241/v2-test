@@ -21,7 +21,9 @@ import { BlockResponse } from '../types/notion'
 import { GalleryFriendsPage } from '@/src/themes/gallery/GalleryFriendsPage'
 import { TweetFriendsPage } from '@/src/themes/tweet/TweetFriendsPage'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout } from '@/src/themes/themeLayout'
+import { loadHomeWidgets } from '../lib/blog/loadHomeWidgets'
 
 const { FREINDS } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -35,7 +37,8 @@ const Freinds: NextPage<{
   page: Page | null
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
-}> = ({ blocks, friendsDatabase, title, page, activeTheme, siteTitle }) => {
+  widgets?: Record<string, unknown>
+}> = ({ blocks, friendsDatabase, title, page, activeTheme, siteTitle, widgets }) => {
   const friends = friendsDatabase?.data ?? []
 
   if (activeTheme === 'gallery') {
@@ -50,8 +53,13 @@ const Freinds: NextPage<{
   }
 
   if (activeTheme === 'tweet') {
+    const shellWidgets = pickTweetShellWidgets(widgets)
     return (
-      <TweetShell siteTitle={siteTitle}>
+      <TweetShell
+        siteTitle={siteTitle}
+        profile={shellWidgets.profile}
+        announcement={shellWidgets.announcement}
+      >
         <TweetFriendsPage title={title} blocks={blocks} friends={friends} />
       </TweetShell>
     )
@@ -88,6 +96,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     const friendsDatabase =
       formattedChildDatabase.find((database) => database.type === 'Friends') ??
       null
+    const widgets = await loadHomeWidgets()
 
     return {
       props: {
@@ -96,6 +105,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         title: page?.nav || page?.title || '友链',
         blocks: formattedBlocks || [],
         friendsDatabase,
+        widgets,
       },
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
     }

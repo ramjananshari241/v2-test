@@ -8,7 +8,9 @@ import withNavFooter from '@/src/components/withNavFooter'
 import { GalleryFilteredPosts } from '@/src/themes/gallery/GalleryFilteredPosts'
 import { TweetFilteredPosts } from '@/src/themes/tweet/TweetFilteredPosts'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout, usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
+import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { getAllTags } from '@/src/lib/blog/format/tag'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
@@ -51,6 +53,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         posts: postsByTag,
         tag,
         subTitle,
+        widgets: await loadHomeWidgets(),
       },
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
     }
@@ -63,7 +66,8 @@ const TagPage: NextPage<{
   subTitle: Title
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
-}> = ({ tag, posts, subTitle, activeTheme, siteTitle }) => {
+  widgets?: Record<string, unknown>
+}> = ({ tag, posts, subTitle, activeTheme, siteTitle, widgets }) => {
   if (!tag) return <Section404 />
 
   tag.count = posts.length
@@ -86,8 +90,13 @@ const TagPage: NextPage<{
   }
 
   if (activeTheme === 'tweet') {
+    const shellWidgets = pickTweetShellWidgets(widgets)
     return (
-      <TweetShell siteTitle={siteTitle}>
+      <TweetShell
+        siteTitle={siteTitle}
+        profile={shellWidgets.profile}
+        announcement={shellWidgets.announcement}
+      >
         <TweetFilteredPosts posts={posts} title={tag.name} emptyLabel="该标签下暂无文章" />
       </TweetShell>
     )
