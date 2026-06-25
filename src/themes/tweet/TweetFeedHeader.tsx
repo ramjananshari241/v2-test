@@ -68,7 +68,7 @@ export function TweetFeedHeader({ posts }: { posts: Post[] }) {
           onClick={() => setOpened((v) => !v)}
           aria-expanded={opened}
         >
-          {currentLabel} 文章
+          {currentCategoryId ? currentLabel : ALL_LABEL}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M7 10l5 5 5-5z" />
           </svg>

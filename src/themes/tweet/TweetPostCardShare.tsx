@@ -54,7 +54,7 @@ export function TweetPostCardShare({ slug }: TweetPostCardShareProps) {
         onClick={() => setOpen((value) => !value)}
       >
         <AiOutlineShareAlt className="tweet-post-card__share-icon" aria-hidden />
-        <span>分享本篇</span>
+        <span>分享</span>
       </button>
 
       {open ? (

@@ -1,3 +1,5 @@
+import { TweetEmoji } from './TweetEmoji'
+
 type TweetSectionTitleProps = {
   emoji: string
   label: string
@@ -15,7 +17,8 @@ export function TweetSectionTitle({
         desktopOnly ? ' tweet-section__title--desktop-only' : ''
       }`}
     >
-      {emoji} {label}
+      <TweetEmoji className="tweet-section__title-emoji">{emoji}</TweetEmoji>
+      <span className="tweet-section__title-label">{label}</span>
     </div>
   )
 }
