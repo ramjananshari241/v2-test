@@ -13,4 +13,5 @@ export type ThemeHomeProps = {
   siteTitle?: Title
   navPages?: Page[]
   tweetFeedMedia?: TweetFeedMediaMap | null
+  galleryFeedCovers?: Record<string, string> | null
 }

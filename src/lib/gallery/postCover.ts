@@ -50,11 +50,25 @@ export function findFirstBlockImageUrl(
   return null
 }
 
-/** 分类 banner 等：优先封面属性，否则正文首图 */
+/** 列表卡片封面：有图库时优先图库首图，其次 Notion 封面属性 */
+export function resolveGalleryListCoverSrc(
+  post: Post,
+  galleryThumbUrl?: string | null
+): string {
+  const fromGallery = (galleryThumbUrl || '').trim()
+  if (fromGallery && !isDefaultPostCover(fromGallery)) return fromGallery
+  return resolvePostCoverSrc(post)
+}
+
+/** 分类 banner 等：图库首图 → 封面属性 → 正文首图 */
 export function resolveGalleryPostBannerSrc(
   post: Post,
-  blocks?: BlockResponse[]
+  blocks?: BlockResponse[],
+  galleryThumbUrl?: string | null
 ): string {
+  const fromGallery = (galleryThumbUrl || '').trim()
+  if (fromGallery && !isDefaultPostCover(fromGallery)) return fromGallery
+
   const cover = resolvePostCoverSrc(post)
   if (cover) return cover
   const firstImage = findFirstBlockImageUrl(blocks)

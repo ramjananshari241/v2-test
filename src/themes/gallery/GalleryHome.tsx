@@ -20,7 +20,7 @@ function parsePageFromQuery(query: unknown, maxPages: number): number {
   return Math.min(n, maxPages)
 }
 
-export const GalleryHome = ({ posts, widgets }: ThemeHomeProps) => {
+export const GalleryHome = ({ posts, widgets, galleryFeedCovers }: ThemeHomeProps) => {
   const router = useRouter()
   const allPosts = posts?.length ? posts : []
   const announcement = widgets?.announcement as AnnouncementLike | undefined
@@ -91,7 +91,11 @@ export const GalleryHome = ({ posts, widgets }: ThemeHomeProps) => {
           <>
             <div className={galleryCardGridClass}>
               {displayPosts.map((post) => (
-                <GalleryCard key={post.id} post={post} />
+                <GalleryCard
+                  key={post.id}
+                  post={post}
+                  galleryCoverSrc={galleryFeedCovers?.[post.slug]}
+                />
               ))}
             </div>
 

@@ -26,6 +26,7 @@ type GalleryFilteredPostsProps = {
   emptyLabel?: string
   /** 分类详情：最新文章封面 / 正文首图作为 banner 背景 */
   bannerImageUrl?: string | null
+  galleryFeedCovers?: Record<string, string> | null
 }
 
 /**
@@ -37,6 +38,7 @@ export function GalleryFilteredPosts({
   title,
   emptyLabel = '暂无文章',
   bannerImageUrl,
+  galleryFeedCovers,
 }: GalleryFilteredPostsProps) {
   const router = useRouter()
 
@@ -115,7 +117,11 @@ export function GalleryFilteredPosts({
           <>
             <div className={galleryCardGridClass}>
               {displayPosts.map((post) => (
-                <GalleryCard key={post.id} post={post} />
+                <GalleryCard
+                  key={post.id}
+                  post={post}
+                  galleryCoverSrc={galleryFeedCovers?.[post.slug]}
+                />
               ))}
             </div>
 

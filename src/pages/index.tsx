@@ -14,7 +14,9 @@ import { NextPageWithLayout, Post, SharedNavFooterStaticProps } from '../types/b
 import { ApiScope } from '../types/notion'
 import { buildHomePageSeo } from '../lib/seo/lightSeo'
 import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
+import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews'
 import { loadTweetFeedMedia } from '../lib/tweet/loadTweetFeedMedia'
+import { themeFromEnv } from '@/src/themes/getActiveTheme'
 import { getThemeHomeComponent } from '../themes/registry'
 import { ThemeId } from '../themes/types'
 
@@ -23,7 +25,8 @@ const Home: NextPage<{
   widgets: { [key: string]: unknown }
   activeTheme: ThemeId
   tweetFeedMedia?: import('../lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
-}> = ({ posts, widgets, activeTheme, siteTitle, navPages, tweetFeedMedia }) => {
+  galleryFeedCovers?: Record<string, string> | null
+}> = ({ posts, widgets, activeTheme, siteTitle, navPages, tweetFeedMedia, galleryFeedCovers }) => {
   const themeId =
     activeTheme ||
     (process.env.NODE_ENV === 'development' ? themeFromEnv() : null) ||
@@ -36,6 +39,7 @@ const Home: NextPage<{
       siteTitle={siteTitle}
       navPages={navPages}
       tweetFeedMedia={tweetFeedMedia}
+      galleryFeedCovers={galleryFeedCovers}
     />
   )
 }
@@ -70,9 +74,12 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       })
 
       const activeTheme = sharedPageStaticProps.props.activeTheme
-      const tweetFeedMedia =
-        isTweetTheme(activeTheme)
-          ? await loadTweetFeedMedia(filteredPosts)
+      const tweetFeedMedia = isTweetTheme(activeTheme)
+        ? await loadTweetFeedMedia(filteredPosts)
+        : null
+      const galleryFeedCovers =
+        activeTheme === 'gallery'
+          ? await loadGalleryFeedCovers(filteredPosts.map((p) => p.slug))
           : null
 
       const finalProps = JSON.parse(JSON.stringify(sharedPageStaticProps.props))
@@ -82,12 +89,17 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         ? JSON.parse(JSON.stringify(tweetFeedMedia))
         : null
 
+      const finalGalleryFeedCovers = galleryFeedCovers
+        ? JSON.parse(JSON.stringify(galleryFeedCovers))
+        : null
+
       return {
         props: {
           ...finalProps,
           posts: finalPosts,
           widgets: finalWidgets,
           tweetFeedMedia: finalTweetFeedMedia,
+          galleryFeedCovers: finalGalleryFeedCovers,
           seo: buildHomePageSeo(),
         },
         revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,

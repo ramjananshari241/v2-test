@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Post, Tag } from '@/src/types/blog'
-import CONFIG from '@/blog.config'
+import { resolveGalleryListCoverSrc } from '@/src/lib/gallery/postCover'
 import { galleryPostDownloadHref } from '@/src/lib/gallery/galleryDownloadPaths'
 import {
   galleryCardCategoryClass,
@@ -30,8 +30,15 @@ function DownloadIcon() {
   )
 }
 
-export const GalleryCard = ({ post }: { post: Post }) => {
-  const cover = post.cover?.light?.src
+export const GalleryCard = ({
+  post,
+  galleryCoverSrc,
+}: {
+  post: Post
+  /** 图库首图（列表封面优先于 Notion 封面 / 正文首图） */
+  galleryCoverSrc?: string
+}) => {
+  const cover = resolveGalleryListCoverSrc(post, galleryCoverSrc)
   const postHref = `/post/${post.slug}`
   const downloadHref = galleryPostDownloadHref(post.slug)
   const tags = post.tags?.filter((t) => t.name) ?? []

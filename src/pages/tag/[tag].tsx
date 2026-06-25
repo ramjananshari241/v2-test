@@ -13,6 +13,7 @@ import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout, usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
+import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews'
 import { loadTweetFeedMedia } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { getAllTags } from '@/src/lib/blog/format/tag'
@@ -50,6 +51,11 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     )
     const tag = postsByTag[0].tags.find((t) => t.id === tagId)
 
+    const galleryFeedCovers =
+      sharedPageStaticProps.props.activeTheme === 'gallery'
+        ? await loadGalleryFeedCovers(postsByTag.map((p) => p.slug))
+        : null
+
     const tweetFeedMedia =
       isTweetTheme(sharedPageStaticProps.props.activeTheme)
         ? await loadTweetFeedMedia(postsByTag)
@@ -65,6 +71,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         tweetFeedMedia: tweetFeedMedia
           ? JSON.parse(JSON.stringify(tweetFeedMedia))
           : null,
+        galleryFeedCovers: galleryFeedCovers
+          ? JSON.parse(JSON.stringify(galleryFeedCovers))
+          : null,
       },
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
     }
@@ -79,7 +88,8 @@ const TagPage: NextPage<{
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
   tweetFeedMedia?: import('@/src/lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
-}> = ({ tag, posts, subTitle, activeTheme, siteTitle, widgets, tweetFeedMedia }) => {
+  galleryFeedCovers?: Record<string, string> | null
+}> = ({ tag, posts, subTitle, activeTheme, siteTitle, widgets, tweetFeedMedia, galleryFeedCovers }) => {
   if (!tag) return <Section404 />
 
   tag.count = posts.length
@@ -91,6 +101,7 @@ const TagPage: NextPage<{
       <GalleryFilteredPosts
         posts={posts}
         title={tag.name}
+        galleryFeedCovers={galleryFeedCovers}
         breadcrumbItems={[
           { label: '首页', href: '/' },
           { label: parentLabel, href: parentHref },

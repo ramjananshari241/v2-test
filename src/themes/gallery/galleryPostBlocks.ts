@@ -1,17 +1,14 @@
-import { BlockEnum } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
 
 /**
- * Gallery 内页正文：
- * - 有 Supabase 图库：大图走图库网格，正文跳过 image 块（封面仅用于列表卡片）
- * - 无图库：保留 Notion 正文 image 块，支持纯图文文章
+ * Gallery / Tweet 内页正文：图库网格与 Notion 正文并存；
+ * 正文 image 块照常渲染（图库只负责套图，不替代正文插图）。
  */
 export function filterGalleryBodyBlocks(
   blocks: BlockResponse[],
-  hasGallery: boolean
+  _hasGallery?: boolean
 ): BlockResponse[] {
-  if (!hasGallery) return blocks
-  return blocks.filter((block) => block.type !== BlockEnum.image)
+  return blocks
 }
 
 export function hasGalleryBodyContent(

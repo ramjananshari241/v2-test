@@ -13,6 +13,7 @@ import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
+import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews'
 import { loadTweetFeedMedia } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { getAllCategories } from '@/src/lib/blog/format/category'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
@@ -62,17 +63,30 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       }
 
     let categoryBannerImage: string | null = null
+    let galleryFeedCovers: Record<string, string> | null = null
     if (
       sharedPageStaticProps.props.activeTheme === 'gallery' &&
       postsByCategory.length > 0
     ) {
+      galleryFeedCovers = await loadGalleryFeedCovers(
+        postsByCategory.map((p) => p.slug)
+      )
       const latestPost = getLatestPostByDate(postsByCategory)
       if (latestPost) {
-        let banner = resolveGalleryPostBannerSrc(latestPost)
+        const galleryThumb = galleryFeedCovers[latestPost.slug]
+        let banner = resolveGalleryPostBannerSrc(
+          latestPost,
+          undefined,
+          galleryThumb
+        )
         if (!banner && latestPost.id) {
           try {
             const blocks = await getAllBlocks(latestPost.id)
-            banner = resolveGalleryPostBannerSrc(latestPost, blocks)
+            banner = resolveGalleryPostBannerSrc(
+              latestPost,
+              blocks,
+              galleryThumb
+            )
           } catch (err) {
             console.warn(
               '[category] banner blocks load failed:',
@@ -101,6 +115,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         tweetFeedMedia: tweetFeedMedia
           ? JSON.parse(JSON.stringify(tweetFeedMedia))
           : null,
+        galleryFeedCovers: galleryFeedCovers
+          ? JSON.parse(JSON.stringify(galleryFeedCovers))
+          : null,
       },
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
     }
@@ -116,7 +133,8 @@ const CategoryPage: NextPage<{
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
   tweetFeedMedia?: import('@/src/lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
-}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage, siteTitle, widgets, tweetFeedMedia }) => {
+  galleryFeedCovers?: Record<string, string> | null
+}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage, siteTitle, widgets, tweetFeedMedia, galleryFeedCovers }) => {
   if (!category) return <Section404 />
 
   category.count = posts.length
@@ -129,6 +147,7 @@ const CategoryPage: NextPage<{
         posts={posts}
         title={category.name}
         bannerImageUrl={categoryBannerImage}
+        galleryFeedCovers={galleryFeedCovers}
         breadcrumbItems={[
           { label: '首页', href: '/' },
           { label: parentLabel, href: parentHref },

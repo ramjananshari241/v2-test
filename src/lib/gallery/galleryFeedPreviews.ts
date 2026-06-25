@@ -63,3 +63,16 @@ export async function loadGalleryFeedPreviews(
 
   return results
 }
+
+/** 列表卡片用：每篇取图库第一张缩略图作为封面候选 */
+export async function loadGalleryFeedCovers(
+  slugs: string[]
+): Promise<Record<string, string>> {
+  const previews = await loadGalleryFeedPreviews(slugs, 1)
+  const covers: Record<string, string> = {}
+  for (const [slug, preview] of Object.entries(previews)) {
+    const first = preview.thumbs[0]
+    if (first) covers[slug] = first
+  }
+  return covers
+}
