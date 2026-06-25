@@ -2,12 +2,15 @@ import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { Title } from '@/src/types/blog'
 import { ReactNode } from 'react'
 import { TweetFeedGrid } from './TweetHeader'
-import { TweetProfileCard } from './TweetProfileCard'
+import { TweetRightAside } from './TweetRightAside'
 import { buildTweetProfileData } from './tweetProfile'
+
+type AnnouncementLike = { title?: string; slug?: string }
 
 type TweetShellProps = {
   siteTitle?: Title
   profile?: ProfileWidgetType | null
+  announcement?: AnnouncementLike | null
   leftAside?: ReactNode
   children: ReactNode
 }
@@ -15,6 +18,7 @@ type TweetShellProps = {
 export function TweetShell({
   siteTitle,
   profile,
+  announcement,
   leftAside,
   children,
 }: TweetShellProps) {
@@ -25,7 +29,9 @@ export function TweetShell({
     <TweetFeedGrid
       siteName={siteName}
       leftAside={leftAside}
-      rightAside={<TweetProfileCard profile={profileData} />}
+      rightAside={
+        <TweetRightAside profile={profileData} announcement={announcement} />
+      }
     >
       {children}
     </TweetFeedGrid>

@@ -52,12 +52,13 @@ export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
     <TweetShell
       siteTitle={siteTitle}
       profile={profile}
+      announcement={announcement}
       leftAside={<TweetTagList tags={tags} layout="sidebar" />}
     >
       <TweetTagList tags={tags} layout="mobile" />
       <TweetMobileProfileCard profile={profile} />
+      <TweetAnnouncementBar announcement={announcement} placement="mobile" />
       <TweetSearchBox />
-      <TweetAnnouncementBar announcement={announcement} />
       <TweetFeedHeader posts={allPosts} />
       <TweetPostList posts={filteredPosts} emptyLabel={emptyMessage} />
     </TweetShell>

@@ -5,17 +5,28 @@ type AnnouncementLike = {
   slug?: string
 }
 
+type TweetAnnouncementBarProps = {
+  announcement?: AnnouncementLike | null
+  placement?: 'sidebar' | 'mobile'
+}
+
 export function TweetAnnouncementBar({
   announcement,
-}: {
-  announcement?: AnnouncementLike | null
-}) {
+  placement = 'sidebar',
+}: TweetAnnouncementBarProps) {
   const title = announcement?.title?.trim()
   if (!title) return null
 
+  if (placement === 'mobile') {
+    return (
+      <Link href="/announcement" className="tweet-announcement-mobile">
+        {title}
+      </Link>
+    )
+  }
+
   return (
-    <Link href="/announcement" className="tweet-announcement">
-      <span className="tweet-announcement__label">📌</span>
+    <Link href="/announcement" className="tweet-announcement-sidebar">
       {title}
     </Link>
   )
