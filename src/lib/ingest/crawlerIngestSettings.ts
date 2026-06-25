@@ -93,7 +93,7 @@ export async function updateCrawlerIngestAutoSettings(
   return next
 }
 
-/** cron 每小时调用：仅在启用且当前北京时间整点匹配时执行 */
+/** cron 每日调用（UTC 19:00 ≈ 北京时间 03:00）：启用且整点匹配时执行 */
 export async function shouldRunScheduledCrawlerIngest(): Promise<boolean> {
   const settings = await getCrawlerIngestAutoSettings()
   if (!settings.configured || !settings.enabled) return false

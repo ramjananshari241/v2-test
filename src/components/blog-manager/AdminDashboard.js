@@ -1714,7 +1714,7 @@ const CrawlerIngestPanel = ({
               {autoSaving ? '保存中…' : '保存定时'}
             </button>
             <span style={{ fontSize: 11, color: '#666' }}>
-              系统每小时检查一次，仅在所选整点且有待入库时执行
+              每日自动检查一次（北京时间约 03:00）；仅当所选整点为 3 点且有待入库时执行（Vercel 免费计划 Cron 每日限 1 次）
             </span>
           </div>
         </div>
