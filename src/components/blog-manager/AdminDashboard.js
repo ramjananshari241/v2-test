@@ -5513,6 +5513,12 @@ const [mounted, setMounted] = useState(false);
     return list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
   })();
   const recycleCount = posts.filter((p) => p.type === 'Piece').length;
+  const publishedPostCount = posts.filter(
+    (p) =>
+      p.type === 'Post' &&
+      p.status !== 'Draft' &&
+      p.slug !== ANNOUNCEMENT_SLUG
+  ).length;
   const siteInfoWidget = posts.find(p => p.type === 'Widget' && p.slug !== 'gallery-ad');
   const pinnedDividerIndex = activeTab === 'Post' ? filtered.findIndex(p => !p.pinned) : -1;
   const publishDatesSet = (() => {
@@ -5793,7 +5799,25 @@ const [mounted, setMounted] = useState(false);
                       onClick={() => { setActiveTab(t); setSelectedFolder(null); setSelectedPublishDate(null); setDatePickerOpen(false); }}
                       style={activeTab === t ? { padding: '8px 20px', border: 'none', background: '#555', color: '#fff', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' } : { padding: '8px 20px', border: 'none', background: 'none', color: '#888', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}
                     >
-                      {t === 'Page' ? '自定义页面' : t === 'Post' ? '已发布' : '组件'}
+                      {t === 'Page' ? (
+                        '自定义页面'
+                      ) : t === 'Post' ? (
+                        <>
+                          已发布
+                          <span
+                            style={{
+                              marginLeft: '6px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              color: activeTab === t ? 'greenyellow' : '#666',
+                            }}
+                          >
+                            {publishedPostCount}
+                          </span>
+                        </>
+                      ) : (
+                        '组件'
+                      )}
                     </button>
                   ))}
                 </div>
