@@ -1,9 +1,8 @@
 import Link from 'next/link'
-import { BlockRender } from '@/src/components/blocks/BlockRender'
 import { Post } from '@/src/types/blog'
 import { BlockResponse } from '@/src/types/notion'
-import { MathJaxContext } from 'better-react-mathjax'
 import { formatTweetDate } from './tweetSearch'
+import { TweetPostContent } from './TweetPostContent'
 
 type TweetPostPageProps = {
   post: Post
@@ -14,7 +13,7 @@ export function TweetPostPage({ post, blocks }: TweetPostPageProps) {
   const dateLabel = formatTweetDate(post.date?.created)
 
   return (
-    <article>
+    <article className="tweet-post-page">
       <Link href="/" className="tweet-article-back">
         ← 返回首页
       </Link>
@@ -23,11 +22,7 @@ export function TweetPostPage({ post, blocks }: TweetPostPageProps) {
       {post.excerpt?.trim() ? (
         <p className="tweet-article-excerpt">{post.excerpt}</p>
       ) : null}
-      <MathJaxContext>
-        <div className="prose-tweet overflow-hidden break-words">
-          <BlockRender blocks={blocks} />
-        </div>
-      </MathJaxContext>
+      <TweetPostContent postSlug={post.slug} blocks={blocks} />
     </article>
   )
 }

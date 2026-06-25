@@ -8,9 +8,11 @@ import withNavFooter from '@/src/components/withNavFooter'
 import { GalleryFilteredPosts } from '@/src/themes/gallery/GalleryFilteredPosts'
 import { TweetFilteredPosts } from '@/src/themes/tweet/TweetFilteredPosts'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { buildTweetProfileData } from '@/src/themes/tweet/tweetProfile'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
+import { loadTweetFeedMedia } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { getAllCategories } from '@/src/lib/blog/format/category'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
@@ -82,6 +84,11 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       }
     }
 
+    const tweetFeedMedia =
+      sharedPageStaticProps.props.activeTheme === 'tweet'
+        ? await loadTweetFeedMedia(postsByCategory)
+        : null
+
     return {
       props: {
         ...sharedPageStaticProps.props,
@@ -90,6 +97,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         categoryBannerImage,
         subTitle,
         widgets: await loadHomeWidgets(),
+        tweetFeedMedia: tweetFeedMedia
+          ? JSON.parse(JSON.stringify(tweetFeedMedia))
+          : null,
       },
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
     }
@@ -104,7 +114,8 @@ const CategoryPage: NextPage<{
   categoryBannerImage?: string | null
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
-}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage, siteTitle, widgets }) => {
+  tweetFeedMedia?: import('@/src/lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
+}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage, siteTitle, widgets, tweetFeedMedia }) => {
   if (!category) return <Section404 />
 
   category.count = posts.length
@@ -129,6 +140,7 @@ const CategoryPage: NextPage<{
 
   if (activeTheme === 'tweet') {
     const shellWidgets = pickTweetShellWidgets(widgets)
+    const profileData = buildTweetProfileData(shellWidgets.profile, siteTitle)
     return (
       <TweetShell
         siteTitle={siteTitle}
@@ -138,6 +150,8 @@ const CategoryPage: NextPage<{
           posts={posts}
           title={category.name}
           emptyLabel="该分类下暂无文章"
+          profile={profileData}
+          feedMedia={tweetFeedMedia}
         />
       </TweetShell>
     )

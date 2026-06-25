@@ -8,9 +8,11 @@ import withNavFooter from '@/src/components/withNavFooter'
 import { GalleryFilteredPosts } from '@/src/themes/gallery/GalleryFilteredPosts'
 import { TweetFilteredPosts } from '@/src/themes/tweet/TweetFilteredPosts'
 import { TweetShell } from '@/src/themes/tweet/TweetShell'
+import { buildTweetProfileData } from '@/src/themes/tweet/tweetProfile'
 import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout, usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
+import { loadTweetFeedMedia } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { getAllTags } from '@/src/lib/blog/format/tag'
 import { withNavFooterStaticProps } from '@/src/lib/blog/withNavFooterStaticProps'
@@ -47,6 +49,11 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     )
     const tag = postsByTag[0].tags.find((t) => t.id === tagId)
 
+    const tweetFeedMedia =
+      sharedPageStaticProps.props.activeTheme === 'tweet'
+        ? await loadTweetFeedMedia(postsByTag)
+        : null
+
     return {
       props: {
         ...sharedPageStaticProps.props,
@@ -54,6 +61,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         tag,
         subTitle,
         widgets: await loadHomeWidgets(),
+        tweetFeedMedia: tweetFeedMedia
+          ? JSON.parse(JSON.stringify(tweetFeedMedia))
+          : null,
       },
       revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
     }
@@ -67,7 +77,8 @@ const TagPage: NextPage<{
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
-}> = ({ tag, posts, subTitle, activeTheme, siteTitle, widgets }) => {
+  tweetFeedMedia?: import('@/src/lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
+}> = ({ tag, posts, subTitle, activeTheme, siteTitle, widgets, tweetFeedMedia }) => {
   if (!tag) return <Section404 />
 
   tag.count = posts.length
@@ -91,12 +102,19 @@ const TagPage: NextPage<{
 
   if (activeTheme === 'tweet') {
     const shellWidgets = pickTweetShellWidgets(widgets)
+    const profileData = buildTweetProfileData(shellWidgets.profile, siteTitle)
     return (
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
       >
-        <TweetFilteredPosts posts={posts} title={tag.name} emptyLabel="该标签下暂无文章" />
+        <TweetFilteredPosts
+          posts={posts}
+          title={tag.name}
+          emptyLabel="该标签下暂无文章"
+          profile={profileData}
+          feedMedia={tweetFeedMedia}
+        />
       </TweetShell>
     )
   }

@@ -13,6 +13,7 @@ import { getPosts } from '../lib/notion/getBlogData'
 import { NextPageWithLayout, Post, SharedNavFooterStaticProps } from '../types/blog'
 import { ApiScope } from '../types/notion'
 import { buildHomePageSeo } from '../lib/seo/lightSeo'
+import { loadTweetFeedMedia } from '../lib/tweet/loadTweetFeedMedia'
 import { getThemeHomeComponent } from '../themes/registry'
 import { ThemeId } from '../themes/types'
 
@@ -20,7 +21,8 @@ const Home: NextPage<{
   posts: Post[]
   widgets: { [key: string]: unknown }
   activeTheme: ThemeId
-}> = ({ posts, widgets, activeTheme, siteTitle, navPages }) => {
+  tweetFeedMedia?: import('../lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
+}> = ({ posts, widgets, activeTheme, siteTitle, navPages, tweetFeedMedia }) => {
   const themeId =
     activeTheme ||
     (process.env.NODE_ENV === 'development' ? themeFromEnv() : null) ||
@@ -32,6 +34,7 @@ const Home: NextPage<{
       widgets={widgets}
       siteTitle={siteTitle}
       navPages={navPages}
+      tweetFeedMedia={tweetFeedMedia}
     />
   )
 }
@@ -65,15 +68,25 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         announcement: announcementPost,
       })
 
+      const activeTheme = sharedPageStaticProps.props.activeTheme
+      const tweetFeedMedia =
+        activeTheme === 'tweet'
+          ? await loadTweetFeedMedia(filteredPosts)
+          : null
+
       const finalProps = JSON.parse(JSON.stringify(sharedPageStaticProps.props))
       const finalPosts = JSON.parse(JSON.stringify(filteredPosts))
       const finalWidgets = JSON.parse(JSON.stringify(safeWidgets || {}))
+      const finalTweetFeedMedia = tweetFeedMedia
+        ? JSON.parse(JSON.stringify(tweetFeedMedia))
+        : null
 
       return {
         props: {
           ...finalProps,
           posts: finalPosts,
           widgets: finalWidgets,
+          tweetFeedMedia: finalTweetFeedMedia,
           seo: buildHomePageSeo(),
         },
         revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,

@@ -1,4 +1,5 @@
 import { Page, Post, Title } from '@/src/types/blog'
+import { TweetFeedMediaMap } from '@/src/lib/tweet/loadTweetFeedMedia'
 
 export type ThemeId = 'anzifan' | 'touchgal' | 'gallery' | 'tweet'
 
@@ -11,4 +12,5 @@ export type ThemeHomeProps = {
   widgets: { [key: string]: unknown }
   siteTitle?: Title
   navPages?: Page[]
+  tweetFeedMedia?: TweetFeedMediaMap | null
 }

@@ -9,16 +9,23 @@ import { TweetSearchBox } from './TweetSearchBox'
 import { TweetServiceCard } from './TweetServiceCard'
 import { TweetShell } from './TweetShell'
 import { TweetTagList } from './TweetTagList'
+import { buildTweetProfileData } from './tweetProfile'
 import {
   collectTweetTags,
   filterTweetPosts,
   readTweetSearchQuery,
 } from './tweetSearch'
 
-export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
+export function TweetHome({
+  posts,
+  widgets,
+  siteTitle,
+  tweetFeedMedia,
+}: ThemeHomeProps) {
   const router = useRouter()
   const allPosts = posts?.length ? posts : []
   const profile = widgets?.profile as ProfileWidgetType | undefined
+  const profileData = buildTweetProfileData(profile, siteTitle)
 
   const searchQuery = router.isReady ? readTweetSearchQuery(router.query.q) : ''
   const categoryId =
@@ -58,7 +65,12 @@ export function TweetHome({ posts, widgets, siteTitle }: ThemeHomeProps) {
       </div>
       <TweetSearchBox />
       <TweetFeedHeader posts={allPosts} />
-      <TweetPostList posts={filteredPosts} emptyLabel={emptyMessage} />
+      <TweetPostList
+        posts={filteredPosts}
+        emptyLabel={emptyMessage}
+        profile={profileData}
+        feedMedia={tweetFeedMedia}
+      />
     </TweetShell>
   )
 }
