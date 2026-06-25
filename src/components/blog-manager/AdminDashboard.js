@@ -488,7 +488,7 @@ const GlobalStyle = () => (
     .nav-glider { position: absolute; top: 5px; bottom: 5px; background: greenyellow; border-radius: 40px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1; }
     .nav-item { position: relative; z-index: 2; padding: 8px 16px; cursor: pointer; color: #888; transition: color 0.3s; display: flex; align-items: center; justify-content: center; width: 40px; }
     .nav-item.active { color: #000; font-weight: bold; }
-    .gallery-only-tag { display: inline; color: #1a1500; font-weight: 600; background: linear-gradient(180deg, #ffe566 0%, #ffd400 100%); padding: 1px 7px; border-radius: 4px; font-size: 10px; letter-spacing: 0.3px; box-shadow: 0 0 0 1px rgba(255, 200, 0, 0.35); vertical-align: baseline; }
+    .gallery-only-tag { display: inline; color: #0a1400; font-weight: 600; background: linear-gradient(180deg, #d4ff6a 0%, #adff2f 100%); padding: 1px 7px; border-radius: 4px; font-size: 10px; letter-spacing: 0.3px; box-shadow: 0 0 0 1px rgba(173, 255, 47, 0.45); vertical-align: baseline; }
     .block-card-wrap { display: grid; grid-template-columns: 1fr 40px; column-gap: 4px; margin-bottom: 0; align-items: stretch; }
     .block-card { background: #2a2a2e; border: 1px solid #333; border-radius: 10px; padding: 15px 15px 15px 55px; margin-bottom: 0; position: relative; transition: border 0.2s; min-width: 0; }
     .block-card-wrap:hover .block-card { border-color: greenyellow; }
@@ -667,7 +667,7 @@ const SearchInput = ({ value, onChange }) => (
 );
 
 const GalleryOnlyTag = () => (
-  <span className="gallery-only-tag">(Gallery主题专用)</span>
+  <span className="gallery-only-tag">(gallery、tweet主题专用)</span>
 );
 
 const ViewModeButton = ({ label, active, onClick }) => (
