@@ -50,7 +50,7 @@ export function TweetHome({
 
   const emptyMessage = searchQuery
     ? `未找到与「${searchQuery}」相关的文章`
-    : 'Nothing! 😺'
+    : '暂无内容 😺'
 
   return (
     <TweetShell

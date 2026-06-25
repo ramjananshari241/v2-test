@@ -4,7 +4,7 @@ import { Post } from '@/src/types/blog'
 import { useRouter } from 'next/router'
 import { useMemo, useRef, useState, useEffect } from 'react'
 
-const ALL_LABEL = 'All'
+const ALL_LABEL = '全部'
 
 export function TweetFeedHeader({ posts }: { posts: Post[] }) {
   const router = useRouter()
@@ -68,7 +68,7 @@ export function TweetFeedHeader({ posts }: { posts: Post[] }) {
           onClick={() => setOpened((v) => !v)}
           aria-expanded={opened}
         >
-          {currentLabel} Posts
+          {currentLabel} 文章
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M7 10l5 5 5-5z" />
           </svg>
@@ -102,7 +102,7 @@ export function TweetFeedHeader({ posts }: { posts: Post[] }) {
           data-active={currentOrder === 'desc'}
           onClick={() => setQuery({ order: 'desc' })}
         >
-          Desc
+          最新
         </button>
         <button
           type="button"
@@ -110,7 +110,7 @@ export function TweetFeedHeader({ posts }: { posts: Post[] }) {
           data-active={currentOrder === 'asc'}
           onClick={() => setQuery({ order: 'asc' })}
         >
-          Asc
+          最早
         </button>
       </div>
     </div>

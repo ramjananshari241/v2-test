@@ -56,9 +56,9 @@ export function formatTweetDate(value?: string): string {
   if (!value) return ''
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return value.slice(0, 10)
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
+  return d.toLocaleDateString('zh-CN', {
     year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 }

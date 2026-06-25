@@ -15,7 +15,7 @@ type TweetFilteredPostsProps = {
 export function TweetFilteredPosts({
   posts,
   title,
-  emptyLabel = 'Nothing! 😺',
+  emptyLabel = '暂无内容 😺',
   profile,
   feedMedia,
 }: TweetFilteredPostsProps) {

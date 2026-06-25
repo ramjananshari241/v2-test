@@ -219,6 +219,12 @@ html.tweet-theme ul {
   display: none;
   grid-column: span 3 / span 3;
   align-self: start;
+  position: sticky;
+  top: var(--tweet-sticky-top);
+}
+
+.tweet-feed__right-inner {
+  display: block;
 }
 
 @media (min-width: 1024px) {
@@ -377,10 +383,13 @@ html.tweet-theme ul {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: auto;
-  max-width: 7.5rem;
+  width: 5rem;
+  height: 5rem;
   margin: 0.5rem auto 0;
-  background: transparent;
+  border-radius: 9999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: var(--tweet-gray5);
 }
 
 .tweet-profile-card__avatar-wrap::after {
@@ -390,20 +399,17 @@ html.tweet-theme ul {
 }
 
 .tweet-profile-card__avatar {
-  position: static;
-  width: auto;
-  max-width: 7.5rem;
-  max-height: 7.5rem;
-  height: auto;
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  border-radius: 0.5rem;
-  background: transparent;
+  border-radius: 0;
+  background-color: transparent;
 }
 
 .tweet-profile-card__avatar-fallback {
-  width: 5rem;
-  height: 5rem;
-  position: static;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -411,7 +417,7 @@ html.tweet-theme ul {
   color: var(--tweet-gray9);
   font-size: 1.5rem;
   font-weight: 700;
-  border-radius: 0.5rem;
+  border-radius: 0;
 }
 
 .tweet-profile-card__mid {
@@ -456,13 +462,30 @@ html.tweet-theme ul {
   align-items: center;
 }
 
-.tweet-profile-mobile__avatar {
+.tweet-profile-mobile__avatar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 3.5rem;
   height: 3.5rem;
   flex-shrink: 0;
-  border-radius: 0.5rem;
-  object-fit: cover;
-  background: var(--tweet-gray4);
+  border-radius: 9999px;
+  overflow: hidden;
+  background-color: var(--tweet-gray5);
+}
+
+.tweet-profile-mobile__avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: transparent;
+}
+
+.tweet-profile-mobile__avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tweet-gray9);
 }
 
 .tweet-profile-mobile__name {
@@ -879,12 +902,23 @@ html.tweet-theme.dark .tweet-post-card:hover .tweet-post-card__shell {
   padding: 0.875rem 0.875rem 0.5rem;
 }
 
-.tweet-post-card__author-avatar {
+.tweet-post-card__author-avatar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 2rem;
   height: 2rem;
   flex-shrink: 0;
   border-radius: 9999px;
-  object-fit: cover;
+  overflow: hidden;
+  background-color: var(--tweet-gray5);
+}
+
+.tweet-post-card__author-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: transparent;
 }
 
 .tweet-post-card__author-fallback {
@@ -1031,43 +1065,50 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
   background-color: var(--tweet-gray4);
 }
 
+.tweet-post-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0.875rem 0.75rem;
+}
+
 .tweet-post-card__share {
   position: relative;
   display: flex;
-  justify-content: flex-start;
-  margin-top: 0.375rem;
+  justify-content: flex-end;
 }
 
-.tweet-post-card__share-btn {
+.tweet-post-card__share-trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.375rem;
   border: none;
   border-radius: 9999px;
-  padding: 0;
   cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 500;
   color: var(--tweet-muted);
-  background-color: var(--tweet-gray4);
+  background-color: transparent;
   transition:
     color 0.15s ease,
     background-color 0.15s ease;
 }
 
-.tweet-post-card__share-btn:hover {
+.tweet-post-card__share-trigger:hover {
   color: var(--tweet-gray12);
-  background-color: var(--tweet-gray5);
+  background-color: var(--tweet-gray4);
 }
 
-.tweet-post-card__share-btn svg {
+.tweet-post-card__share-icon {
   width: 1rem;
   height: 1rem;
+  flex-shrink: 0;
 }
 
 .tweet-post-card__share-pop {
   position: absolute;
-  left: 0;
+  right: 0;
   bottom: calc(100% + 0.375rem);
   z-index: 20;
   display: flex;
@@ -1111,6 +1152,21 @@ html.tweet-theme.dark .tweet-post-card__author-badge {
 
 .tweet-post-card__share-copy:hover {
   opacity: 0.88;
+}
+
+/* 站点 Logo 常见带黑/白底方形图：blend 去掉底色，露出卡片背景 */
+.tweet-avatar__img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+html.tweet-theme.dark .tweet-avatar__img {
+  mix-blend-mode: lighten;
+}
+
+html.tweet-theme:not(.dark) .tweet-avatar__img {
+  mix-blend-mode: darken;
 }
 
 .tweet-post-card__cover {

@@ -26,7 +26,6 @@ export function TweetPostCard({
   const excerpt = post.excerpt?.trim()
   const media = resolveTweetCardMedia(post, feedMedia)
   const postHref = `/post/${post.slug}`
-  const hasMedia = media.mode !== 'none'
 
   return (
     <article className="tweet-post-card">
@@ -46,10 +45,9 @@ export function TweetPostCard({
               <p className="tweet-post-card__excerpt">{excerpt}</p>
             ) : null}
 
-            {hasMedia ? (
+            {media.mode !== 'none' ? (
               <div className="tweet-post-card__media-block">
                 <TweetPostCardMedia media={media} />
-                <TweetPostCardShare slug={post.slug} />
               </div>
             ) : null}
 
@@ -64,6 +62,9 @@ export function TweetPostCard({
             ) : null}
           </div>
         </Link>
+        <div className="tweet-post-card__footer">
+          <TweetPostCardShare slug={post.slug} />
+        </div>
       </div>
     </article>
   )

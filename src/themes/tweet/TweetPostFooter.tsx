@@ -22,7 +22,7 @@ export function TweetPostFooter({
           className="tweet-post-footer__action tweet-post-footer__action--top"
           onClick={scrollToTop}
         >
-          ↑ Top
+          ↑ 回到顶部
         </button>
       </footer>
     )
@@ -46,7 +46,7 @@ export function TweetPostFooter({
         className="tweet-post-footer__action tweet-post-footer__action--top"
         onClick={scrollToTop}
       >
-        ↑ Top
+        ↑ 回到顶部
       </button>
 
       {nextPost ? (

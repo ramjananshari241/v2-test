@@ -12,7 +12,7 @@ type TweetPostListProps = {
 
 export function TweetPostList({
   posts,
-  emptyLabel = 'Nothing! 😺',
+  emptyLabel = '暂无内容 😺',
   profile,
   feedMedia,
 }: TweetPostListProps) {

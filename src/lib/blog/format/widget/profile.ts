@@ -6,6 +6,8 @@ export type ProfileWidgetType = {
   description: string
   logo: {
     src: string
+    /** 深色主题用封面；无则回退 src */
+    darkSrc?: string
     info: {
       placeholder: string
       width: number
@@ -27,11 +29,15 @@ export function formatProfileWidget(
   const description = excerpt
   const links = data.SocialLinks
   const logo = cover.light
+  const darkSrc = cover.dark?.src?.trim()
 
   return {
     name,
     description,
-    logo,
+    logo: {
+      ...logo,
+      darkSrc: darkSrc || logo.src,
+    },
     links,
   }
 }

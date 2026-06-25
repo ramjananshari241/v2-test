@@ -28,13 +28,13 @@ export function TweetSearchBox() {
 
   return (
     <div className="tweet-search">
-      <TweetSectionTitle emoji="🔎" label="Search" />
+      <TweetSectionTitle emoji="🔎" label="搜索" />
       <form onSubmit={onSubmit}>
         <input
           type="search"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Search Keyword..."
+          placeholder="搜索关键词…"
           className="tweet-search__box"
         />
       </form>

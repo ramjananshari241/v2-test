@@ -18,7 +18,7 @@ export function TweetShell({
   leftAside,
   children,
 }: TweetShellProps) {
-  const siteName = siteTitle?.text?.trim() || 'PRO BLOG'
+  const siteName = siteTitle?.text?.trim() || '本站'
   const profileData = buildTweetProfileData(profile, siteTitle)
 
   return (

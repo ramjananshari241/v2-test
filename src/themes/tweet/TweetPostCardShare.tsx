@@ -31,49 +31,38 @@ export function TweetPostCardShare({ slug }: TweetPostCardShareProps) {
     return () => document.removeEventListener('mousedown', onPointerDown)
   }, [open])
 
-  const stopCardNav = useCallback((event: React.SyntheticEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-  }, [])
-
-  const copyLink = useCallback(
-    async (event: React.MouseEvent) => {
-      stopCardNav(event)
-      const url =
-        shareUrl ||
-        `${window.location.origin}/post/${encodeURIComponent(slug)}`
-      try {
-        await navigator.clipboard.writeText(url)
-        setCopied(true)
-        window.setTimeout(() => setCopied(false), 2000)
-      } catch {
-        setCopied(false)
-      }
-    },
-    [shareUrl, slug, stopCardNav]
-  )
+  const copyLink = useCallback(async () => {
+    const url =
+      shareUrl ||
+      `${window.location.origin}/post/${encodeURIComponent(slug)}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }, [shareUrl, slug])
 
   return (
-    <div
-      ref={rootRef}
-      className="tweet-post-card__share"
-      onClick={stopCardNav}
-    >
+    <div ref={rootRef} className="tweet-post-card__share">
       <button
         type="button"
-        className="tweet-post-card__share-btn"
-        aria-label="分享链接"
+        className="tweet-post-card__share-trigger"
+        aria-label="分享本篇"
         aria-expanded={open}
-        onClick={(event) => {
-          stopCardNav(event)
-          setOpen((value) => !value)
-        }}
+        onClick={() => setOpen((value) => !value)}
       >
-        <AiOutlineShareAlt aria-hidden />
+        <AiOutlineShareAlt className="tweet-post-card__share-icon" aria-hidden />
+        <span>分享本篇</span>
       </button>
 
       {open ? (
-        <div className="tweet-post-card__share-pop" role="dialog" aria-label="分享链接">
+        <div
+          className="tweet-post-card__share-pop"
+          role="dialog"
+          aria-label="分享链接"
+        >
           <input
             type="text"
             className="tweet-post-card__share-input"

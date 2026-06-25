@@ -61,7 +61,7 @@ export function TweetTagList({ tags, layout = 'both' }: TweetTagListProps) {
     <>
       {showSidebar ? (
         <div>
-          <TweetSectionTitle emoji="🏷️" label="Tags" desktopOnly />
+          <TweetSectionTitle emoji="🏷️" label="标签" desktopOnly />
           <TagItems tags={tags} activeTag={activeTag} horizontal={false} />
         </div>
       ) : null}

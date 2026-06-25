@@ -27,12 +27,12 @@ export function TweetHeader({ siteName }: TweetHeaderProps) {
         </Link>
         <nav className="tweet-header__nav">
           <Link href={`/${ABOUT}`} className="tweet-header__nav-about">
-            About
+            关于
           </Link>
           <button
             type="button"
             className="tweet-header__theme-btn"
-            aria-label="切换深色模式"
+            aria-label={isDark ? '切换浅色模式' : '切换深色模式'}
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
           >
             {isDark ? (
@@ -70,7 +70,9 @@ export function TweetFeedGrid({
         <div className="tweet-feed">
           <aside className="tweet-feed__left">{leftAside}</aside>
           <div className="tweet-feed__mid">{children}</div>
-          <aside className="tweet-feed__right">{rightAside}</aside>
+          <aside className="tweet-feed__right">
+            <div className="tweet-feed__right-inner">{rightAside}</div>
+          </aside>
         </div>
       </main>
     </>
