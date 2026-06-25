@@ -79,6 +79,15 @@ html.tweet-theme a {
   text-decoration: none;
 }
 
+html.tweet-theme a.tweet-tags__item {
+  color: #7e7e7e;
+}
+
+html.tweet-theme a.tweet-tags__item:hover,
+html.tweet-theme a.tweet-tags__item[data-active='true'] {
+  color: #7e7e7e;
+}
+
 html.tweet-theme ul {
   list-style: none;
   margin: 0;
@@ -491,7 +500,7 @@ html.tweet-theme ul {
   gap: 0.75rem;
   align-items: center;
   border-radius: 1rem;
-  color: #7e7e7e;
+  color: #1c1c1c;
   cursor: pointer;
 }
 
@@ -510,13 +519,13 @@ html.tweet-theme ul {
   height: 1.5rem;
   font-size: 1.5rem;
   line-height: 1;
-  color: #7e7e7e;
+  color: #1c1c1c;
 }
 
 .tweet-service__name {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: #7e7e7e;
+  color: #1c1c1c;
 }
 
 /* —— Feed header (CategorySelect + Order) —— */

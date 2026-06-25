@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import CONFIG from '@/blog.config'
 
-const { ABOUT, FREINDS } = CONFIG.DEFAULT_SPECIAL_PAGES
+const { ABOUT } = CONFIG.DEFAULT_SPECIAL_PAGES
 
 type TweetHeaderProps = {
   siteName: string
@@ -26,7 +26,6 @@ export function TweetHeader({ siteName }: TweetHeaderProps) {
           {siteName}
         </Link>
         <nav className="tweet-header__nav">
-          <Link href={`/${FREINDS}`}>友链</Link>
           <Link href={`/${ABOUT}`} className="tweet-header__nav-about">
             About
           </Link>
