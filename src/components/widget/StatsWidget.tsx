@@ -161,10 +161,11 @@ export const StatsWidget = ({
   // --- 动态渲染标签 (保持原样不动) ---
   // @ts-ignore
   const Wrapper = slug ? Link : 'div';
+
   // @ts-ignore
   const wrapperProps = slug 
-    ? { href: slug, className: "flex-1 flex flex-col justify-center group/text cursor-pointer relative z-20" } 
-    : { className: "flex-1 flex flex-col justify-center relative z-20 opacity-80" };
+    ? { href: slug, className: "flex flex-col group/text cursor-pointer relative z-20" } 
+    : { className: "flex flex-col relative z-20 opacity-80" };
 
   return (
     <React.StrictMode>
@@ -191,10 +192,10 @@ export const StatsWidget = ({
              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent"></div>
           </div>
 
-          {/* ================= 内容层 (保留原样不动) ================= */}
-          <div className="relative z-10 flex flex-col h-full justify-between p-5 md:p-6">
+          {/* ================= 内容层 ================= */}
+          <div className="relative z-10 flex flex-col h-full p-5 md:p-6">
             
-            {/* 上半部分：公告内容 */}
+            {/* 上半部分：公告内容（始终靠上） */}
             {/* @ts-ignore */}
             <Wrapper {...wrapperProps}>
                <div className="mb-2 flex items-center gap-1.5 opacity-90">
@@ -211,9 +212,9 @@ export const StatsWidget = ({
                </p>
             </Wrapper>
 
-            {/* 下半部分：贩售机入口 */}
+            {/* 下半部分：贩售机入口（有按钮时贴底） */}
             {vendingEnabled ? (
-            <div className="w-full mt-4 relative z-20">
+            <div className="w-full mt-auto pt-4 relative z-20">
               <button 
                 onClick={(e) => {
                   e.preventDefault(); 
