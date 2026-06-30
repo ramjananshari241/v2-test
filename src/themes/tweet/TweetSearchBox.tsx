@@ -28,7 +28,7 @@ export function TweetSearchBox() {
 
   return (
     <div className="tweet-search">
-      <TweetSectionTitle emoji="🔎" label="搜索" />
+      <TweetSectionTitle emoji="🔎" label="搜索" desktopOnly />
       <form onSubmit={onSubmit}>
         <input
           type="search"

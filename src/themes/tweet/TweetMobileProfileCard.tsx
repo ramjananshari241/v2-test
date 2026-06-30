@@ -1,6 +1,5 @@
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAvatar } from './TweetAvatar'
-import { TweetSectionTitle } from './TweetSectionTitle'
 import { TweetVendingButton } from './TweetVendingButton'
 
 export function TweetMobileProfileCard({
@@ -15,7 +14,6 @@ export function TweetMobileProfileCard({
 
   return (
     <div className="tweet-feed__profile-mobile">
-      <TweetSectionTitle emoji="🙂" label="作者" />
       <div className="tweet-profile__stack">
         <div className="tweet-profile-mobile">
           <div className="tweet-profile-mobile__row">

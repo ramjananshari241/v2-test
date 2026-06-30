@@ -64,7 +64,7 @@ export function TweetHome({
       <TweetTagList tags={tags} layout="mobile" />
       <TweetMobileProfileCard profile={profile} vendingEnabled={vendingEnabled} />
       <div className="tweet-service-mobile">
-        <TweetServiceCard sectionTitleDesktopOnly={false} />
+        <TweetServiceCard />
         <TweetAsideFooter />
       </div>
       <TweetSearchBox />

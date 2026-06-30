@@ -184,6 +184,18 @@ html.tweet-theme ul {
     display: block;
     padding: 0.5rem 0;
   }
+
+  .tweet-feed__profile-mobile .tweet-profile__stack {
+    margin-bottom: 0.625rem;
+  }
+
+  .tweet-service-mobile {
+    margin-bottom: 0.625rem;
+  }
+
+  .tweet-search {
+    margin-bottom: 0.75rem;
+  }
 }
 
 .tweet-feed__left {
@@ -192,6 +204,8 @@ html.tweet-theme ul {
   position: sticky;
   top: var(--tweet-sticky-top);
   align-self: start;
+  max-height: calc(100vh - var(--tweet-sticky-top));
+  max-height: calc(100dvh - var(--tweet-sticky-top));
   overflow: auto;
   scrollbar-width: none;
 }
@@ -222,6 +236,15 @@ html.tweet-theme ul {
   align-self: start;
   position: sticky;
   top: var(--tweet-sticky-top);
+  max-height: calc(100vh - var(--tweet-sticky-top));
+  max-height: calc(100dvh - var(--tweet-sticky-top));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.tweet-feed__right::-webkit-scrollbar {
+  display: none;
 }
 
 .tweet-feed__right-inner {
@@ -1694,39 +1717,95 @@ html.tweet-theme .tweet-gallery-section .gallery-load-more-btn:hover {
   color: var(--tweet-muted);
 }
 
-/* —— Tweet 浅色变体（tweet-light）：页面底与卡片对比更清晰 —— */
+/* —— Tweet 浅色变体（tweet-light）：贴近 X/Twitter 浅色界面 —— */
 html.tweet-theme.tweet-theme--light {
-  --tweet-gray2: #eceae8;
-  --tweet-gray3: #e4e2df;
-  --tweet-gray4: #dcd9d5;
-  --tweet-gray5: #d4d1cc;
+  --tweet-gray1: #ffffff;
+  --tweet-gray2: #ffffff;
+  --tweet-gray3: #f7f9f9;
+  --tweet-gray4: #eff3f4;
+  --tweet-gray5: #e6eaed;
+  --tweet-gray6: #eff3f4;
+  --tweet-gray7: #cfd9de;
+  --tweet-gray8: #b9cad3;
+  --tweet-gray9: #536471;
+  --tweet-gray10: #536471;
+  --tweet-gray11: #536471;
+  --tweet-gray12: #0f1419;
+  --tweet-muted: #536471;
+  --tweet-service-text: #536471;
   --tweet-card-bg: #ffffff;
   color-scheme: light;
 }
 
+html.tweet-theme.tweet-theme--light body,
+html.tweet-theme.tweet-theme--light .tweet-root {
+  background-color: #ffffff;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-header {
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #eff3f4;
+  box-shadow: none;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-feed-header {
+  border-bottom-color: #eff3f4;
+}
+
 html.tweet-theme.tweet-theme--light .tweet-post-card__shell {
-  border: 1px solid var(--tweet-gray6);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eff3f4;
+  box-shadow: none;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-profile-card,
 html.tweet-theme.tweet-theme--light .tweet-profile-mobile,
 html.tweet-theme.tweet-theme--light .tweet-service__card {
-  border: 1px solid var(--tweet-gray6);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eff3f4;
+  box-shadow: none;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-post-card:hover .tweet-post-card__shell {
-  box-shadow:
-    0 10px 22px -8px rgba(0, 0, 0, 0.12),
-    0 4px 10px -4px rgba(0, 0, 0, 0.06);
+  border-color: #cfd9de;
+  box-shadow: 0 2px 8px rgba(15, 20, 25, 0.06);
 }
 
 html.tweet-theme.tweet-theme--light .tweet-search__box {
-  border: 1px solid var(--tweet-gray6);
-  background-color: var(--tweet-card-bg);
+  border: none;
+  background-color: #eff3f4;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-tags__item:hover,
+html.tweet-theme.tweet-theme--light .tweet-tags__item[data-active='true'] {
+  background-color: #eff3f4;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-aside-footer {
+  border-top-color: #eff3f4;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-service__link:hover {
+  background-color: #f7f9f9;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-post-card__share-pop {
+  border-color: #eff3f4;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-post-card__share-input {
+  background-color: #f7f9f9;
+  border-color: #eff3f4;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-feed-header__dropdown {
+  background-color: #ffffff;
+  border: 1px solid #eff3f4;
+  box-shadow: 0 8px 24px rgba(15, 20, 25, 0.08);
+}
+
+html.tweet-theme.tweet-theme--light .tweet-feed-header__dropdown-item:hover {
+  background-color: #f7f9f9;
 }
 
 /* —— 首屏 / 路由切换全屏加载（猫咪 Lottie） —— */
