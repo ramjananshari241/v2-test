@@ -27,6 +27,7 @@ import {
 } from '@/src/components/theme/ActiveThemeProvider'
 import { LightSeoMeta } from '@/src/components/seo/LightSeoMeta'
 import { isTweetLightTheme, isTweetTheme } from '@/src/themes/tweet/tweetTheme'
+import { TweetLoadingProgress } from '@/src/themes/tweet/TweetLoadingProgress'
 import type { PageSeoFlat } from '@/src/lib/seo/lightSeo'
 import { NextPageWithLayout } from '../types/blog'
 
@@ -218,6 +219,7 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
         color={CONFIG.PROGRESS_BAR_COLOR}
         options={{ showSpinner: false }}
       />
+      {isTweetTheme(activeTheme) && !isAdminRoute ? <TweetLoadingProgress /> : null}
       <GoogleAnalytics trackPageViews />
       {getLayout(<Component {...effectivePageProps} />)}
       <Analytics />

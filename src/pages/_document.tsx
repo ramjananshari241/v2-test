@@ -11,6 +11,7 @@ export default function Document() {
         <NextScript />
         {/* 在 __NEXT_DATA__ 之后立刻根据 activeTheme 设置 Gallery 图标与 cookie */}
         <script src="/gallery-theme-boot.js" />
+        <script src="/tweet-theme-boot.js" />
       </body>
     </Html>
   )
