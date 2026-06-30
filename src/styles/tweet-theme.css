@@ -190,8 +190,8 @@ html.tweet-theme ul {
     margin-bottom: 0.625rem;
   }
 
-  .tweet-service-mobile {
-    margin-bottom: 0.625rem;
+  .tweet-feed__profile-mobile .tweet-profile__stack--mobile {
+    margin-bottom: 0.5rem;
   }
 
   .tweet-search {
@@ -539,10 +539,66 @@ html.tweet-theme ul {
   background-color: var(--tweet-card-bg);
 }
 
+.tweet-profile-mobile--toggle {
+  display: block;
+  width: 100%;
+  margin: 0;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tweet-profile-mobile--toggle:hover {
+  background-color: var(--tweet-gray3);
+}
+
+.tweet-profile-mobile--toggle:focus-visible {
+  outline: 2px solid var(--tweet-gray8);
+  outline-offset: 2px;
+}
+
 .tweet-profile-mobile__row {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+.tweet-profile-mobile__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tweet-profile-mobile__chevron {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.25rem;
+  border-right: 2px solid var(--tweet-muted);
+  border-bottom: 2px solid var(--tweet-muted);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.tweet-profile-mobile__chevron.is-open {
+  transform: rotate(-135deg);
+  margin-top: 0.25rem;
+}
+
+.tweet-mobile-profile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.tweet-mobile-profile-panel .tweet-service {
+  margin-bottom: 0;
+}
+
+.tweet-mobile-profile-panel .tweet-aside-footer {
+  margin-top: 0.5rem;
 }
 
 .tweet-profile-mobile__avatar-wrap {
@@ -1770,6 +1826,10 @@ html.tweet-theme.tweet-theme--light .tweet-profile-mobile,
 html.tweet-theme.tweet-theme--light .tweet-service__card {
   border: 1px solid #eff3f4;
   box-shadow: none;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-profile-mobile--toggle:hover {
+  background-color: #f7f9f9;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-post-card:hover .tweet-post-card__shell {

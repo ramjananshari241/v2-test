@@ -1,5 +1,10 @@
+'use client'
+
+import { useState } from 'react'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
+import { TweetAsideFooter } from './TweetAsideFooter'
 import { TweetAvatar } from './TweetAvatar'
+import { TweetServiceCard } from './TweetServiceCard'
 import { TweetVendingButton } from './TweetVendingButton'
 
 export function TweetMobileProfileCard({
@@ -9,13 +14,20 @@ export function TweetMobileProfileCard({
   profile?: ProfileWidgetType | null
   vendingEnabled?: boolean
 }) {
+  const [expanded, setExpanded] = useState(false)
   const name = profile?.name?.trim() || '本站'
   const description = profile?.description?.trim() || ''
 
   return (
     <div className="tweet-feed__profile-mobile">
-      <div className="tweet-profile__stack">
-        <div className="tweet-profile-mobile">
+      <div className="tweet-profile__stack tweet-profile__stack--mobile">
+        <button
+          type="button"
+          className="tweet-profile-mobile tweet-profile-mobile--toggle"
+          onClick={() => setExpanded((open) => !open)}
+          aria-expanded={expanded}
+          aria-label={expanded ? '收起站点菜单' : '展开站点菜单'}
+        >
           <div className="tweet-profile-mobile__row">
             <TweetAvatar
               profile={profile}
@@ -24,15 +36,26 @@ export function TweetMobileProfileCard({
               fallbackClassName="tweet-profile-mobile__avatar tweet-profile-mobile__avatar-fallback"
               fallbackText={name.charAt(0).toUpperCase()}
             />
-            <div>
+            <div className="tweet-profile-mobile__text">
               <div className="tweet-profile-mobile__name">{name}</div>
               {description ? (
                 <p className="tweet-profile-mobile__bio">{description}</p>
               ) : null}
             </div>
+            <span
+              className={`tweet-profile-mobile__chevron${expanded ? ' is-open' : ''}`}
+              aria-hidden
+            />
           </div>
-        </div>
-        {vendingEnabled ? <TweetVendingButton /> : null}
+        </button>
+
+        {expanded ? (
+          <div className="tweet-mobile-profile-panel">
+            {vendingEnabled ? <TweetVendingButton /> : null}
+            <TweetServiceCard />
+            <TweetAsideFooter />
+          </div>
+        ) : null}
       </div>
     </div>
   )

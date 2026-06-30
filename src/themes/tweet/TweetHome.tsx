@@ -6,8 +6,6 @@ import { TweetFeedHeader } from './TweetFeedHeader'
 import { TweetMobileProfileCard } from './TweetMobileProfileCard'
 import { TweetPostList } from './TweetPostList'
 import { TweetSearchBox } from './TweetSearchBox'
-import { TweetAsideFooter } from './TweetAsideFooter'
-import { TweetServiceCard } from './TweetServiceCard'
 import { TweetShell } from './TweetShell'
 import { TweetTagList } from './TweetTagList'
 import { buildTweetProfileData } from './tweetProfile'
@@ -62,10 +60,6 @@ export function TweetHome({
       leftAside={<TweetTagList tags={tags} layout="sidebar" />}
     >
       <TweetMobileProfileCard profile={profile} vendingEnabled={vendingEnabled} />
-      <div className="tweet-service-mobile">
-        <TweetServiceCard />
-        <TweetAsideFooter />
-      </div>
       <TweetSearchBox />
       <TweetFeedHeader posts={allPosts} />
       <TweetPostList
