@@ -1,4 +1,5 @@
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
+import { TweetAsideFooter } from './TweetAsideFooter'
 import { TweetProfileCard } from './TweetProfileCard'
 import { TweetServiceCard } from './TweetServiceCard'
 
@@ -11,6 +12,7 @@ export function TweetRightAside({ profile }: TweetRightAsideProps) {
     <>
       <TweetProfileCard profile={profile} />
       <TweetServiceCard />
+      <TweetAsideFooter />
     </>
   )
 }

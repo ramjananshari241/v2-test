@@ -2,6 +2,7 @@ import CONFIG from '@/blog.config'
 import Link from 'next/link'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAvatar } from './TweetAvatar'
+import { TweetPostCardShare } from './TweetPostCardShare'
 
 const { CATEGORY } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -11,6 +12,7 @@ type TweetPostCardAuthorProps = {
   categoryId?: string
   dateLabel?: string
   dateTime?: string
+  slug: string
 }
 
 export function TweetPostCardAuthor({
@@ -19,6 +21,7 @@ export function TweetPostCardAuthor({
   categoryId,
   dateLabel,
   dateTime,
+  slug,
 }: TweetPostCardAuthorProps) {
   const name = profile?.name?.trim() || '本站'
   const categoryHref =
@@ -42,11 +45,14 @@ export function TweetPostCardAuthor({
           </Link>
         ) : null}
       </div>
-      {dateLabel ? (
-        <time className="tweet-post-card__date" dateTime={dateTime}>
-          {dateLabel}
-        </time>
-      ) : null}
+      <div className="tweet-post-card__author-actions">
+        {dateLabel ? (
+          <time className="tweet-post-card__date" dateTime={dateTime}>
+            {dateLabel}
+          </time>
+        ) : null}
+        <TweetPostCardShare slug={slug} />
+      </div>
     </div>
   )
 }

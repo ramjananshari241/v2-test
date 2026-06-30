@@ -6,7 +6,6 @@ import { formatTweetDate } from './tweetSearch'
 import { TweetPostCardAuthor } from './TweetPostCardAuthor'
 import { TweetPostCardCoverLazy } from './TweetPostCardCoverLazy'
 import { TweetPostCardMedia } from './TweetPostCardMedia'
-import { TweetPostCardShare } from './TweetPostCardShare'
 import {
   isDeferredTweetBodyImage,
   resolveTweetCardMedia,
@@ -42,6 +41,7 @@ export function TweetPostCard({
           categoryId={categoryId}
           dateLabel={dateLabel}
           dateTime={post.date?.created}
+          slug={post.slug}
         />
         <Link href={postHref} className="tweet-post-card__article">
           <div className="tweet-post-card__body">
@@ -73,7 +73,9 @@ export function TweetPostCard({
           </div>
         </Link>
         <div className="tweet-post-card__footer">
-          <TweetPostCardShare slug={post.slug} />
+          <Link href={postHref} className="tweet-post-card__read-more">
+            阅读全文→
+          </Link>
         </div>
       </div>
     </article>
