@@ -5991,7 +5991,7 @@ const [mounted, setMounted] = useState(false);
 
             {/* 4. 列表渲染区域 */}
             <div style={viewMode === 'gallery' || viewMode === 'folder' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' } : {}}>
-              {activeTab === 'Page' && viewMode !== 'folder' && (
+              {activeTab === 'Widget' && viewMode !== 'folder' && (
                 <div onClick={openFriends} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid greenyellow', cursor: 'pointer' }}>
                   <div style={{ fontSize: '28px' }}>🔗</div>
                   <div style={{ flex: 1 }}>
@@ -6193,9 +6193,6 @@ const [mounted, setMounted] = useState(false);
               <div style={{color:'#888', textAlign:'center', padding:'30px'}}>加载中...</div>
             ) : (
               <>
-                <div style={{fontSize:'12px', color:'#aaa', marginBottom:'24px', lineHeight:1.8}}>
-                  关闭后，Standard / Gallery / Tweet 各主题中的贩售机按钮将隐藏；Standard v2 底部推广横幅也会一并隐藏。保存后自动刷新前台页面，无需全站重部署。
-                </div>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'20px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555'}}>
                   <div>
                     <div style={{fontSize:'16px', fontWeight:'bold', color:'#fff', marginBottom:'6px'}}>贩售机功能</div>
@@ -6220,9 +6217,6 @@ const [mounted, setMounted] = useState(false);
                   >
                     {vendingSaving ? '保存中…' : (vendingEnabled ? '已开启' : '已关闭')}
                   </button>
-                </div>
-                <div style={{marginTop:'18px', fontSize:'11px', color:'#777', lineHeight:1.7}}>
-                  点击开关即可切换。`/vending` 说明页仍可直链访问，仅隐藏各主题内的入口按钮。
                 </div>
               </>
             )}
