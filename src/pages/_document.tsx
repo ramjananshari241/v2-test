@@ -1,18 +1,89 @@
-import { Html, Head, Main, NextScript } from 'next/document'
+import Document, {
+  DocumentContext,
+  DocumentInitialProps,
+  Head,
+  Html,
+  Main,
+  NextScript,
+} from 'next/document'
+import { TWEET_BOOT_CRITICAL_CSS } from '@/src/themes/tweet/tweetBootCriticalCss'
+import {
+  isTweetLightTheme,
+  isTweetTheme,
+} from '@/src/themes/tweet/tweetTheme'
 
-export default function Document() {
-  return (
-    <Html lang="zh-CN">
-      <Head>
-        {/* 标签图标由 _app 按 activeTheme 切换；此处不再写死 favicon，避免覆盖 Gallery 主题图标 */}
-      </Head>
-      <body>
-        <Main />
-        <NextScript />
-        {/* 在 __NEXT_DATA__ 之后立刻根据 activeTheme 设置 Gallery 图标与 cookie */}
-        <script src="/gallery-theme-boot.js" />
-        <script src="/tweet-theme-boot.js" />
-      </body>
-    </Html>
-  )
+type BlogDocumentProps = DocumentInitialProps & {
+  activeTheme?: string
+  isAdminRoute?: boolean
+}
+
+export default class BlogDocument extends Document<BlogDocumentProps> {
+  static async getInitialProps(
+    ctx: DocumentContext
+  ): Promise<BlogDocumentProps> {
+    const originalRenderPage = ctx.renderPage
+    let activeTheme = ''
+
+    ctx.renderPage = () =>
+      originalRenderPage({
+        enhanceApp: (App) => (props) => {
+          activeTheme = String(
+            (props.pageProps as { activeTheme?: string })?.activeTheme || ''
+          )
+          return <App {...props} />
+        },
+      })
+
+    const initialProps = await Document.getInitialProps(ctx)
+    const isAdminRoute =
+      ctx.pathname === '/admin' || ctx.pathname.startsWith('/admin/')
+
+    return { ...initialProps, activeTheme, isAdminRoute }
+  }
+
+  render() {
+    const { activeTheme, isAdminRoute } = this.props
+    const showTweetBoot = !isAdminRoute && isTweetTheme(activeTheme)
+    const tweetLight = isTweetLightTheme(activeTheme)
+
+    const htmlClass = [
+      showTweetBoot ? 'tweet-theme tweet-boot-pending' : '',
+      showTweetBoot && !tweetLight ? 'dark' : '',
+      showTweetBoot && tweetLight ? 'tweet-theme--light' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    return (
+      <Html lang="zh-CN" className={htmlClass || undefined}>
+        <Head>
+          {showTweetBoot ? (
+            <style
+              id="tweet-boot-screen-style"
+              dangerouslySetInnerHTML={{ __html: TWEET_BOOT_CRITICAL_CSS }}
+            />
+          ) : null}
+        </Head>
+        <body>
+          {showTweetBoot ? (
+            <div
+              id="tweet-boot-screen"
+              className="tweet-boot-screen"
+              role="status"
+              aria-live="polite"
+              aria-label="页面加载中"
+            >
+              <span className="tweet-boot-screen__letter" aria-hidden="true">
+                P
+              </span>
+            </div>
+          ) : null}
+          <Main />
+          <NextScript />
+          <script src="/gallery-theme-boot.js" />
+          {!showTweetBoot ? <script src="/tweet-theme-boot.js" /> : null}
+        </body>
+      </Html>
+    )
+  }
 }

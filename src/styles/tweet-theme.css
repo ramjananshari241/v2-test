@@ -1730,6 +1730,14 @@ html.tweet-theme.tweet-theme--light .tweet-search__box {
 }
 
 /* —— 首屏 / 路由切换全屏加载（对齐 rylan.cn 字母闪烁） —— */
+html.tweet-boot-pending body {
+  overflow: hidden;
+}
+
+html.tweet-boot-pending #__next {
+  visibility: hidden;
+}
+
 .tweet-boot-screen {
   position: fixed;
   inset: 0;

@@ -3,6 +3,8 @@
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useActiveTheme } from '@/src/components/theme/ActiveThemeProvider'
+import { isTweetLightTheme } from './tweetTheme'
 
 const MIN_VISIBLE_MS = 1200
 const ROUTE_HIDE_DELAY_MS = 900
@@ -44,6 +46,8 @@ function TweetBootScreen() {
 
 export function TweetLoadingProgress() {
   const router = useRouter()
+  const activeTheme = useActiveTheme()
+  const tweetLight = isTweetLightTheme(activeTheme)
   const [visible, setVisible] = useState(true)
   const [mounted, setMounted] = useState(false)
   const hideTimerRef = useRef<number | null>(null)
@@ -56,25 +60,30 @@ export function TweetLoadingProgress() {
     }
   }, [])
 
+  const releaseBootPending = useCallback(() => {
+    document.documentElement.classList.remove('tweet-boot-pending')
+    document.body.style.overflow = ''
+    if (!document.body.style.cssText) {
+      document.body.removeAttribute('style')
+    }
+  }, [])
+
   const hideBootScreen = useCallback(() => {
     const screen =
       document.getElementById('tweet-boot-screen') ?? ensureBootScreen()
     if (!screen) {
+      releaseBootPending()
       setVisible(false)
-      document.body.style.overflow = ''
       return
     }
 
     screen.classList.add('tweet-boot-screen--hiding')
     window.setTimeout(() => {
       screen.remove()
+      releaseBootPending()
       setVisible(false)
-      document.body.style.overflow = ''
-      if (!document.body.style.cssText) {
-        document.body.removeAttribute('style')
-      }
     }, FADE_MS)
-  }, [])
+  }, [releaseBootPending])
 
   const scheduleHide = useCallback(() => {
     clearHideTimer()
@@ -106,9 +115,20 @@ export function TweetLoadingProgress() {
     clearHideTimer()
     startedAtRef.current = Date.now()
     setVisible(true)
+
+    const root = document.documentElement
+    root.classList.add('tweet-theme', 'tweet-boot-pending')
+    if (tweetLight) {
+      root.classList.add('tweet-theme--light')
+      root.classList.remove('dark')
+    } else {
+      root.classList.add('dark')
+      root.classList.remove('tweet-theme--light')
+    }
+
     ensureBootScreen()
     document.body.style.overflow = 'hidden'
-  }, [clearHideTimer])
+  }, [clearHideTimer, tweetLight])
 
   useEffect(() => {
     setMounted(true)
@@ -145,9 +165,9 @@ export function TweetLoadingProgress() {
   useEffect(() => {
     return () => {
       clearHideTimer()
-      document.body.style.overflow = ''
+      releaseBootPending()
     }
-  }, [clearHideTimer])
+  }, [clearHideTimer, releaseBootPending])
 
   if (!mounted || !visible) return null
 
