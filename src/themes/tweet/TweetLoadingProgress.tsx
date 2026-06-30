@@ -4,7 +4,6 @@ import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useActiveTheme } from '@/src/components/theme/ActiveThemeProvider'
-import { TweetBootBrand } from './TweetBootBrand'
 import { TWEET_BOOT_BRAND_HTML } from './tweetBootCriticalCss'
 import { isTweetLightTheme } from './tweetTheme'
 
@@ -100,9 +99,8 @@ function TweetBootScreen() {
       role="status"
       aria-live="polite"
       aria-label="页面加载中"
-    >
-      <TweetBootBrand />
-    </div>
+      dangerouslySetInnerHTML={{ __html: TWEET_BOOT_BRAND_HTML }}
+    />
   )
 }
 
