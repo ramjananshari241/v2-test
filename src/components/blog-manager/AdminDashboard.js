@@ -2354,6 +2354,27 @@ const ADMIN_THEMES = [
   { id: 'tweet', label: 'Tweet（暗色）', color: '#0ea5e9', desc: '时间线卡片 · 默认深色' },
   { id: 'tweet-light', label: 'Tweet（浅色）', color: '#38bdf8', desc: '时间线卡片 · 固定浅色' },
 ];
+
+function formatThemeSwitchQuotaRemaining(remainingMs) {
+  if (!remainingMs || remainingMs <= 0) return '';
+  const totalMinutes = Math.ceil(remainingMs / (60 * 1000));
+  if (totalMinutes >= 60) {
+    const hours = Math.ceil(totalMinutes / 60);
+    return `已达 24h 切换上限 · 约 ${hours} 小时后可再切换`;
+  }
+  return `已达 24h 切换上限 · 约 ${totalMinutes} 分钟后可再切换`;
+}
+
+function formatThemeSwitchQuotaHint(quota) {
+  if (!quota) return '';
+  if (quota.blocked) {
+    return formatThemeSwitchQuotaRemaining(quota.remainingMs);
+  }
+  if (quota.remaining < quota.maxSwitches) {
+    return `24 小时内还可切换 ${quota.remaining} 次`;
+  }
+  return `24 小时内最多切换 ${quota.maxSwitches} 次`;
+}
 const lightSpinStyle = { width: '13px', height: '13px', border: '2px solid rgba(255,255,255,0.25)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'imgspin 0.8s linear infinite', verticalAlign: 'middle' };
 const blogRefreshSpinStyle = { width: '13px', height: '13px', border: '2px solid rgba(173,255,47,0.25)', borderTopColor: 'greenyellow', borderRadius: '50%', display: 'inline-block', animation: 'imgspin 0.8s linear infinite', verticalAlign: 'middle', flexShrink: 0 };
 const fmtStyle = (b) => ({
@@ -3571,6 +3592,15 @@ const [mounted, setMounted] = useState(false);
   const [themeSwitchProgress, setThemeSwitchProgress] = useState(null);
   const [activeThemeLocal, setActiveThemeLocal] = useState(null);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [themeSwitchQuota, setThemeSwitchQuota] = useState({
+    maxSwitches: 4,
+    used: 0,
+    remaining: 4,
+    blocked: false,
+    windowStart: null,
+    windowEndsAt: null,
+    remainingMs: 0,
+  });
 
   const [view, setView] = useState('list');
   const [viewMode, setViewMode] = useState('covered');
@@ -3893,8 +3923,24 @@ const [mounted, setMounted] = useState(false);
   }
 
   // 🟢 5. 处理函数
+  const loadThemeSwitchQuota = async () => {
+    try {
+      const r = await fetch('/api/admin/theme-cooldown');
+      const d = await r.json();
+      if (d.success && d.quota) {
+        setThemeSwitchQuota(d.quota);
+      }
+    } catch (e) {
+      console.warn('读取主题切换配额失败', e);
+    }
+  };
+
   const handleThemeChange = async (version) => {
     if (isThemeLoading || loading || version === currentActiveTheme) return;
+    if (themeSwitchQuota.blocked) {
+      alert(formatThemeSwitchQuotaRemaining(themeSwitchQuota.remainingMs) || '24 小时内主题切换已达上限');
+      return;
+    }
     const configItem = themeConfig || posts.find(p => p.slug === 'theme-config');
     if (!configItem) { alert("未找到配置页"); return; }
     const previousTheme = currentActiveTheme;
@@ -3916,7 +3962,20 @@ const [mounted, setMounted] = useState(false);
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('保存主题配置失败');
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 429 && resData.code === 'THEME_SWITCH_QUOTA_EXCEEDED') {
+          setThemeSwitchQuota((prev) => ({
+            ...prev,
+            blocked: true,
+            remaining: 0,
+            windowEndsAt: resData.windowEndsAt || prev.windowEndsAt,
+            remainingMs: resData.remainingMs || 0,
+          }));
+          throw new Error(resData.error || '24 小时内主题切换已达上限');
+        }
+        throw new Error(resData.error || '保存主题配置失败');
+      }
 
       let confirmed = false;
       for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -3941,6 +4000,7 @@ const [mounted, setMounted] = useState(false);
 
       const refreshResult = await runThemeRevalidation(setThemeSwitchProgress, version);
       await fetchPosts();
+      void loadThemeSwitchQuota();
 
       openThemeDoneModal(
         refreshResult.failed > 0
@@ -3958,6 +4018,14 @@ const [mounted, setMounted] = useState(false);
 
   // 🟢 6. useEffect 挂载
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    if (!mounted) return;
+    void loadThemeSwitchQuota();
+  }, [mounted]);
+  useEffect(() => {
+    if (!themeMenuOpen) return;
+    void loadThemeSwitchQuota();
+  }, [themeMenuOpen]);
   useEffect(() => {
     if (!mounted) return;
     setSmartParseTemplates(getAllSmartParseTemplates());
@@ -5867,7 +5935,7 @@ const [mounted, setMounted] = useState(false);
                 <div style={{ marginLeft: '16px', position: 'relative' }}>
                   <button
                     disabled={isThemeLoading}
-                    onClick={() => setThemeMenuOpen(o => !o)}
+                    onClick={() => setThemeMenuOpen(o => { const next = !o; if (next) void loadThemeSwitchQuota(); return next; })}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '10px', border: `1px solid ${currentTheme.color}`, background: 'rgba(0,0,0,0.3)', color: '#eee', cursor: isThemeLoading ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                   >
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentTheme.color, boxShadow: `0 0 8px ${currentTheme.color}`, flexShrink: 0 }} />
@@ -5880,20 +5948,37 @@ const [mounted, setMounted] = useState(false);
                     <>
                       <div onClick={() => setThemeMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                       <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: '240px', background: '#2a2a2e', border: '1px solid #555', borderRadius: '12px', padding: '8px', zIndex: 50, boxShadow: '0 12px 32px rgba(0,0,0,0.55)' }}>
-                        <div style={{ fontSize: '10px', color: '#777', padding: '6px 10px 8px', letterSpacing: '0.5px' }}>选择主题</div>
+                        <div style={{ fontSize: '10px', color: themeSwitchQuota.blocked ? '#f97316' : '#777', padding: '6px 10px 8px', letterSpacing: '0.5px' }}>
+                          {formatThemeSwitchQuotaHint(themeSwitchQuota) || '选择主题'}
+                        </div>
                         {ADMIN_THEMES.map(t => {
                           const active = currentActiveTheme === t.id;
+                          const switchBlocked = !active && themeSwitchQuota.blocked;
+                          const blockedHint = switchBlocked
+                            ? formatThemeSwitchQuotaRemaining(themeSwitchQuota.remainingMs)
+                            : '';
                           return (
                             <div key={t.id}
-                              onClick={() => { setThemeMenuOpen(false); if (!active) handleThemeChange(t.id); }}
-                              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '8px', cursor: active ? 'default' : 'pointer', background: active ? 'rgba(255,255,255,0.06)' : 'transparent', border: `1px solid ${active ? t.color : 'transparent'}`, marginBottom: '4px' }}
-                              onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                              onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                              onClick={() => {
+                                if (active || switchBlocked) {
+                                  if (switchBlocked) {
+                                    alert(blockedHint || '24 小时内主题切换已达上限');
+                                  }
+                                  return;
+                                }
+                                setThemeMenuOpen(false);
+                                handleThemeChange(t.id);
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '8px', cursor: active ? 'default' : (switchBlocked ? 'not-allowed' : 'pointer'), background: active ? 'rgba(255,255,255,0.06)' : 'transparent', border: `1px solid ${active ? t.color : 'transparent'}`, marginBottom: '4px', opacity: switchBlocked ? 0.45 : 1 }}
+                              onMouseEnter={e => { if (!active && !switchBlocked) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                              onMouseLeave={e => { if (!active && !switchBlocked) e.currentTarget.style.background = 'transparent'; }}
                             >
                               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: t.color, flexShrink: 0, boxShadow: active ? `0 0 8px ${t.color}` : 'none' }} />
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff' }}>{t.label}</div>
-                                <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{t.desc}</div>
+                                <div style={{ fontSize: '11px', color: switchBlocked ? '#f97316' : '#888', marginTop: '2px' }}>
+                                  {switchBlocked ? blockedHint : t.desc}
+                                </div>
                               </div>
                               {active && <span style={{ color: t.color, fontSize: '11px', fontWeight: 'bold', flexShrink: 0 }}>● 生效中</span>}
                             </div>

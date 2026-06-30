@@ -1,7 +1,12 @@
 import { Client, isFullPage } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import { readPinnedFromNotionProperties } from '@/src/lib/blog/pinnedPosts';
-import { syncSiteThemeFromAdmin } from '@/src/lib/blog/siteTheme';
+import { syncSiteThemeFromAdmin, getSiteThemeCode } from '@/src/lib/blog/siteTheme';
+import {
+  assertThemeSwitchAllowed,
+  ThemeSwitchQuotaError,
+  recordThemeSwitchIfNeeded,
+} from '@/src/lib/blog/themeSwitchQuota';
 import { normalizeMediaUrl, readNotionCoverUrl, findNotionPropertyKey, readCoverFromPageProperties, readPageCoverUrl, DOWNLOAD_SIZE_PROPERTY_NAMES, DOWNLOAD_COUNT_PROPERTY_NAMES, readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties } from '@/src/lib/notion/readProperty';
 
 const notion = new Client({
@@ -523,9 +528,31 @@ export default async function handler(req, res) {
       }
 
       if (id) {
+        let previousThemeCode = null;
+        if (slug === 'theme-config' && excerpt !== undefined) {
+          previousThemeCode = await getSiteThemeCode();
+          const nextThemeCode = String(excerpt).trim();
+          try {
+            await assertThemeSwitchAllowed(previousThemeCode, nextThemeCode);
+          } catch (themeQuotaErr) {
+            if (themeQuotaErr instanceof ThemeSwitchQuotaError) {
+              return res.status(429).json({
+                success: false,
+                error: themeQuotaErr.message,
+                code: themeQuotaErr.code,
+                windowEndsAt: themeQuotaErr.windowEndsAt,
+                remainingMs: themeQuotaErr.remainingMs,
+              });
+            }
+            throw themeQuotaErr;
+          }
+        }
+
         await withRetry(() => notion.pages.update({ page_id: id, properties: props }));
         if (slug === 'theme-config' && excerpt !== undefined) {
+          const nextThemeCode = String(excerpt).trim();
           try {
+            await recordThemeSwitchIfNeeded(previousThemeCode, nextThemeCode);
             await syncSiteThemeFromAdmin(excerpt, id);
           } catch (themeSyncErr) {
             console.warn('theme-config Supabase 同步失败（Notion 已保存）', themeSyncErr);
