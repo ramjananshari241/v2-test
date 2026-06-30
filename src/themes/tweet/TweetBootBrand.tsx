@@ -1,4 +1,4 @@
-function TweetBootBrand() {
+export function TweetBootBrand() {
   return (
     <span className="tweet-boot-screen__brand" aria-hidden="true">
       <span className="tweet-boot-screen__word">PRO</span>
