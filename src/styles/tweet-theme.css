@@ -1729,7 +1729,7 @@ html.tweet-theme.tweet-theme--light .tweet-search__box {
   background-color: var(--tweet-card-bg);
 }
 
-/* —— 首屏 / 路由切换全屏加载（对齐 rylan.cn 字母闪烁） —— */
+/* —— 首屏 / 路由切换全屏加载（猫咪 Lottie） —— */
 html.tweet-boot-pending body {
   overflow: hidden;
 }
@@ -1753,47 +1753,15 @@ html.dark .tweet-boot-screen {
   background-color: var(--tweet-gray1);
 }
 
-.tweet-boot-screen__brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.38em;
-  color: #000000;
-  animation: tweet-boot-blink 1.6s ease-in-out infinite;
-  user-select: none;
+.tweet-boot-screen__lottie-host {
+  width: clamp(10rem, 42vw, 15rem);
+  aspect-ratio: 280 / 200;
+  flex-shrink: 0;
 }
 
-.tweet-boot-screen__word {
-  font-family:
-    'Pretendard',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  font-size: clamp(2.75rem, 10vw, 5.5rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
-.tweet-boot-screen__plus {
-  font-family:
-    'Pretendard',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  font-size: clamp(1.5rem, 5.2vw, 2.85rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
-  transform: translateY(-0.06em);
-}
-
-html.tweet-theme.dark .tweet-boot-screen__brand,
-html.dark .tweet-boot-screen__brand {
-  color: var(--tweet-gray12);
+.tweet-boot-screen__lottie {
+  width: 100%;
+  height: 100%;
 }
 
 .tweet-boot-screen--hiding {
@@ -1803,17 +1771,4 @@ html.dark .tweet-boot-screen__brand {
   transition:
     opacity 0.35s ease,
     visibility 0.35s ease;
-}
-
-@keyframes tweet-boot-blink {
-  0%,
-  100% {
-    opacity: 0.28;
-    transform: scale(0.94);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
 }

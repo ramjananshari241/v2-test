@@ -6,7 +6,10 @@ import Document, {
   Main,
   NextScript,
 } from 'next/document'
-import { TWEET_BOOT_BRAND_HTML, TWEET_BOOT_CRITICAL_CSS } from '@/src/themes/tweet/tweetBootCriticalCss'
+import {
+  TWEET_BOOT_CRITICAL_CSS,
+  TWEET_BOOT_PLACEHOLDER_HTML,
+} from '@/src/themes/tweet/tweetBootCriticalCss'
 import {
   isTweetLightTheme,
   isTweetTheme,
@@ -72,7 +75,7 @@ export default class BlogDocument extends Document<BlogDocumentProps> {
               role="status"
               aria-live="polite"
               aria-label="页面加载中"
-              dangerouslySetInnerHTML={{ __html: TWEET_BOOT_BRAND_HTML }}
+              dangerouslySetInnerHTML={{ __html: TWEET_BOOT_PLACEHOLDER_HTML }}
             />
           ) : null}
           <Main />

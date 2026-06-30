@@ -4,10 +4,11 @@ import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useActiveTheme } from '@/src/components/theme/ActiveThemeProvider'
-import { TWEET_BOOT_BRAND_HTML } from './tweetBootCriticalCss'
+import { TweetBootCatLottie } from './TweetBootCatLottie'
+import { TWEET_BOOT_PLACEHOLDER_HTML } from './tweetBootCriticalCss'
 import { isTweetLightTheme } from './tweetTheme'
 
-/** 遮罩最短展示时间（品牌字母动画） */
+/** 遮罩最短展示时间 */
 const MIN_VISIBLE_MS = 500
 /** 路由切换时更短 */
 const ROUTE_MIN_VISIBLE_MS = 280
@@ -74,6 +75,21 @@ async function waitForTweetShellPaint(): Promise<void> {
   await raf2()
 }
 
+function attachLottieHost(screen: HTMLElement): HTMLElement {
+  let host = screen.querySelector<HTMLElement>('.tweet-boot-screen__lottie-host')
+  if (host) return host
+
+  screen.innerHTML = TWEET_BOOT_PLACEHOLDER_HTML
+  host = screen.querySelector<HTMLElement>('.tweet-boot-screen__lottie-host')
+  if (host) return host
+
+  host = document.createElement('div')
+  host.className = 'tweet-boot-screen__lottie-host'
+  host.setAttribute('aria-hidden', 'true')
+  screen.appendChild(host)
+  return host
+}
+
 function ensureBootScreen(): HTMLElement | null {
   if (typeof document === 'undefined') return null
 
@@ -86,22 +102,9 @@ function ensureBootScreen(): HTMLElement | null {
   screen.setAttribute('role', 'status')
   screen.setAttribute('aria-live', 'polite')
   screen.setAttribute('aria-label', '页面加载中')
-  screen.innerHTML = TWEET_BOOT_BRAND_HTML
+  screen.innerHTML = TWEET_BOOT_PLACEHOLDER_HTML
   document.body.insertBefore(screen, document.body.firstChild)
   return screen
-}
-
-function TweetBootScreen() {
-  return (
-    <div
-      id="tweet-boot-screen"
-      className="tweet-boot-screen"
-      role="status"
-      aria-live="polite"
-      aria-label="页面加载中"
-      dangerouslySetInnerHTML={{ __html: TWEET_BOOT_BRAND_HTML }}
-    />
-  )
 }
 
 export function TweetLoadingProgress() {
@@ -109,7 +112,7 @@ export function TweetLoadingProgress() {
   const activeTheme = useActiveTheme()
   const tweetLight = isTweetLightTheme(activeTheme)
   const [visible, setVisible] = useState(true)
-  const [mounted, setMounted] = useState(false)
+  const [lottieHost, setLottieHost] = useState<HTMLElement | null>(null)
   const hideTimerRef = useRef<number | null>(null)
   const hardCapTimerRef = useRef<number | null>(null)
   const startedAtRef = useRef<number>(Date.now())
@@ -153,6 +156,7 @@ export function TweetLoadingProgress() {
     screen.classList.add('tweet-boot-screen--hiding')
     window.setTimeout(() => {
       screen.remove()
+      setLottieHost(null)
       releaseBootPending()
       setVisible(false)
     }, FADE_MS)
@@ -197,7 +201,10 @@ export function TweetLoadingProgress() {
       root.classList.remove('tweet-theme--light')
     }
 
-    ensureBootScreen()
+    const screen = ensureBootScreen()
+    if (screen) {
+      setLottieHost(attachLottieHost(screen))
+    }
     document.body.style.overflow = 'hidden'
 
     hardCapTimerRef.current = window.setTimeout(() => {
@@ -206,8 +213,10 @@ export function TweetLoadingProgress() {
   }, [clearHardCapTimer, clearHideTimer, tweetLight])
 
   useEffect(() => {
-    setMounted(true)
-    ensureBootScreen()
+    const screen = ensureBootScreen()
+    if (screen) {
+      setLottieHost(attachLottieHost(screen))
+    }
     document.body.style.overflow = 'hidden'
     minVisibleRef.current = MIN_VISIBLE_MS
 
@@ -252,9 +261,7 @@ export function TweetLoadingProgress() {
     }
   }, [clearHardCapTimer, clearHideTimer, releaseBootPending])
 
-  if (!mounted || !visible) return null
+  if (!visible || !lottieHost) return null
 
-  if (document.getElementById('tweet-boot-screen')) return null
-
-  return createPortal(<TweetBootScreen />, document.body)
+  return createPortal(<TweetBootCatLottie />, lottieHost)
 }
