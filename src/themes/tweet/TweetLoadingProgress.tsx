@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 import { useActiveTheme } from '@/src/components/theme/ActiveThemeProvider'
 import { TweetBootCatLottie } from './TweetBootCatLottie'
 import { TWEET_BOOT_PLACEHOLDER_HTML } from './tweetBootCriticalCss'
-import { isTweetLightTheme } from './tweetTheme'
+import { isTweetDarkTheme, isTweetLightTheme } from './tweetTheme'
 
 /** 遮罩最短展示时间 */
 const MIN_VISIBLE_MS = 500
@@ -111,6 +111,7 @@ export function TweetLoadingProgress() {
   const router = useRouter()
   const activeTheme = useActiveTheme()
   const tweetLight = isTweetLightTheme(activeTheme)
+  const tweetDark = isTweetDarkTheme(activeTheme)
   const [visible, setVisible] = useState(true)
   const [lottieHost, setLottieHost] = useState<HTMLElement | null>(null)
   const hideTimerRef = useRef<number | null>(null)
@@ -193,12 +194,15 @@ export function TweetLoadingProgress() {
 
     const root = document.documentElement
     root.classList.add('tweet-theme', 'tweet-boot-pending')
+    root.classList.remove('tweet-theme--light', 'tweet-theme--dark')
     if (tweetLight) {
       root.classList.add('tweet-theme--light')
       root.classList.remove('dark')
     } else {
       root.classList.add('dark')
-      root.classList.remove('tweet-theme--light')
+      if (tweetDark) {
+        root.classList.add('tweet-theme--dark')
+      }
     }
 
     const screen = ensureBootScreen()
@@ -210,7 +214,7 @@ export function TweetLoadingProgress() {
     hardCapTimerRef.current = window.setTimeout(() => {
       hideBootScreenRef.current()
     }, HARD_CAP_MS)
-  }, [clearHardCapTimer, clearHideTimer, tweetLight])
+  }, [clearHardCapTimer, clearHideTimer, tweetDark, tweetLight])
 
   useEffect(() => {
     const screen = ensureBootScreen()

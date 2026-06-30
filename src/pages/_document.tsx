@@ -11,6 +11,7 @@ import {
   TWEET_BOOT_PLACEHOLDER_HTML,
 } from '@/src/themes/tweet/tweetBootCriticalCss'
 import {
+  isTweetDarkTheme,
   isTweetLightTheme,
   isTweetTheme,
 } from '@/src/themes/tweet/tweetTheme'
@@ -48,11 +49,13 @@ export default class BlogDocument extends Document<BlogDocumentProps> {
     const { activeTheme, isAdminRoute } = this.props
     const showTweetBoot = !isAdminRoute && isTweetTheme(activeTheme)
     const tweetLight = isTweetLightTheme(activeTheme)
+    const tweetDark = isTweetDarkTheme(activeTheme)
 
     const htmlClass = [
       showTweetBoot ? 'tweet-theme tweet-boot-pending' : '',
       showTweetBoot && !tweetLight ? 'dark' : '',
       showTweetBoot && tweetLight ? 'tweet-theme--light' : '',
+      showTweetBoot && tweetDark ? 'tweet-theme--dark' : '',
     ]
       .filter(Boolean)
       .join(' ')

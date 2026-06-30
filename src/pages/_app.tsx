@@ -26,7 +26,7 @@ import {
   useActiveTheme,
 } from '@/src/components/theme/ActiveThemeProvider'
 import { LightSeoMeta } from '@/src/components/seo/LightSeoMeta'
-import { isTweetLightTheme, isTweetTheme } from '@/src/themes/tweet/tweetTheme'
+import { isTweetDarkTheme, isTweetLightTheme, isTweetTheme, isTweetThemeVariantLocked } from '@/src/themes/tweet/tweetTheme'
 import { TweetLoadingProgress } from '@/src/themes/tweet/TweetLoadingProgress'
 import type { PageSeoFlat } from '@/src/lib/seo/lightSeo'
 import { NextPageWithLayout } from '../types/blog'
@@ -64,28 +64,38 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
       root.classList.add('gallery-theme')
       root.classList.remove('tweet-theme')
       root.classList.remove('tweet-theme--light')
+      root.classList.remove('tweet-theme--dark')
     } else if (isTweetTheme(activeTheme) && !isAdminRoute) {
       root.classList.add('tweet-theme')
       root.classList.remove('gallery-theme')
+      root.classList.remove('tweet-theme--light')
+      root.classList.remove('tweet-theme--dark')
       if (isTweetLightTheme(activeTheme)) {
         root.classList.add('tweet-theme--light')
-      } else {
-        root.classList.remove('tweet-theme--light')
+      } else if (isTweetDarkTheme(activeTheme)) {
+        root.classList.add('tweet-theme--dark')
       }
     } else {
       root.classList.remove('gallery-theme')
       root.classList.remove('tweet-theme')
       root.classList.remove('tweet-theme--light')
+      root.classList.remove('tweet-theme--dark')
     }
     return () => {
       root.classList.remove('gallery-theme')
       root.classList.remove('tweet-theme')
       root.classList.remove('tweet-theme--light')
+      root.classList.remove('tweet-theme--dark')
     }
   }, [activeTheme, isAdminRoute])
 
-  const tweetLightLocked = isTweetLightTheme(activeTheme)
-  const tweetDarkDefault = activeTheme === 'tweet'
+  const tweetThemeLocked = isTweetThemeVariantLocked(activeTheme)
+    ? isTweetLightTheme(activeTheme)
+      ? 'light'
+      : 'dark'
+    : undefined
+  const tweetDarkDefault =
+    activeTheme === 'tweet' || isTweetDarkTheme(activeTheme)
 
   return (
     <>
@@ -191,9 +201,9 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
 
      <ThemeProvider
       attribute="class"
-      forcedTheme={tweetLightLocked ? 'light' : undefined}
+      forcedTheme={tweetThemeLocked}
       defaultTheme={tweetDarkDefault ? 'dark' : undefined}
-      enableSystem={!tweetLightLocked}
+      enableSystem={!tweetThemeLocked}
     >
       <Head>
         <meta

@@ -513,7 +513,6 @@ html.tweet-theme ul {
 .tweet-profile-card__name {
   font-size: 1.25rem;
   line-height: 1.75rem;
-  font-style: italic;
   font-weight: 700;
   color: var(--tweet-gray12);
   text-align: center;
@@ -630,7 +629,6 @@ html.tweet-theme ul {
 .tweet-profile-mobile__name {
   font-size: 1.25rem;
   line-height: 1.75rem;
-  font-style: italic;
   font-weight: 700;
 }
 
@@ -1795,7 +1793,7 @@ html.tweet-theme.tweet-theme--light {
   --tweet-gray12: #0f1419;
   --tweet-muted: #536471;
   --tweet-service-text: #536471;
-  --tweet-card-bg: #ffffff;
+  --tweet-card-bg: #f7f9f9;
   color-scheme: light;
 }
 
@@ -1819,6 +1817,7 @@ html.tweet-theme.tweet-theme--light .tweet-feed-header {
 html.tweet-theme.tweet-theme--light .tweet-post-card__shell {
   border: 1px solid #eff3f4;
   box-shadow: none;
+  background-color: #f7f9f9;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-profile-card,
@@ -1826,15 +1825,23 @@ html.tweet-theme.tweet-theme--light .tweet-profile-mobile,
 html.tweet-theme.tweet-theme--light .tweet-service__card {
   border: 1px solid #eff3f4;
   box-shadow: none;
+  background-color: #f7f9f9;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-post-card__author-badge {
+  color: #6d28d9;
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(109, 40, 217, 0.28);
 }
 
 html.tweet-theme.tweet-theme--light .tweet-profile-mobile--toggle:hover {
-  background-color: #f7f9f9;
+  background-color: #eff3f4;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-post-card:hover .tweet-post-card__shell {
   border-color: #cfd9de;
   box-shadow: 0 2px 8px rgba(15, 20, 25, 0.06);
+  background-color: #f0f3f4;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-search__box {
@@ -1870,6 +1877,119 @@ html.tweet-theme.tweet-theme--light .tweet-feed-header__dropdown-item:hover {
   background-color: #f7f9f9;
 }
 
+/* —— Tweet 纯黑变体（tweet-dark / tweet·暗）：X Lights Out 风格 —— */
+html.tweet-theme.tweet-theme--dark {
+  --tweet-gray1: #000000;
+  --tweet-gray2: #000000;
+  --tweet-gray3: #0a0a0a;
+  --tweet-gray4: #202327;
+  --tweet-gray5: #2f3336;
+  --tweet-gray6: #2f3336;
+  --tweet-gray7: #3e4144;
+  --tweet-gray8: #536471;
+  --tweet-gray9: #71767b;
+  --tweet-gray10: #71767b;
+  --tweet-gray11: #b0b3b8;
+  --tweet-gray12: #e7e9ea;
+  --tweet-muted: #71767b;
+  --tweet-service-text: #71767b;
+  --tweet-card-bg: #000000;
+  color-scheme: dark;
+}
+
+html.tweet-theme.tweet-theme--dark body,
+html.tweet-theme.tweet-theme--dark .tweet-root {
+  background-color: #000000;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-header {
+  background-color: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #2f3336;
+  box-shadow: none;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-feed-header {
+  border-bottom-color: #2f3336;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-post-card__shell {
+  border: 1px solid #2f3336;
+  box-shadow: none;
+  background-color: #000000;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-profile-card,
+html.tweet-theme.tweet-theme--dark .tweet-profile-mobile,
+html.tweet-theme.tweet-theme--dark .tweet-service__card {
+  border: 1px solid #2f3336;
+  box-shadow: none;
+  background-color: #000000;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-profile-mobile--toggle:hover {
+  background-color: #0a0a0a;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-post-card:hover .tweet-post-card__shell {
+  border-color: #3e4144;
+  box-shadow: none;
+  background-color: #050505;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-search__box {
+  border: none;
+  background-color: #202327;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-tags__item:hover,
+html.tweet-theme.tweet-theme--dark .tweet-tags__item[data-active='true'] {
+  background-color: #202327;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-service__link:hover {
+  background-color: #16181c;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-post-card__share-pop {
+  border-color: #2f3336;
+  background-color: #000000;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-post-card__share-input {
+  background-color: #202327;
+  border-color: #2f3336;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-feed-header__dropdown {
+  background-color: #000000;
+  border: 1px solid #2f3336;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-feed-header__dropdown-item:hover {
+  background-color: #16181c;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-friend-card {
+  border: 1px solid #2f3336;
+  background-color: #000000;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-vending-btn {
+  background-color: #2f3336;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-vending-btn__inner {
+  background-color: rgba(0, 0, 0, 0.92);
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-ad-banner__link {
+  border: 1px solid #2f3336;
+  background-color: #000000;
+}
+
 /* —— 首屏 / 路由切换全屏加载（猫咪 Lottie） —— */
 html.tweet-boot-pending body {
   overflow: hidden;
@@ -1892,6 +2012,10 @@ html.tweet-boot-pending #__next {
 html.tweet-theme.dark .tweet-boot-screen,
 html.dark .tweet-boot-screen {
   background-color: var(--tweet-gray1);
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-boot-screen {
+  background-color: #000000;
 }
 
 .tweet-boot-screen__lottie-host {

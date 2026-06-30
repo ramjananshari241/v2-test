@@ -2351,8 +2351,9 @@ const ADMIN_THEMES = [
   { id: 'v1', label: 'Standard V1', color: '#3b82f6', desc: '标准排版 · 经典风格' },
   { id: 'v2', label: 'Standard V2', color: '#a855f7', desc: '标准排版 · 现代风格' },
   { id: 'gallery', label: 'Gallery', color: '#f97316', desc: '图库风格 · 卡片直链下载' },
-  { id: 'tweet', label: 'Tweet（暗色）', color: '#0ea5e9', desc: '时间线卡片 · 默认深色' },
-  { id: 'tweet-light', label: 'Tweet（浅色）', color: '#38bdf8', desc: '时间线卡片 · 固定浅色' },
+  { id: 'tweet', label: 'tweet·灰色', color: '#6b7280', desc: '时间线卡片 · 灰底可切换深浅' },
+  { id: 'tweet-light', label: 'tweet·浅色', color: '#38bdf8', desc: '时间线卡片 · 固定纯白浅色' },
+  { id: 'tweet-dark', label: 'tweet·暗', color: '#0f1419', desc: '时间线卡片 · 纯黑 X 暗色风格' },
 ];
 
 function formatThemeSwitchQuotaRemaining(remainingMs) {

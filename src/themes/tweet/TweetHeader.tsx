@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import CONFIG from '@/blog.config'
 import { useActiveTheme } from '@/src/components/theme/ActiveThemeProvider'
-import { isTweetLightTheme } from '@/src/themes/tweet/tweetTheme'
+import { isTweetThemeVariantLocked } from '@/src/themes/tweet/tweetTheme'
 
 const { ABOUT } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -15,7 +15,7 @@ type TweetHeaderProps = {
 
 export function TweetHeader({ siteName }: TweetHeaderProps) {
   const activeTheme = useActiveTheme()
-  const tweetLightLocked = isTweetLightTheme(activeTheme)
+  const themeToggleLocked = isTweetThemeVariantLocked(activeTheme)
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -33,7 +33,7 @@ export function TweetHeader({ siteName }: TweetHeaderProps) {
           <Link href={`/${ABOUT}`} className="tweet-header__nav-about">
             关于
           </Link>
-          {!tweetLightLocked ? (
+          {!themeToggleLocked ? (
             <button
               type="button"
               className="tweet-header__theme-btn"
