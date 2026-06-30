@@ -1753,7 +1753,16 @@ html.dark .tweet-boot-screen {
   background-color: var(--tweet-gray1);
 }
 
-.tweet-boot-screen__letter {
+.tweet-boot-screen__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38em;
+  color: #000000;
+  animation: tweet-boot-blink 1.6s ease-in-out infinite;
+  user-select: none;
+}
+
+.tweet-boot-screen__word {
   font-family:
     'Pretendard',
     system-ui,
@@ -1765,13 +1774,25 @@ html.dark .tweet-boot-screen {
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: #000000;
-  animation: tweet-boot-blink 1.6s ease-in-out infinite;
-  user-select: none;
 }
 
-html.tweet-theme.dark .tweet-boot-screen__letter,
-html.dark .tweet-boot-screen__letter {
+.tweet-boot-screen__plus {
+  font-family:
+    'Pretendard',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: clamp(1.5rem, 5.2vw, 2.85rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  transform: translateY(-0.06em);
+}
+
+html.tweet-theme.dark .tweet-boot-screen__brand,
+html.dark .tweet-boot-screen__brand {
   color: var(--tweet-gray12);
 }
 

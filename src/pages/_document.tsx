@@ -7,6 +7,7 @@ import Document, {
   NextScript,
 } from 'next/document'
 import { TWEET_BOOT_CRITICAL_CSS } from '@/src/themes/tweet/tweetBootCriticalCss'
+import { TweetBootBrand } from '@/src/themes/tweet/TweetBootBrand'
 import {
   isTweetLightTheme,
   isTweetTheme,
@@ -73,9 +74,7 @@ export default class BlogDocument extends Document<BlogDocumentProps> {
               aria-live="polite"
               aria-label="页面加载中"
             >
-              <span className="tweet-boot-screen__letter" aria-hidden="true">
-                PRO+
-              </span>
+              <TweetBootBrand />
             </div>
           ) : null}
           <Main />

@@ -4,6 +4,8 @@ import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useActiveTheme } from '@/src/components/theme/ActiveThemeProvider'
+import { TweetBootBrand } from './TweetBootBrand'
+import { TWEET_BOOT_BRAND_HTML } from './tweetBootCriticalCss'
 import { isTweetLightTheme } from './tweetTheme'
 
 /** 遮罩最短展示时间（品牌字母动画） */
@@ -85,8 +87,7 @@ function ensureBootScreen(): HTMLElement | null {
   screen.setAttribute('role', 'status')
   screen.setAttribute('aria-live', 'polite')
   screen.setAttribute('aria-label', '页面加载中')
-  screen.innerHTML =
-    '<span class="tweet-boot-screen__letter" aria-hidden="true">PRO+</span>'
+  screen.innerHTML = TWEET_BOOT_BRAND_HTML
   document.body.insertBefore(screen, document.body.firstChild)
   return screen
 }
@@ -100,9 +101,7 @@ function TweetBootScreen() {
       aria-live="polite"
       aria-label="页面加载中"
     >
-      <span className="tweet-boot-screen__letter" aria-hidden="true">
-        PRO+
-      </span>
+      <TweetBootBrand />
     </div>
   )
 }
