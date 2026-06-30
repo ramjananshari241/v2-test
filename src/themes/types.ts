@@ -14,4 +14,5 @@ export type ThemeHomeProps = {
   navPages?: Page[]
   tweetFeedMedia?: TweetFeedMediaMap | null
   galleryFeedCovers?: Record<string, string> | null
+  vendingEnabled?: boolean
 }

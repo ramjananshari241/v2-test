@@ -6,11 +6,13 @@ import { TweetVendingButton } from './TweetVendingButton'
 type TweetProfileCardProps = {
   profile?: ProfileWidgetType | null
   showSectionTitle?: boolean
+  vendingEnabled?: boolean
 }
 
 export function TweetProfileCard({
   profile,
   showSectionTitle = true,
+  vendingEnabled = true,
 }: TweetProfileCardProps) {
   const name = profile?.name?.trim() || '本站'
   const description = profile?.description?.trim() || ''
@@ -38,7 +40,7 @@ export function TweetProfileCard({
             <p className="tweet-profile-card__bio">{description}</p>
           ) : null}
         </div>
-        <TweetVendingButton />
+        {vendingEnabled ? <TweetVendingButton /> : null}
       </div>
     </div>
   )

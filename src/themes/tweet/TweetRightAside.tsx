@@ -5,12 +5,16 @@ import { TweetServiceCard } from './TweetServiceCard'
 
 type TweetRightAsideProps = {
   profile?: ProfileWidgetType | null
+  vendingEnabled?: boolean
 }
 
-export function TweetRightAside({ profile }: TweetRightAsideProps) {
+export function TweetRightAside({
+  profile,
+  vendingEnabled = true,
+}: TweetRightAsideProps) {
   return (
     <>
-      <TweetProfileCard profile={profile} />
+      <TweetProfileCard profile={profile} vendingEnabled={vendingEnabled} />
       <TweetServiceCard />
       <TweetAsideFooter />
     </>

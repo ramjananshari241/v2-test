@@ -1,11 +1,15 @@
-import React, { useState } from 'react'
 import Link from 'next/link'
-import { Post } from '@/src/types/blog'
+import { useState } from 'react'
 import { ProfileWidget } from '../widget/ProfileWidget'
 import { StatsWidget } from '../widget/StatsWidget'
 import CONFIG from '@/blog.config'
+import { ThemeHomeProps } from '@/src/themes/types'
 
-export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any }) => {
+export const TouchgalLayout = ({
+  posts,
+  widgets,
+  vendingEnabled = true,
+}: ThemeHomeProps) => {
   const allPosts = posts && posts.length > 0 ? posts : []
   const { ARCHIVE } = CONFIG.DEFAULT_SPECIAL_PAGES
 
@@ -32,7 +36,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
       {/* 1. 顶部双栏 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10 pt-6">
         <div className="flex flex-col h-full"><ProfileWidget data={widgets?.profile} /></div>
-        <div className="flex flex-col h-full"><StatsWidget data={widgets?.announcement} /></div>
+        <div className="flex flex-col h-full"><StatsWidget data={widgets?.announcement} vendingEnabled={vendingEnabled} /></div>
       </div>
 
       {/* 2. 标题装饰区 - 添加 ID 用于翻页锚点 */}
@@ -138,7 +142,7 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
         </>
       )}
 
-      {/* 5. 底部引流区：紫橙撞色 */}
+      {vendingEnabled ? (
       <div className="bg-neutral-100 dark:bg-neutral-900 rounded-[2.5rem] p-12 border border-neutral-200 dark:border-neutral-800 mb-16 text-center relative overflow-hidden">
          <div className="absolute -left-20 -top-20 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl"></div>
          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-orange-600/10 rounded-full blur-3xl"></div>
@@ -165,6 +169,6 @@ export const TouchgalLayout = ({ posts, widgets }: { posts: Post[], widgets: any
             </Link>
          </div>
       </div>
-    </div>
+      ) : null}    </div>
   )
 }

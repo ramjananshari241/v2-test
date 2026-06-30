@@ -204,6 +204,7 @@ const PostPage: NextPage<{
   navPages = [],
   siteTitle,
   widgets,
+  vendingEnabled,
 }) => {
   if (!post) return <Section404 />
 
@@ -227,6 +228,7 @@ const PostPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingEnabled={vendingEnabled !== false}
       >
         <TweetPostPage
           post={post}

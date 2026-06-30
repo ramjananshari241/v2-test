@@ -89,7 +89,7 @@ const TagPage: NextPage<{
   widgets?: Record<string, unknown>
   tweetFeedMedia?: import('@/src/lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
   galleryFeedCovers?: Record<string, string> | null
-}> = ({ tag, posts, subTitle, activeTheme, siteTitle, widgets, tweetFeedMedia, galleryFeedCovers }) => {
+}> = ({ tag, posts, subTitle, activeTheme, siteTitle, widgets, tweetFeedMedia, galleryFeedCovers, vendingEnabled }) => {
   if (!tag) return <Section404 />
 
   tag.count = posts.length
@@ -119,6 +119,7 @@ const TagPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingEnabled={vendingEnabled !== false}
       >
         <TweetFilteredPosts
           posts={posts}

@@ -134,7 +134,7 @@ const CategoryPage: NextPage<{
   widgets?: Record<string, unknown>
   tweetFeedMedia?: import('@/src/lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
   galleryFeedCovers?: Record<string, string> | null
-}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage, siteTitle, widgets, tweetFeedMedia, galleryFeedCovers }) => {
+}> = ({ category, posts, subTitle, activeTheme, categoryBannerImage, siteTitle, widgets, tweetFeedMedia, galleryFeedCovers, vendingEnabled }) => {
   if (!category) return <Section404 />
 
   category.count = posts.length
@@ -165,6 +165,7 @@ const CategoryPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingEnabled={vendingEnabled !== false}
       >
         <TweetFilteredPosts
           posts={posts}

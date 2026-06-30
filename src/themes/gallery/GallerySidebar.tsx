@@ -16,9 +16,14 @@ type GallerySidebarProps = {
   /** 移动端抽屉是否展开（桌面端忽略，始终常驻） */
   open?: boolean
   onClose?: () => void
+  vendingEnabled?: boolean
 }
 
-export const GallerySidebar = ({ open = false, onClose }: GallerySidebarProps) => {
+export const GallerySidebar = ({
+  open = false,
+  onClose,
+  vendingEnabled = true,
+}: GallerySidebarProps) => {
   const router = useRouter()
 
   const isActive = (href: string) => {
@@ -105,6 +110,7 @@ export const GallerySidebar = ({ open = false, onClose }: GallerySidebarProps) =
         ))}
       </nav>
 
+      {vendingEnabled ? (
       <div className="shrink-0 border-t border-neutral-200 px-4 py-5">
         <a
           href={GALLERY_LOGIN_URL}
@@ -115,6 +121,7 @@ export const GallerySidebar = ({ open = false, onClose }: GallerySidebarProps) =
           STORE
         </a>
       </div>
+      ) : null}
     </aside>
   )
 }

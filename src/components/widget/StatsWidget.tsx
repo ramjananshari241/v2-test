@@ -7,7 +7,13 @@ import { createPortal } from 'react-dom'
 // 🟢 你的自定义购买地址（请在这里修改为你真实的贩售机链接）
 const BUY_LINK = "https://store.proplus.onl/buy"
 
-export const StatsWidget = ({ data }: { data: any }) => {
+export const StatsWidget = ({
+  data,
+  vendingEnabled = true,
+}: {
+  data: any
+  vendingEnabled?: boolean
+}) => {
   const[showModal, setShowModal] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -167,7 +173,7 @@ export const StatsWidget = ({ data }: { data: any }) => {
         .animate-border-flow { background-size: 200% 200%; animation: borderFlow 3s ease infinite; }
       `}</style>
 
-      {showModal && <Modal />}
+      {showModal && vendingEnabled && <Modal />}
 
       <div className="relative h-full w-full group/card transition-transform duration-500 ease-out hover:scale-[1.015]">
         
@@ -205,7 +211,8 @@ export const StatsWidget = ({ data }: { data: any }) => {
                </p>
             </Wrapper>
 
-            {/* 下半部分：触发弹窗的入口按钮 */}
+            {/* 下半部分：贩售机入口 */}
+            {vendingEnabled ? (
             <div className="w-full mt-4 relative z-20">
               <button 
                 onClick={(e) => {
@@ -224,6 +231,7 @@ export const StatsWidget = ({ data }: { data: any }) => {
                 <span>前往贩售机</span>
               </button>
             </div>
+            ) : null}
 
           </div>
         </div>

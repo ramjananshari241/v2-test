@@ -142,6 +142,8 @@ export type SharedNavFooterStaticProps = {
       imageSrc: string | null
       promoText: string | null
     } | null
+    /** 各主题贩售机入口开关（Supabase blog_site_settings） */
+    vendingEnabled?: boolean
   }
   // revalidate: number
 }

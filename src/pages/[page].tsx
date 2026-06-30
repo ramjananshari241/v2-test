@@ -120,7 +120,7 @@ const Page: NextPage<{
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
-}> = ({ page, blocks, activeTheme, siteTitle, widgets }) => {
+}> = ({ page, blocks, activeTheme, siteTitle, widgets, vendingEnabled }) => {
   if (!page) return <Section404 />
 
   const { title } = page
@@ -131,6 +131,7 @@ const Page: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingEnabled={vendingEnabled !== false}
       >
         <TweetArticlePage title={page.nav || title} blocks={blocks} />
       </TweetShell>

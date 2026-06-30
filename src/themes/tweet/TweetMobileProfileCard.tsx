@@ -5,8 +5,10 @@ import { TweetVendingButton } from './TweetVendingButton'
 
 export function TweetMobileProfileCard({
   profile,
+  vendingEnabled = true,
 }: {
   profile?: ProfileWidgetType | null
+  vendingEnabled?: boolean
 }) {
   const name = profile?.name?.trim() || '本站'
   const description = profile?.description?.trim() || ''
@@ -32,7 +34,7 @@ export function TweetMobileProfileCard({
             </div>
           </div>
         </div>
-        <TweetVendingButton />
+        {vendingEnabled ? <TweetVendingButton /> : null}
       </div>
     </div>
   )

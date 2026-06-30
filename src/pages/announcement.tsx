@@ -24,7 +24,7 @@ const AnnouncementPage: NextPage<{
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
-}> = ({ title, blocks, activeTheme, siteTitle, widgets }) => {
+}> = ({ title, blocks, activeTheme, siteTitle, widgets, vendingEnabled }) => {
   if (!title) return <Section404 />
 
   if (isTweetTheme(activeTheme)) {
@@ -33,6 +33,7 @@ const AnnouncementPage: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingEnabled={vendingEnabled !== false}
       >
         <TweetArticlePage title={title} blocks={blocks} backHref="/" backLabel="返回首页" />
       </TweetShell>

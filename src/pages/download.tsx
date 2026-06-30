@@ -28,7 +28,7 @@ const DownloadInstructionsPage: NextPage<{
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
-}> = ({ blocks, title, page, activeTheme, siteTitle, widgets }) => {
+}> = ({ blocks, title, page, activeTheme, siteTitle, widgets, vendingEnabled }) => {
   if (!page) return <Section404 />
 
   if (activeTheme === 'gallery') {
@@ -47,7 +47,11 @@ const DownloadInstructionsPage: NextPage<{
     const shellWidgets = pickTweetShellWidgets(widgets)
     const heading = page.nav || title
     return (
-      <TweetShell siteTitle={siteTitle} profile={shellWidgets.profile}>
+      <TweetShell
+        siteTitle={siteTitle}
+        profile={shellWidgets.profile}
+        vendingEnabled={vendingEnabled !== false}
+      >
         <TweetArticlePage
           title={heading}
           blocks={blocks}

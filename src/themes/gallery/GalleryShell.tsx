@@ -14,6 +14,7 @@ type GalleryShellProps = {
   siteTitle?: Title
   navPages?: Page[]
   children: ReactNode
+  vendingEnabled?: boolean
   /** 顶栏居中标题，传 false 可隐藏 */
   headerTitle?: string | false
 }
@@ -22,6 +23,7 @@ export const GalleryShell = ({
   siteTitle,
   children,
   headerTitle,
+  vendingEnabled = true,
 }: GalleryShellProps) => {
   const siteName = siteTitle?.text || 'PRO BLOG'
   const showHeader = headerTitle !== false
@@ -53,7 +55,11 @@ export const GalleryShell = ({
   return (
     <div className={`min-h-screen min-h-[100dvh] bg-white ${galleryShellClass}`}>
       <GalleryFontLinks />
-      <GallerySidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <GallerySidebar
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        vendingEnabled={vendingEnabled}
+      />
 
       {/* 移动端抽屉遮罩 */}
       {menuOpen ? (

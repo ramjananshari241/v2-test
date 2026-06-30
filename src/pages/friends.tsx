@@ -39,7 +39,7 @@ const Freinds: NextPage<{
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
-}> = ({ blocks, friendsDatabase, title, page, activeTheme, siteTitle, widgets }) => {
+}> = ({ blocks, friendsDatabase, title, page, activeTheme, siteTitle, widgets, vendingEnabled }) => {
   const friends = friendsDatabase?.data ?? []
 
   if (activeTheme === 'gallery') {
@@ -59,6 +59,7 @@ const Freinds: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingEnabled={vendingEnabled !== false}
       >
         <TweetFriendsPage title={title} blocks={blocks} friends={friends} />
       </TweetShell>

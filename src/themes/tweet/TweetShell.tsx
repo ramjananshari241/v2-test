@@ -10,6 +10,7 @@ type TweetShellProps = {
   profile?: ProfileWidgetType | null
   leftAside?: ReactNode
   children: ReactNode
+  vendingEnabled?: boolean
 }
 
 export function TweetShell({
@@ -17,6 +18,7 @@ export function TweetShell({
   profile,
   leftAside,
   children,
+  vendingEnabled = true,
 }: TweetShellProps) {
   const siteName = siteTitle?.text?.trim() || '本站'
   const profileData = buildTweetProfileData(profile, siteTitle)
@@ -25,7 +27,9 @@ export function TweetShell({
     <TweetFeedGrid
       siteName={siteName}
       leftAside={leftAside}
-      rightAside={<TweetRightAside profile={profileData} />}
+      rightAside={
+        <TweetRightAside profile={profileData} vendingEnabled={vendingEnabled} />
+      }
     >
       {children}
     </TweetFeedGrid>

@@ -30,6 +30,7 @@ export function applyThemePageLayout(
 type ThemeNavShellProps = {
   activeTheme?: string | null
   siteTitle?: Title
+  vendingEnabled?: boolean
   children: ReactElement
 }
 
@@ -37,6 +38,7 @@ type ThemeNavShellProps = {
 export function ThemeNavShell({
   activeTheme,
   siteTitle,
+  vendingEnabled = true,
   children,
 }: ThemeNavShellProps) {
   const themeId = resolveThemeId(activeTheme)
@@ -44,7 +46,9 @@ export function ThemeNavShell({
   if (themeId === 'gallery') {
     return (
       <GalleryPageLayout>
-        <GalleryShell siteTitle={siteTitle}>{children}</GalleryShell>
+        <GalleryShell siteTitle={siteTitle} vendingEnabled={vendingEnabled}>
+          {children}
+        </GalleryShell>
       </GalleryPageLayout>
     )
   }

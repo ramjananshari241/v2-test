@@ -1,6 +1,7 @@
 import { SharedNavFooterStaticProps } from '@/src/types/blog'
 import { GetStaticPropsContext } from 'next'
 import { resolveActiveTheme } from '@/src/themes/getActiveTheme'
+import { getVendingEnabled } from '@/src/lib/blog/vendingSettings'
 import { getCachedNavFooter } from '../notion/getCachedMem'
 
 async function buildSharedProps(
@@ -8,13 +9,17 @@ async function buildSharedProps(
   siteTitle: SharedNavFooterStaticProps['props']['siteTitle'],
   logo: SharedNavFooterStaticProps['props']['logo']
 ): Promise<SharedNavFooterStaticProps['props']> {
-  const activeTheme = await resolveActiveTheme()
+  const [activeTheme, vendingEnabled] = await Promise.all([
+    resolveActiveTheme(),
+    getVendingEnabled(),
+  ])
   return {
     navPages,
     siteTitle,
     siteSubtitle: null,
     logo,
     activeTheme,
+    vendingEnabled,
   }
 }
 

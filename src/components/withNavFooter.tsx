@@ -15,7 +15,11 @@ export default function withNavFooter(
     const themeId = props.activeTheme
     if (themeId === 'gallery' || isTweetTheme(themeId)) {
       return (
-        <ThemeNavShell activeTheme={themeId} siteTitle={props.siteTitle}>
+        <ThemeNavShell
+          activeTheme={themeId}
+          siteTitle={props.siteTitle}
+          vendingEnabled={props.vendingEnabled !== false}
+        >
           <WrappedComponent {...props} />
         </ThemeNavShell>
       )

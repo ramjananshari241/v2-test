@@ -22,6 +22,7 @@ export function TweetHome({
   widgets,
   siteTitle,
   tweetFeedMedia,
+  vendingEnabled = true,
 }: ThemeHomeProps) {
   const router = useRouter()
   const allPosts = posts?.length ? posts : []
@@ -57,10 +58,11 @@ export function TweetHome({
     <TweetShell
       siteTitle={siteTitle}
       profile={profile}
+      vendingEnabled={vendingEnabled}
       leftAside={<TweetTagList tags={tags} layout="sidebar" />}
     >
       <TweetTagList tags={tags} layout="mobile" />
-      <TweetMobileProfileCard profile={profile} />
+      <TweetMobileProfileCard profile={profile} vendingEnabled={vendingEnabled} />
       <div className="tweet-service-mobile">
         <TweetServiceCard sectionTitleDesktopOnly={false} />
         <TweetAsideFooter />

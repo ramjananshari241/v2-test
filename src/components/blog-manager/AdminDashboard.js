@@ -3635,6 +3635,9 @@ const [mounted, setMounted] = useState(false);
   const [galleryAdLoading, setGalleryAdLoading] = useState(false);
   const [galleryAdSaving, setGalleryAdSaving] = useState(false);
   const [galleryAdCoverUploading, setGalleryAdCoverUploading] = useState(false);
+  const [vendingEnabled, setVendingEnabled] = useState(true);
+  const [vendingLoading, setVendingLoading] = useState(false);
+  const [vendingSaving, setVendingSaving] = useState(false);
   const [friendDraft, setFriendDraft] = useState({ name: '', url: '', avatar: '' });
   const [friendDraftUploading, setFriendDraftUploading] = useState(false);
   const [friendBtnStatus, setFriendBtnStatus] = useState({}); // { [id|'draft']: 'saving' | 'done' }
@@ -4302,6 +4305,39 @@ const [mounted, setMounted] = useState(false);
     finally { setGalleryAdLoading(false); }
   };
   const openGalleryAd = () => { setView('gallery-ad'); loadGalleryAd(); };
+
+  // === 🛒 贩售机全站开关 ===
+  const loadVending = async () => {
+    setVendingLoading(true);
+    try {
+      const r = await fetch('/api/admin/vending');
+      const d = await r.json();
+      if (d.success) setVendingEnabled(d.enabled !== false);
+      else alert('加载贩售机设置失败：' + (d.error || '未知错误'));
+    } catch (e) { alert('加载贩售机设置失败：' + e.message); }
+    finally { setVendingLoading(false); }
+  };
+  const openVending = () => { setView('vending'); loadVending(); };
+  const saveVending = async (nextEnabled) => {
+    setVendingSaving(true);
+    try {
+      const r = await fetch('/api/admin/vending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: nextEnabled }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setVendingEnabled(d.enabled !== false);
+        showAdminToast(d.enabled ? '贩售机已开启，正在更新前台…' : '贩售机已关闭，正在更新前台…');
+        void triggerShellBlogRefresh().then((rev) =>
+          showRevalidateFeedback(rev, showAdminToast)
+        );
+      } else alert('保存失败：' + (d.error || '未知错误'));
+    } catch (e) { alert('保存失败：' + e.message); }
+    finally { setVendingSaving(false); }
+  };
+
   const saveGalleryAd = async () => {
     const url = (galleryAd.url || '').trim();
     if (!url.startsWith('http')) { alert('请填写有效的广告链接（需以 http 开头）'); return; }
@@ -5966,6 +6002,16 @@ const [mounted, setMounted] = useState(false);
                 </div>
               )}
               {activeTab === 'Widget' && viewMode !== 'folder' && (
+                <div onClick={openVending} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #f97316', cursor: 'pointer' }}>
+                  <div style={{ fontSize: '28px' }}>🛒</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>贩售机</div>
+                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>全主题贩售机入口开关</div>
+                  </div>
+                  <div style={{ color: '#f97316', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
+                </div>
+              )}
+              {activeTab === 'Widget' && viewMode !== 'folder' && (
                 <div onClick={openGalleryAd} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #f59e0b', cursor: 'pointer' }}>
                   <div style={{ fontSize: '28px' }}>📢</div>
                   <div style={{ flex: 1 }}>
@@ -6136,6 +6182,51 @@ const [mounted, setMounted] = useState(false);
             onRefresh={refreshCrawlerIngestPanel}
             onBack={leaveCrawlerIngestView}
           />
+        ) : view === 'vending' ? (
+          <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
+              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>🛒 贩售机</div>
+              <div style={{fontSize:'12px', color:'#888'}}>全主题入口开关</div>
+            </div>
+
+            {vendingLoading ? (
+              <div style={{color:'#888', textAlign:'center', padding:'30px'}}>加载中...</div>
+            ) : (
+              <>
+                <div style={{fontSize:'12px', color:'#aaa', marginBottom:'24px', lineHeight:1.8}}>
+                  关闭后，Standard / Gallery / Tweet 各主题中的贩售机按钮将隐藏；Standard v2 底部推广横幅也会一并隐藏。保存后自动刷新前台页面，无需全站重部署。
+                </div>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'20px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555'}}>
+                  <div>
+                    <div style={{fontSize:'16px', fontWeight:'bold', color:'#fff', marginBottom:'6px'}}>贩售机功能</div>
+                    <div style={{fontSize:'12px', color:'#999'}}>{vendingEnabled ? '当前：已开启' : '当前：已关闭'}</div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={vendingSaving}
+                    onClick={() => saveVending(!vendingEnabled)}
+                    style={{
+                      minWidth: '88px',
+                      padding: '12px 20px',
+                      border: 'none',
+                      borderRadius: '999px',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      cursor: vendingSaving ? 'wait' : 'pointer',
+                      background: vendingEnabled ? '#22c55e' : '#555',
+                      color: '#fff',
+                      opacity: vendingSaving ? 0.6 : 1,
+                    }}
+                  >
+                    {vendingSaving ? '保存中…' : (vendingEnabled ? '已开启' : '已关闭')}
+                  </button>
+                </div>
+                <div style={{marginTop:'18px', fontSize:'11px', color:'#777', lineHeight:1.7}}>
+                  点击开关即可切换。`/vending` 说明页仍可直链访问，仅隐藏各主题内的入口按钮。
+                </div>
+              </>
+            )}
+          </div>
         ) : view === 'gallery-ad' ? (
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>

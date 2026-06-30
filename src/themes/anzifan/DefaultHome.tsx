@@ -5,10 +5,10 @@ import { WidgetCollection } from '@/src/components/section/WidgetCollection'
 import { ThemeHomeProps } from '../types'
 
 /** Standard V1 首页 */
-export const DefaultHome = ({ posts, widgets }: ThemeHomeProps) => (
+export const DefaultHome = ({ posts, widgets, vendingEnabled }: ThemeHomeProps) => (
   <>
     <ContainerLayout>
-      <WidgetCollection widgets={widgets} />
+      <WidgetCollection widgets={widgets} vendingEnabled={vendingEnabled !== false} />
       <div data-aos="fade-up" data-aos-delay={300}>
         <MainPostsCollection posts={posts} />
       </div>
