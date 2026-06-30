@@ -1050,6 +1050,16 @@ html.tweet-theme.dark .tweet-post-card:hover .tweet-post-card__shell {
     0 6px 12px -4px rgba(0, 0, 0, 0.35);
 }
 
+html.tweet-theme.dark:not(.tweet-theme--dark) .tweet-post-card__tag {
+  color: #b0b3b8;
+  background-color: #2f3336;
+}
+
+html.tweet-theme.dark:not(.tweet-theme--dark) .tweet-post-card__tag:hover {
+  color: #e7e9ea;
+  background-color: #3e4144;
+}
+
 .tweet-post-card__article {
   display: block;
   cursor: pointer;
@@ -1941,6 +1951,16 @@ html.tweet-theme.tweet-theme--dark .tweet-post-card:hover .tweet-post-card__shel
 html.tweet-theme.tweet-theme--dark .tweet-search__box {
   border: none;
   background-color: #202327;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-post-card__tag {
+  color: #b0b3b8;
+  background-color: #202327;
+}
+
+html.tweet-theme.tweet-theme--dark .tweet-post-card__tag:hover {
+  color: #e7e9ea;
+  background-color: #2f3336;
 }
 
 html.tweet-theme.tweet-theme--dark .tweet-tags__item:hover,
