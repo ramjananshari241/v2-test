@@ -22,7 +22,7 @@
       'html.tweet-boot-pending #__next{visibility:hidden}' +
       '#tweet-boot-screen{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:#fff}' +
       'html.tweet-theme.dark #tweet-boot-screen,html.dark #tweet-boot-screen{background:#111110}' +
-      '#tweet-boot-screen .tweet-boot-screen__letter{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:clamp(7rem,24vw,12rem);font-weight:800;line-height:1;color:#000;animation:tweet-boot-blink 1.6s ease-in-out infinite}' +
+      '#tweet-boot-screen .tweet-boot-screen__letter{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:clamp(2.75rem,10vw,5.5rem);font-weight:800;line-height:1;letter-spacing:-.04em;color:#000;animation:tweet-boot-blink 1.6s ease-in-out infinite}' +
       'html.tweet-theme.dark #tweet-boot-screen .tweet-boot-screen__letter,html.dark #tweet-boot-screen .tweet-boot-screen__letter{color:#eee}' +
       '#tweet-boot-screen.tweet-boot-screen--hiding{opacity:0;visibility:hidden;transition:opacity .35s ease,visibility .35s ease;pointer-events:none}' +
       '@keyframes tweet-boot-blink{0%,100%{opacity:.28;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}'
@@ -35,7 +35,7 @@
     screen.setAttribute('aria-live', 'polite')
     screen.setAttribute('aria-label', '页面加载中')
     screen.innerHTML =
-      '<span class="tweet-boot-screen__letter" aria-hidden="true">P</span>'
+      '<span class="tweet-boot-screen__letter" aria-hidden="true">PRO+</span>'
 
     document.body.insertBefore(screen, document.body.firstChild)
   } catch (e) {

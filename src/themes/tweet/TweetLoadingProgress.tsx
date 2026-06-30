@@ -86,7 +86,7 @@ function ensureBootScreen(): HTMLElement | null {
   screen.setAttribute('aria-live', 'polite')
   screen.setAttribute('aria-label', '页面加载中')
   screen.innerHTML =
-    '<span class="tweet-boot-screen__letter" aria-hidden="true">P</span>'
+    '<span class="tweet-boot-screen__letter" aria-hidden="true">PRO+</span>'
   document.body.insertBefore(screen, document.body.firstChild)
   return screen
 }
@@ -101,7 +101,7 @@ function TweetBootScreen() {
       aria-label="页面加载中"
     >
       <span className="tweet-boot-screen__letter" aria-hidden="true">
-        P
+        PRO+
       </span>
     </div>
   )

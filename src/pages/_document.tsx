@@ -74,7 +74,7 @@ export default class BlogDocument extends Document<BlogDocumentProps> {
               aria-label="页面加载中"
             >
               <span className="tweet-boot-screen__letter" aria-hidden="true">
-                P
+                PRO+
               </span>
             </div>
           ) : null}

@@ -1761,9 +1761,10 @@ html.dark .tweet-boot-screen {
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  font-size: clamp(7rem, 24vw, 12rem);
+  font-size: clamp(2.75rem, 10vw, 5.5rem);
   font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.04em;
   color: #000000;
   animation: tweet-boot-blink 1.6s ease-in-out infinite;
   user-select: none;
