@@ -24,7 +24,7 @@ html.tweet-theme {
   --tweet-service-text: #a0a0a0;
   --tweet-card-bg: #ffffff;
   --tweet-header-height: 3rem;
-  --tweet-sticky-top: 63px;
+  --tweet-sticky-top: var(--tweet-header-height);
   --tweet-max-width: 1120px;
   color-scheme: light;
 }
@@ -53,6 +53,7 @@ html.tweet-theme body {
   padding: 0;
   color: var(--tweet-gray12);
   background-color: var(--tweet-gray2);
+  scrollbar-gutter: stable;
   font-family:
     'Pretendard',
     -apple-system,
@@ -204,13 +205,18 @@ html.tweet-theme ul {
   position: sticky;
   top: var(--tweet-sticky-top);
   align-self: start;
+}
+
+.tweet-feed__left-inner {
   max-height: calc(100vh - var(--tweet-sticky-top));
   max-height: calc(100dvh - var(--tweet-sticky-top));
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
 
-.tweet-feed__left::-webkit-scrollbar {
+.tweet-feed__left-inner::-webkit-scrollbar {
   display: none;
 }
 
@@ -236,21 +242,22 @@ html.tweet-theme ul {
   align-self: start;
   position: sticky;
   top: var(--tweet-sticky-top);
-  max-height: calc(100vh - var(--tweet-sticky-top));
-  max-height: calc(100dvh - var(--tweet-sticky-top));
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-}
-
-.tweet-feed__right::-webkit-scrollbar {
-  display: none;
 }
 
 .tweet-feed__right-inner {
   display: flex;
   flex-direction: column;
   gap: 0;
+  max-height: calc(100vh - var(--tweet-sticky-top));
+  max-height: calc(100dvh - var(--tweet-sticky-top));
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.tweet-feed__right-inner::-webkit-scrollbar {
+  display: none;
 }
 
 @media (min-width: 1024px) {
@@ -586,7 +593,6 @@ html.tweet-theme ul {
 .tweet-aside-footer {
   margin-top: 1rem;
   padding: 0.75rem 0.25rem 0.25rem;
-  border-top: 1px solid var(--tweet-gray4);
   font-size: 0.75rem;
   line-height: 1.25rem;
   text-align: center;
@@ -1779,10 +1785,6 @@ html.tweet-theme.tweet-theme--light .tweet-search__box {
 html.tweet-theme.tweet-theme--light .tweet-tags__item:hover,
 html.tweet-theme.tweet-theme--light .tweet-tags__item[data-active='true'] {
   background-color: #eff3f4;
-}
-
-html.tweet-theme.tweet-theme--light .tweet-aside-footer {
-  border-top-color: #eff3f4;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-service__link:hover {

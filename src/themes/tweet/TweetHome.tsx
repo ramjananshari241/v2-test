@@ -61,7 +61,6 @@ export function TweetHome({
       vendingEnabled={vendingEnabled}
       leftAside={<TweetTagList tags={tags} layout="sidebar" />}
     >
-      <TweetTagList tags={tags} layout="mobile" />
       <TweetMobileProfileCard profile={profile} vendingEnabled={vendingEnabled} />
       <div className="tweet-service-mobile">
         <TweetServiceCard />

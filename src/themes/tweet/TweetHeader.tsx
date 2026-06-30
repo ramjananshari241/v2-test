@@ -74,7 +74,9 @@ export function TweetFeedGrid({
       <TweetHeader siteName={siteName} />
       <main className="tweet-main">
         <div className="tweet-feed">
-          <aside className="tweet-feed__left">{leftAside}</aside>
+          <aside className="tweet-feed__left">
+            <div className="tweet-feed__left-inner">{leftAside}</div>
+          </aside>
           <div className="tweet-feed__mid">{children}</div>
           <aside className="tweet-feed__right">
             <div className="tweet-feed__right-inner">{rightAside}</div>
