@@ -24,6 +24,7 @@ export function createEditorBlock(type) {
     bold: false,
     italic: false,
     color: 'default',
+    isCover: false,
   }
 }
 
@@ -51,6 +52,7 @@ export function normalizeLoadedEditorBlock(block, id) {
     bold: !!block.bold,
     italic: !!block.italic,
     color: block.color || 'default',
+    isCover: !!block.isCover,
   }
 }
 

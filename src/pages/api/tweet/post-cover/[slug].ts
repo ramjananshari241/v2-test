@@ -1,9 +1,10 @@
 import {
-  findFirstBlockImageUrl,
   isDefaultPostCover,
+  resolveBodyCoverUrl,
 } from '@/src/lib/gallery/postCover'
 import { getAllBlocks } from '@/src/lib/notion/getBlocks'
 import { getPostBySlug } from '@/src/lib/notion/getBlogData'
+import { readCoverFromPageProperties } from '@/src/lib/notion/readProperty'
 import { ApiScope } from '@/src/types/notion'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -34,7 +35,10 @@ export default async function handler(
     }
 
     const blocks = await getAllBlocks(rawPost.id)
-    const url = findFirstBlockImageUrl(blocks)
+    const coverFromProp = readCoverFromPageProperties(
+      rawPost.properties as Record<string, { type?: string }>
+    )
+    const url = resolveBodyCoverUrl(coverFromProp, blocks)
     const safeUrl =
       url && !isDefaultPostCover(url) ? url : undefined
 
@@ -47,7 +51,7 @@ export default async function handler(
     console.error('GET /api/tweet/post-cover/[slug]', slug, e)
     return res.status(500).json({
       success: false,
-      error: e instanceof Error ? e.message : '读取正文首图失败',
+      error: e instanceof Error ? e.message : '读取封面失败',
     })
   }
 }

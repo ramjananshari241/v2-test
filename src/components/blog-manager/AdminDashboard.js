@@ -18,8 +18,11 @@ import {
   revokeBlockPendingMedia,
   revokePendingEditorMedia,
   blocksToMarkdown,
-  resolveAutoCover,
+  resolveCoverFromBlocks,
   findCoverImageBlock,
+  setBlockAsCover,
+  clearManualCoverFlags,
+  syncCoverFlagsFromSavedCover,
   hasEditorImageBlock,
   isVideoImageContent,
   serializeBlocksForSave,
@@ -2605,7 +2608,7 @@ const BLOCK_TYPE_MENU_MIN_WIDTH = 210;
 
 const BlockCoverHint = () => (
   <div className="block-cover-hint">
-    🖼️ <b style={{ color: 'greenyellow' }}>封面说明</b>：系统会将正文中的第一个图片块设为文章封面，请把用作封面的图片块放在最前。
+    🖼️ <b style={{ color: 'greenyellow' }}>封面说明</b>：可在图片块上点击「设为封面」手动指定封面；未手动设定时，系统会自动将正文中第一个图片块作为封面。
   </div>
 );
 
@@ -2691,6 +2694,14 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
     const pick = addMenuPickRef.current;
     closeAddMenu();
     if (pick) pick(type);
+  };
+
+  const setCoverBlock = (blockId) => {
+    setBlocks(setBlockAsCover(blocks, blockId));
+  };
+
+  const clearManualCover = () => {
+    setBlocks(clearManualCoverFlags(blocks));
   };
 
   // 在指定下标之后插入新块；index 传 -1 表示插到最前
@@ -3622,13 +3633,45 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                           fontSize: '12px',
                           fontWeight: 'bold',
                           color: '#000',
-                          background: 'greenyellow',
+                          background: b.isCover ? '#7dd3fc' : 'greenyellow',
                           padding: '6px 12px',
                           borderRadius: '6px',
                           marginTop: '8px',
                           textAlign: 'center',
                         }}>
-                          当前图片将被作为封面
+                          {b.isCover ? '已手动设为封面' : '当前图片将被作为封面（自动）'}
+                        </div>
+                      ) : null}
+                      {!isVideoImageContent(b.content) ? (
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '8px',
+                            marginTop: '10px',
+                            justifyContent: 'center',
+                            flexWrap: 'wrap',
+                          }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        >
+                          {b.isCover ? (
+                            <button
+                              type="button"
+                              className="neo-btn"
+                              style={{ fontSize: '12px', padding: '6px 12px', opacity: 0.85 }}
+                              onClick={clearManualCover}
+                            >
+                              取消封面设定
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="neo-btn"
+                              style={{ fontSize: '12px', padding: '6px 12px' }}
+                              onClick={() => setCoverBlock(b.id)}
+                            >
+                              设为封面
+                            </button>
+                          )}
                         </div>
                       ) : null}
                       {isImageBlockPending(b) ? (
@@ -4481,9 +4524,10 @@ const [mounted, setMounted] = useState(false);
         setForm(post);
         resetSmartParseState();
         // 优先使用后端按 Notion 原生块重建的结构化块(保留格式)，否则回退到 Markdown 解析
-        const eb = (Array.isArray(post.editorBlocks) && post.editorBlocks.length)
+        const ebRaw = (Array.isArray(post.editorBlocks) && post.editorBlocks.length)
           ? normalizeLoadedEditorBlocks(post.editorBlocks)
           : normalizeLoadedEditorBlocks(parseContentToBlocks(post.content));
+        const eb = syncCoverFlagsFromSavedCover(ebRaw, post.cover);
         setEditorBlocks(eb);
         setCurrentId(p.id);
         editingSlugRef.current = post.slug || null;
@@ -4834,7 +4878,7 @@ const [mounted, setMounted] = useState(false);
       updateJob(job.id, { phase: 'post', progress: null });
       const fullContent = blocksToMarkdown(blocksForSave);
       const blocksData = serializeBlocksForSave(blocksForSave);
-      const autoCover = resolveAutoCover(blocksForSave);
+      const autoCover = resolveCoverFromBlocks(blocksForSave);
       const coverForSave =
         autoCover ||
         (typeof payload.form.cover === 'string' ? payload.form.cover.trim() : '');

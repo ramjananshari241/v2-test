@@ -16,6 +16,7 @@ export function createPendingImageBlock(file) {
     url: '',
     uploading: false,
     error: '',
+    isCover: false,
   }
 }
 
@@ -86,6 +87,7 @@ export function serializeBlocksForSave(blocks) {
     bold: !!b.bold,
     italic: !!b.italic,
     color: b.color || 'default',
+    isCover: !!b.isCover,
   }))
 }
 
@@ -132,26 +134,21 @@ export function isVideoImageContent(content) {
   return /\.(mp4|mov|webm|ogg|mkv)(\?|$)/i.test(content || '')
 }
 
-/** 第一个将作为封面的图片块（非视频；含本地 blob 预览） */
-export function findCoverImageBlock(blocks) {
-  return (blocks || []).find(
-    (b) =>
-      b.type === 'image' &&
-      b.content?.trim() &&
-      !isVideoImageContent(b.content)
-  )
-}
-
 /** 编辑器内是否存在任意图片块 */
 export function hasEditorImageBlock(blocks) {
   return (blocks || []).some((b) => b.type === 'image')
 }
 
-export function resolveAutoCover(blocks) {
-  const first = findCoverImageBlock(blocks)
-  if (!first?.content) return ''
-  return /^https?:\/\//i.test(first.content) ? first.content : ''
-}
+export {
+  findCoverImageBlock,
+  findManualCoverImageBlock,
+  findAutoCoverImageBlock,
+  resolveCoverFromBlocks,
+  resolveAutoCover,
+  setBlockAsCover,
+  clearManualCoverFlags,
+  syncCoverFlagsFromSavedCover,
+} from '@/src/lib/admin/editorCover'
 
 /**
  * 发布/保存前：上传正文 pending 图片，返回可写入 Notion 的块列表

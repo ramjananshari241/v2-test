@@ -1,4 +1,8 @@
-import { findFirstBlockImageUrl, isDefaultPostCover } from '@/src/lib/gallery/postCover'
+import {
+  findFirstBlockImageUrl,
+  isDefaultPostCover,
+  resolvePostCoverSrc,
+} from '@/src/lib/gallery/postCover'
 import {
   GalleryFeedPreview,
   loadGalleryFeedPreviews,
@@ -70,6 +74,8 @@ export async function loadTweetFeedMedia(
     prefetchPosts,
     async (post) => {
       try {
+        const fromCover = resolvePostCoverSrc(post)
+        if (fromCover) return { slug: post.slug, url: fromCover }
         const blocks = await getAllBlocks(post.id)
         const url = findFirstBlockImageUrl(blocks)
         return url && !isDefaultPostCover(url)

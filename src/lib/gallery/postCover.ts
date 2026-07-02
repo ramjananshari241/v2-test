@@ -25,7 +25,7 @@ export function pickGalleryRecommendCover(
   return ''
 }
 
-/** Notion 正文块中第一张图片 URL（与文章背景 / 自动封面逻辑一致） */
+/** Notion 正文块中第一张图片 URL（自动封面回退） */
 export function findFirstBlockImageUrl(
   blocks: BlockResponse[] | undefined | null
 ): string | null {
@@ -48,6 +48,21 @@ export function findFirstBlockImageUrl(
     }
   }
   return null
+}
+
+/**
+ * 文章封面 URL：优先 Notion cover 属性（含手动设定），否则正文首图。
+ * Gallery / Tweet 等主题在需要正文回退时共用此逻辑。
+ */
+export function resolveBodyCoverUrl(
+  coverFromPost: string | null | undefined,
+  blocks?: BlockResponse[] | null
+): string | null {
+  const fromProp = (coverFromPost || '').trim()
+  if (fromProp && !isDefaultPostCover(fromProp)) return fromProp
+  const fromBlock = findFirstBlockImageUrl(blocks)
+  if (fromBlock && !isDefaultPostCover(fromBlock)) return fromBlock
+  return fromBlock || null
 }
 
 /** 列表卡片封面：有图库时优先图库首图，其次 Notion 封面属性 */
