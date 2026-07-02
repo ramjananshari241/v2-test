@@ -16,6 +16,7 @@ export function remoteFromApiImage(img) {
     url: img.url,
     fileSize:
       img.file_size != null && img.file_size > 0 ? Number(img.file_size) : null,
+    isCover: false,
   }
 }
 
@@ -25,6 +26,7 @@ export function createPendingGalleryItem(file) {
     status: 'pending',
     file,
     previewUrl: URL.createObjectURL(file),
+    isCover: false,
   }
 }
 

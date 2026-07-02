@@ -3,10 +3,6 @@ import {
   isDefaultPostCover,
   resolvePostCoverSrc,
 } from '@/src/lib/gallery/postCover'
-import {
-  GalleryFeedPreview,
-  loadGalleryFeedPreviews,
-} from '@/src/lib/gallery/galleryFeedPreviews'
 import { getAllBlocks } from '@/src/lib/notion/getBlocks'
 import { Post } from '@/src/types/blog'
 
@@ -60,7 +56,9 @@ export async function loadTweetFeedMedia(
   )
 
   const postsNeedingBodyImage = posts.filter(
-    (post) => !galleryPreviews[post.slug]?.thumbs?.length
+    (post) =>
+      !galleryPreviews[post.slug]?.thumbs?.length &&
+      !resolvePostCoverSrc(post)
   )
   const prefetchPosts = postsNeedingBodyImage.slice(
     0,

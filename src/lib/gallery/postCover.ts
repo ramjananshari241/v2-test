@@ -8,8 +8,11 @@ export function isDefaultPostCover(src: string | null | undefined): boolean {
   return !!s && s === CONFIG.DEFAULT_POST_COVER
 }
 
-/** Gallery 推荐缩略图：不使用站点默认占位封面 */
+/** 来自 Notion cover 属性的有效封面（不含 formatPost 对 Standard 的占位回退） */
 export function resolvePostCoverSrc(post: Post): string {
+  if (post.options?.useDefaultCover) {
+    return CONFIG.DEFAULT_POST_COVER
+  }
   const src = post.cover?.light?.src?.trim() || ''
   if (!src || isDefaultPostCover(src)) return ''
   return src
@@ -51,13 +54,14 @@ export function findFirstBlockImageUrl(
 }
 
 /**
- * 文章封面 URL：优先 Notion cover 属性（含手动设定），否则正文首图。
- * Gallery / Tweet 等主题在需要正文回退时共用此逻辑。
+ * 文章封面 URL：Notion cover → 正文首图（懒加载场景）
  */
 export function resolveBodyCoverUrl(
   coverFromPost: string | null | undefined,
-  blocks?: BlockResponse[] | null
+  blocks?: BlockResponse[] | null,
+  options?: { useDefaultCover?: boolean }
 ): string | null {
+  if (options?.useDefaultCover) return CONFIG.DEFAULT_POST_COVER
   const fromProp = (coverFromPost || '').trim()
   if (fromProp && !isDefaultPostCover(fromProp)) return fromProp
   const fromBlock = findFirstBlockImageUrl(blocks)
@@ -65,27 +69,36 @@ export function resolveBodyCoverUrl(
   return fromBlock || null
 }
 
-/** 列表卡片封面：有图库时优先图库首图，其次 Notion 封面属性 */
+/** 列表卡片封面：Notion 封面 → 图库首图 → 正文首图 */
 export function resolveGalleryListCoverSrc(
   post: Post,
-  galleryThumbUrl?: string | null
+  galleryThumbUrl?: string | null,
+  bodyFirstImageUrl?: string | null
 ): string {
+  const fromNotion = resolvePostCoverSrc(post)
+  if (fromNotion) return fromNotion
+
   const fromGallery = (galleryThumbUrl || '').trim()
   if (fromGallery && !isDefaultPostCover(fromGallery)) return fromGallery
-  return resolvePostCoverSrc(post)
+
+  const fromBody = (bodyFirstImageUrl || '').trim()
+  if (fromBody && !isDefaultPostCover(fromBody)) return fromBody
+
+  return ''
 }
 
-/** 分类 banner 等：图库首图 → 封面属性 → 正文首图 */
+/** 分类 banner 等：Notion 封面 → 图库首图 → 正文首图 */
 export function resolveGalleryPostBannerSrc(
   post: Post,
   blocks?: BlockResponse[],
   galleryThumbUrl?: string | null
 ): string {
+  const fromNotion = resolvePostCoverSrc(post)
+  if (fromNotion) return fromNotion
+
   const fromGallery = (galleryThumbUrl || '').trim()
   if (fromGallery && !isDefaultPostCover(fromGallery)) return fromGallery
 
-  const cover = resolvePostCoverSrc(post)
-  if (cover) return cover
   const firstImage = findFirstBlockImageUrl(blocks)
   if (firstImage && !isDefaultPostCover(firstImage)) return firstImage
   return firstImage || ''

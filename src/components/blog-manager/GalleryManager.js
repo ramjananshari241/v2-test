@@ -49,6 +49,10 @@ export function GalleryManager({
   items,
   onItemsChange,
   onGalleryMutated,
+  coverMode = 'auto',
+  coverIndex = -1,
+  onSetCover,
+  onClearCover,
 }) {
   const [loading, setLoading] = useState(false)
   const [processing, setProcessing] = useState(false)
@@ -78,6 +82,13 @@ export function GalleryManager({
       const remote = (d.images || []).map(remoteFromApiImage)
       onItemsChange((prev) => {
         const pending = (prev || []).filter((it) => it.status === 'pending')
+        const prevRemote = (prev || []).filter((it) => it.status === 'remote')
+        const remote = (d.images || []).map((img) => {
+          const item = remoteFromApiImage(img)
+          const matched = prevRemote.find((p) => p.url === item.url)
+          if (matched?.isCover) item.isCover = true
+          return item
+        })
         return [...remote, ...pending]
       })
     } catch (e) {
@@ -216,6 +227,20 @@ export function GalleryManager({
       return next
     })
     onGalleryMutated?.()
+  }
+
+  const handleSetCover = (index, e) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    if (sortMode) return
+    onSetCover?.(index)
+  }
+
+  const handleClearCover = (e) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    if (sortMode) return
+    onClearCover?.()
   }
 
   const handleDragStart = (e, index) => {
@@ -408,6 +433,11 @@ export function GalleryManager({
             const isDragging = sortMode && dragIndex === index
             const isDropTarget =
               sortMode && overIndex === index && dragIndex !== null && dragIndex !== index
+            const isCoverItem = coverIndex === index
+            const isManualCover =
+              coverMode === 'gallery' && it.isCover && isCoverItem
+            const isAutoCover =
+              coverMode === 'auto' && isCoverItem && !items.some((x) => x.isCover)
             const showInsertBefore =
               sortMode &&
               dragIndex !== null &&
@@ -435,9 +465,11 @@ export function GalleryManager({
                   background: isDropTarget ? '#1a2a12' : '#222',
                   border: isDropTarget
                     ? '2px solid greenyellow'
-                    : it.status === 'pending'
-                      ? '1px dashed #f59e0b'
-                      : '1px solid #444',
+                    : isCoverItem
+                      ? '2px solid #7dd3fc'
+                      : it.status === 'pending'
+                        ? '1px dashed #f59e0b'
+                        : '1px solid #444',
                   boxShadow: isDropTarget
                     ? '0 0 0 3px rgba(173, 255, 47, 0.25), 0 8px 20px rgba(0,0,0,0.35)'
                     : isDragging
@@ -502,6 +534,54 @@ export function GalleryManager({
                     userSelect: 'none',
                   }}
                 />
+                {isCoverItem ? (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '4px',
+                      right: '4px',
+                      bottom: '4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '3px',
+                      alignItems: 'stretch',
+                      pointerEvents: sortMode ? 'none' : 'auto',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 'bold',
+                        color: '#000',
+                        background: isManualCover ? '#7dd3fc' : 'greenyellow',
+                        padding: '3px 4px',
+                        borderRadius: '4px',
+                        textAlign: 'center',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      {isManualCover ? '封面' : '封面(自动)'}
+                    </div>
+                    {isManualCover && !sortMode ? (
+                      <button
+                        type="button"
+                        onClick={handleClearCover}
+                        style={{
+                          border: 'none',
+                          background: 'rgba(0,0,0,0.72)',
+                          color: '#7dd3fc',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '8px',
+                          padding: '3px 2px',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        取消设定
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div
                   style={{
                     position: 'absolute',
@@ -516,6 +596,25 @@ export function GalleryManager({
                 >
                   <span style={{ fontSize: '10px', color: '#fff' }}>{index + 1}</span>
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    {!sortMode && !isCoverItem ? (
+                      <button
+                        type="button"
+                        title="设为封面"
+                        onClick={(e) => handleSetCover(index, e)}
+                        style={{
+                          border: 'none',
+                          background: 'rgba(0,0,0,0.55)',
+                          color: '#7dd3fc',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '9px',
+                          padding: '2px 4px',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        封面
+                      </button>
+                    ) : null}
                     {it.status === 'pending' ? (
                       <span
                         style={{

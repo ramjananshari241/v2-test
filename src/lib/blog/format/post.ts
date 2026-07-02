@@ -9,6 +9,7 @@ import {
   sortPostsByPinnedThenDate,
 } from '../pinnedPosts'
 import { readCoverDarkFromPageProperties, readCoverFromPageProperties, readPageCoverUrl, readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties, isArticlePasswordProtectedFromProperties } from '../../notion/readProperty'
+import { isDefaultPostCover } from '../../gallery/postCover'
 import { getImageInfo } from '../getImageInfo'
 
 export type FormatPostOptions = {
@@ -61,10 +62,13 @@ const formatPost = async (
   const postUpdatedDate =
     update_date.type === 'last_edited_time' && update_date.last_edited_time
 
-  const postCoverLightSrc =
+  const coverFromProperty =
     readCoverFromPageProperties(properties) ||
     readPageCoverUrl(post.cover) ||
-    CONFIG.DEFAULT_POST_COVER
+    ''
+  const isExplicitDefaultCover = isDefaultPostCover(coverFromProperty)
+
+  const postCoverLightSrc = coverFromProperty || CONFIG.DEFAULT_POST_COVER
   const postCoverDarkSrc =
     readCoverDarkFromPageProperties(properties) || postCoverLightSrc
 
@@ -182,6 +186,7 @@ const formatPost = async (
       downloadSize: postOptions.downloadSize ?? '',
       downloadCount: postOptions.downloadCount ?? '',
       isPasswordProtected: postOptions.isPasswordProtected ?? false,
+      useDefaultCover: isExplicitDefaultCover,
     },
   } as Post
   return formattedPost

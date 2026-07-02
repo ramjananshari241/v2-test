@@ -34,13 +34,14 @@ export default async function handler(
       return res.status(404).json({ success: false, error: '文章不存在' })
     }
 
-    const blocks = await getAllBlocks(rawPost.id)
     const coverFromProp = readCoverFromPageProperties(
       rawPost.properties as Record<string, { type?: string }>
     )
-    const url = resolveBodyCoverUrl(coverFromProp, blocks)
+    const useDefaultCover = isDefaultPostCover(coverFromProp)
+    const blocks = await getAllBlocks(rawPost.id)
+    const url = resolveBodyCoverUrl(coverFromProp, blocks, { useDefaultCover })
     const safeUrl =
-      url && !isDefaultPostCover(url) ? url : undefined
+      url && (!isDefaultPostCover(url) || useDefaultCover) ? url : undefined
 
     res.setHeader(
       'Cache-Control',

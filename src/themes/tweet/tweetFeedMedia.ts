@@ -1,3 +1,4 @@
+import { resolvePostCoverSrc } from '@/src/lib/gallery/postCover'
 import { GalleryFeedPreview } from '@/src/lib/gallery/galleryFeedPreviews'
 import { TweetFeedMediaMap } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { Post } from '@/src/types/blog'
@@ -19,6 +20,11 @@ export function resolveTweetCardMedia(
   const gallery = feedMedia?.galleryPreviews?.[post.slug]
   if (gallery?.thumbs?.length) {
     return { mode: 'gallery', total: gallery.total, thumbs: gallery.thumbs }
+  }
+
+  const notionCover = resolvePostCoverSrc(post)
+  if (notionCover) {
+    return { mode: 'cover', src: notionCover }
   }
 
   const bodySrc = feedMedia?.bodyImages?.[post.slug]

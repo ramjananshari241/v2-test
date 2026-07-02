@@ -104,6 +104,8 @@ export type Post = {
     downloadCount: string
     /** 是否设置了全篇访问密码（不含明文密码） */
     isPasswordProtected?: boolean
+    /** Notion cover 字段显式设为站点默认封面 */
+    useDefaultCover?: boolean
   }
 }
 

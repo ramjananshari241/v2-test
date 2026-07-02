@@ -18,15 +18,31 @@ import {
   revokeBlockPendingMedia,
   revokePendingEditorMedia,
   blocksToMarkdown,
-  resolveCoverFromBlocks,
   findCoverImageBlock,
-  setBlockAsCover,
   clearManualCoverFlags,
-  syncCoverFlagsFromSavedCover,
   hasEditorImageBlock,
   isVideoImageContent,
   serializeBlocksForSave,
 } from '@/src/lib/admin/contentMediaFlush';
+import {
+  applyBodyCoverSelection,
+  applyDefaultCoverToggle,
+  applyGalleryCoverSelection,
+  applyManualCoverUrl,
+  clearBodyCoverSelection,
+  clearGalleryCoverFlags,
+  COVER_MODE_BODY,
+  COVER_MODE_DEFAULT,
+  COVER_MODE_URL,
+  createInitialCoverSettings,
+  resolveEditorBodyCoverBlockId,
+  resolveEditorGalleryCoverIndex,
+  resolveNotionCoverForSave,
+  restoreEditorCoverState,
+  formatEditorCoverStatus,
+  clearGalleryCoverSelection,
+} from '@/src/lib/admin/coverSettings';
+import { remoteFromApiImage } from '@/src/lib/admin/galleryFlush';
 import {
   createEditorBlock,
   getEditorBlockLockPwd,
@@ -2606,9 +2622,87 @@ const BLOCK_TYPE_OPTIONS = [
 const BLOCK_TYPE_MENU_EST_HEIGHT = 400;
 const BLOCK_TYPE_MENU_MIN_WIDTH = 210;
 
-const BlockCoverHint = () => (
-  <div className="block-cover-hint">
-    🖼️ <b style={{ color: 'greenyellow' }}>封面说明</b>：可在图片块上点击「设为封面」手动指定封面；未手动设定时，系统会自动将正文中第一个图片块作为封面。
+const BlockCoverHint = ({
+  coverSettings,
+  coverStatusText,
+  showManualCoverInput,
+  onToggleDefaultCover,
+  onToggleManualInput,
+  onManualUrlChange,
+  onApplyManualUrl,
+}) => (
+  <div
+    className="block-cover-hint"
+    style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '12px',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    }}
+  >
+    <div style={{ flex: '1 1 280px', lineHeight: 1.55 }}>
+      <div>
+        🖼️ <b style={{ color: 'greenyellow' }}>封面说明</b>：可在图库或正文图片块上点击「设为封面」手动指定；也可使用右侧按钮启用默认封面或填入图片直链。未手动设定时，优先使用图库首图，其次正文首图。
+      </div>
+      {coverStatusText ? (
+        <div
+          style={{
+            marginTop: '8px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            color: '#7dd3fc',
+          }}
+        >
+          {coverStatusText}
+        </div>
+      ) : null}
+    </div>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+      <button
+        type="button"
+        className="neo-btn"
+        style={{
+          fontSize: '12px',
+          padding: '6px 12px',
+          background: coverSettings.mode === COVER_MODE_DEFAULT ? '#7dd3fc' : undefined,
+        }}
+        onClick={() => onToggleDefaultCover(coverSettings.mode !== COVER_MODE_DEFAULT)}
+      >
+        {coverSettings.mode === COVER_MODE_DEFAULT ? '✓ 已启用默认封面' : '启用默认封面'}
+      </button>
+      <button
+        type="button"
+        className="neo-btn"
+        style={{
+          fontSize: '12px',
+          padding: '6px 12px',
+          background: coverSettings.mode === COVER_MODE_URL ? '#7dd3fc' : undefined,
+        }}
+        onClick={onToggleManualInput}
+      >
+        手动添加封面
+      </button>
+      {showManualCoverInput ? (
+        <>
+          <input
+            className="glow-input"
+            style={{ width: '220px', fontSize: '12px', padding: '6px 10px' }}
+            placeholder="https://图片直链"
+            value={coverSettings.manualUrl}
+            onChange={(e) => onManualUrlChange(e.target.value)}
+          />
+          <button
+            type="button"
+            className="neo-btn"
+            style={{ fontSize: '12px', padding: '6px 12px' }}
+            onClick={onApplyManualUrl}
+          >
+            确认
+          </button>
+        </>
+      ) : null}
+    </div>
   </div>
 );
 
@@ -2618,7 +2712,14 @@ const isFileDragEvent = (e) => {
   return Array.from(dt.types).includes('Files');
 };
 
-const BlockBuilder = ({ blocks, setBlocks }) => {
+const BlockBuilder = ({
+  blocks,
+  setBlocks,
+  coverMode,
+  coverImageBlockId,
+  onSetBodyCover,
+  onClearBodyCover,
+}) => {
   const [movingId, setMovingId] = useState(null);
   const [blockViewMode, setBlockViewMode] = useState('expanded');
   const [dragIndex, setDragIndex] = useState(null);
@@ -2630,7 +2731,6 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   const [compactMultiSelect, setCompactMultiSelect] = useState(false);
   const [compactSelectedIds, setCompactSelectedIds] = useState([]);
   const minimapDragMovedRef = useRef(false);
-  const coverImageBlockId = findCoverImageBlock(blocks)?.id ?? null;
   // 行内超链接弹窗：{ blockId, start, end, label, url }，为 null 时关闭
   const [linkModal, setLinkModal] = useState(null);
   const [lockModal, setLockModal] = useState(null);
@@ -2694,14 +2794,6 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
     const pick = addMenuPickRef.current;
     closeAddMenu();
     if (pick) pick(type);
-  };
-
-  const setCoverBlock = (blockId) => {
-    setBlocks(setBlockAsCover(blocks, blockId));
-  };
-
-  const clearManualCover = () => {
-    setBlocks(clearManualCoverFlags(blocks));
   };
 
   // 在指定下标之后插入新块；index 传 -1 表示插到最前
@@ -3439,7 +3531,6 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
           />
         </div>
       </div>
-      <BlockCoverHint />
       {blockViewMode === 'compact' ? (
         blocks.length === 0 ? (
           <div style={{ position: 'relative' }}>
@@ -3628,21 +3719,25 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                       {isVideoImageContent(b.content)
                         ? <video src={b.content} controls className="img-preview" />
                         : <img src={b.content} className="img-preview" alt="" />}
-                      {b.id === coverImageBlockId && !isVideoImageContent(b.content) ? (
+                      {coverImageBlockId === b.id && !isVideoImageContent(b.content) ? (
                         <div style={{
                           fontSize: '12px',
                           fontWeight: 'bold',
                           color: '#000',
-                          background: b.isCover ? '#7dd3fc' : 'greenyellow',
+                          background: coverMode === COVER_MODE_BODY && b.isCover ? '#7dd3fc' : 'greenyellow',
                           padding: '6px 12px',
                           borderRadius: '6px',
                           marginTop: '8px',
                           textAlign: 'center',
                         }}>
-                          {b.isCover ? '已手动设为封面' : '当前图片将被作为封面（自动）'}
+                          {coverMode === COVER_MODE_BODY && b.isCover
+                            ? '已手动设为封面'
+                            : coverMode === COVER_MODE_AUTO
+                              ? '当前图片将作为封面（自动）'
+                              : '当前图片将作为封面'}
                         </div>
                       ) : null}
-                      {!isVideoImageContent(b.content) ? (
+                      {!isVideoImageContent(b.content) && (coverMode === COVER_MODE_AUTO || coverMode === COVER_MODE_BODY) ? (
                         <div
                           style={{
                             display: 'flex',
@@ -3653,12 +3748,12 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                           }}
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         >
-                          {b.isCover ? (
+                          {coverMode === COVER_MODE_BODY && b.isCover ? (
                             <button
                               type="button"
                               className="neo-btn"
                               style={{ fontSize: '12px', padding: '6px 12px', opacity: 0.85 }}
-                              onClick={clearManualCover}
+                              onClick={onClearBodyCover}
                             >
                               取消封面设定
                             </button>
@@ -3667,7 +3762,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
                               type="button"
                               className="neo-btn"
                               style={{ fontSize: '12px', padding: '6px 12px' }}
-                              onClick={() => setCoverBlock(b.id)}
+                              onClick={() => onSetBodyCover(b.id)}
                             >
                               设为封面
                             </button>
@@ -3884,6 +3979,8 @@ const [mounted, setMounted] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [galleryItems, setGalleryItems] = useState([]);
   const [galleryDirty, setGalleryDirty] = useState(false);
+  const [coverSettings, setCoverSettings] = useState(createInitialCoverSettings);
+  const [showManualCoverInput, setShowManualCoverInput] = useState(false);
   const [savePhase, setSavePhase] = useState(''); // '' | 'media' | 'post' | 'gallery' | 'delete'
   const [saveProgress, setSaveProgress] = useState(null); // { done, total }
   const [publishQueue, setPublishQueue] = useState([]); // 后台发布队列
@@ -3914,8 +4011,100 @@ const [mounted, setMounted] = useState(false);
     setGalleryDirty(false);
   };
 
+  const resetCoverSettings = () => {
+    setCoverSettings(createInitialCoverSettings());
+    setShowManualCoverInput(false);
+  };
+
+  const editorBodyCoverBlockId = useMemo(
+    () => resolveEditorBodyCoverBlockId(editorBlocks, coverSettings.mode, galleryItems),
+    [editorBlocks, coverSettings.mode, galleryItems]
+  );
+
+  const galleryCoverIndex = useMemo(
+    () => resolveEditorGalleryCoverIndex(galleryItems, coverSettings.mode),
+    [galleryItems, coverSettings.mode]
+  );
+
+  const coverStatusText = useMemo(
+    () =>
+      formatEditorCoverStatus({
+        coverSettings,
+        blocks: editorBlocks,
+        galleryItems,
+      }).full,
+    [coverSettings, editorBlocks, galleryItems]
+  );
+
+  const handleToggleDefaultCover = (enabled) => {
+    const applied = applyDefaultCoverToggle(enabled);
+    setCoverSettings(applied.coverSettings);
+    if (applied.clearBody) {
+      setEditorBlocks((prev) => clearManualCoverFlags(prev));
+    }
+    if (applied.clearGallery) {
+      setGalleryItems((prev) => clearGalleryCoverFlags(prev));
+    }
+    setShowManualCoverInput(false);
+  };
+
+  const handleApplyManualCoverUrl = () => {
+    const url = (coverSettings.manualUrl || '').trim();
+    if (!url) {
+      alert('请输入图片直链');
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      alert('请输入以 http(s) 开头的有效链接');
+      return;
+    }
+    const applied = applyManualCoverUrl(url);
+    setCoverSettings(applied.coverSettings);
+    if (applied.clearBody) {
+      setEditorBlocks((prev) => clearManualCoverFlags(prev));
+    }
+    if (applied.clearGallery) {
+      setGalleryItems((prev) => clearGalleryCoverFlags(prev));
+    }
+  };
+
+  const handleSetBodyCover = (blockId) => {
+    const applied = applyBodyCoverSelection(editorBlocks, blockId);
+    setCoverSettings(applied.coverSettings);
+    setEditorBlocks(applied.blocks);
+    if (applied.clearGallery) {
+      setGalleryItems((prev) => clearGalleryCoverFlags(prev));
+    }
+    setShowManualCoverInput(false);
+  };
+
+  const handleClearBodyCover = () => {
+    const applied = clearBodyCoverSelection(editorBlocks, coverSettings.mode);
+    setEditorBlocks(applied.blocks);
+    if (applied.coverSettings) setCoverSettings(applied.coverSettings);
+  };
+
+  const handleSetGalleryCover = (index) => {
+    const applied = applyGalleryCoverSelection(galleryItems, index);
+    setCoverSettings(applied.coverSettings);
+    setGalleryItems(applied.galleryItems);
+    if (applied.clearBody) {
+      setEditorBlocks((prev) => clearManualCoverFlags(prev));
+    }
+    setShowManualCoverInput(false);
+    setGalleryDirty(true);
+  };
+
+  const handleClearGalleryCover = () => {
+    const applied = clearGalleryCoverSelection(galleryItems, coverSettings.mode);
+    setGalleryItems(applied.galleryItems);
+    if (applied.coverSettings) setCoverSettings(applied.coverSettings);
+    setGalleryDirty(true);
+  };
+
   const leaveEditView = () => {
     resetGalleryItems();
+    resetCoverSettings();
     setEditorBlocks((prev) => {
       revokePendingEditorMedia(prev);
       return [];
@@ -4523,12 +4712,31 @@ const [mounted, setMounted] = useState(false);
       if (post) {
         setForm(post);
         resetSmartParseState();
-        // 优先使用后端按 Notion 原生块重建的结构化块(保留格式)，否则回退到 Markdown 解析
         const ebRaw = (Array.isArray(post.editorBlocks) && post.editorBlocks.length)
           ? normalizeLoadedEditorBlocks(post.editorBlocks)
           : normalizeLoadedEditorBlocks(parseContentToBlocks(post.content));
-        const eb = syncCoverFlagsFromSavedCover(ebRaw, post.cover);
-        setEditorBlocks(eb);
+        let galleryItemsLoaded = [];
+        if (post.slug) {
+          try {
+            const gr = await fetch(`/api/admin/gallery?slug=${encodeURIComponent(post.slug)}`);
+            const gd = await gr.json();
+            if (gd.success) {
+              galleryItemsLoaded = (gd.images || []).map(remoteFromApiImage);
+            }
+          } catch {
+            galleryItemsLoaded = [];
+          }
+        }
+        const restored = restoreEditorCoverState({
+          savedCoverUrl: post.cover,
+          blocks: ebRaw,
+          galleryItems: galleryItemsLoaded,
+        });
+        setCoverSettings(restored.coverSettings);
+        setEditorBlocks(restored.blocks);
+        setGalleryItems(restored.galleryItems);
+        setGalleryDirty(false);
+        setShowManualCoverInput(restored.coverSettings.mode === COVER_MODE_URL);
         setCurrentId(p.id);
         editingSlugRef.current = post.slug || null;
         editingCategoryRef.current = post.category || null;
@@ -4544,6 +4752,7 @@ const [mounted, setMounted] = useState(false);
   // 🟢 修复：新建时默认 Published
   const handleCreate = () => {
     resetGalleryItems();
+    resetCoverSettings();
     setEditorBlocks((prev) => {
       revokePendingEditorMedia(prev);
       return [];
@@ -4874,14 +5083,34 @@ const [mounted, setMounted] = useState(false);
       }
       if (bailIfCancelled()) return;
 
-      // 2) 写入 Notion 文章
+      // 2) 若有 pending 图库，先上传以便解析图库封面 URL
+      let galleryItemsForSave = payload.galleryItems || [];
+      if (payload.pendingGalleryCount > 0 && galleryItemsForSave.length > 0) {
+        updateJob(job.id, {
+          phase: 'gallery',
+          progress: { done: 0, total: payload.pendingGalleryCount },
+        });
+        galleryItemsForSave = await flushGalleryUploads({
+          slug: payload.form.slug,
+          postTitle: payload.form.title,
+          postNotionId: payload.currentId,
+          items: galleryItemsForSave,
+          onProgress: ({ done, total }) =>
+            updateJob(job.id, { progress: { done, total } }),
+        });
+      }
+      if (bailIfCancelled()) return;
+
+      // 3) 写入 Notion 文章
       updateJob(job.id, { phase: 'post', progress: null });
       const fullContent = blocksToMarkdown(blocksForSave);
       const blocksData = serializeBlocksForSave(blocksForSave);
-      const autoCover = resolveCoverFromBlocks(blocksForSave);
-      const coverForSave =
-        autoCover ||
-        (typeof payload.form.cover === 'string' ? payload.form.cover.trim() : '');
+      const coverForSave = resolveNotionCoverForSave({
+        coverMode: payload.coverSettings?.mode || 'auto',
+        manualCoverUrl: payload.coverSettings?.manualUrl || '',
+        blocks: blocksForSave,
+        galleryItems: galleryItemsForSave,
+      });
 
       const res = await fetchWithTimeout('/api/admin/post', {
         method: 'POST',
@@ -4906,23 +5135,15 @@ const [mounted, setMounted] = useState(false);
       const saveScope = resolveSaveRevalidateScope(saveType, saveSlug);
       const previousSlug = payload.previousSlug || '';
 
-      // 3) 上传图库
-      if (payload.willSyncGallery) {
+      // 4) 同步图库（排序 / 新建后补写 notion id）
+      if (payload.willSyncGallery && galleryItemsForSave.length > 0) {
         if (bailIfCancelled()) return;
-        updateJob(job.id, {
-          phase: 'gallery',
-          progress:
-            payload.pendingGalleryCount > 0
-              ? { done: 0, total: payload.pendingGalleryCount }
-              : null,
-        });
+        updateJob(job.id, { phase: 'gallery', progress: null });
         await flushGalleryUploads({
           slug: payload.form.slug,
           postTitle: payload.form.title,
           postNotionId: newId,
-          items: payload.galleryItems,
-          onProgress: ({ done, total }) =>
-            updateJob(job.id, { progress: { done, total } }),
+          items: galleryItemsForSave,
         });
       }
       if (bailIfCancelled()) return;
@@ -5070,6 +5291,7 @@ const [mounted, setMounted] = useState(false);
         willSyncGallery,
         pendingMediaCount,
         pendingGalleryCount,
+        coverSettings: { ...coverSettings },
       },
     };
 
@@ -5080,6 +5302,7 @@ const [mounted, setMounted] = useState(false);
     // 不撤销 blob 预览 URL：后台任务仍持有这些 File/预览引用，撤销会影响兜底读取。
     setGalleryItems([]);
     setGalleryDirty(false);
+    resetCoverSettings();
     setEditorBlocks([]);
     editingSlugRef.current = null;
     editingCategoryRef.current = null;
@@ -6867,11 +7090,33 @@ const [mounted, setMounted] = useState(false);
                 items={galleryItems}
                 onItemsChange={setGalleryItems}
                 onGalleryMutated={() => setGalleryDirty(true)}
+                coverMode={coverSettings.mode}
+                coverIndex={galleryCoverIndex}
+                onSetCover={handleSetGalleryCover}
+                onClearCover={handleClearGalleryCover}
               />
             </StepAccordion>
             ) : null}
-            
-            <BlockBuilder blocks={editorBlocks} setBlocks={setEditorBlocks} />
+
+            <BlockCoverHint
+              coverSettings={coverSettings}
+              coverStatusText={coverStatusText}
+              showManualCoverInput={showManualCoverInput}
+              onToggleDefaultCover={handleToggleDefaultCover}
+              onToggleManualInput={() => setShowManualCoverInput((v) => !v)}
+              onManualUrlChange={(url) =>
+                setCoverSettings((prev) => ({ ...prev, manualUrl: url }))
+              }
+              onApplyManualUrl={handleApplyManualCoverUrl}
+            />
+            <BlockBuilder
+              blocks={editorBlocks}
+              setBlocks={setEditorBlocks}
+              coverMode={coverSettings.mode}
+              coverImageBlockId={editorBodyCoverBlockId}
+              onSetBodyCover={handleSetBodyCover}
+              onClearBodyCover={handleClearBodyCover}
+            />
             
             <div className="fab-scroll">
               <div className="fab-btn" onClick={() => scrollEditView('top')}><Icons.ArrowUp /></div>
