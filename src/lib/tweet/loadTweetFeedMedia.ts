@@ -3,6 +3,10 @@ import {
   isDefaultPostCover,
   resolvePostCoverSrc,
 } from '@/src/lib/gallery/postCover'
+import {
+  GalleryFeedPreview,
+  loadGalleryFeedPreviews,
+} from '@/src/lib/gallery/galleryFeedPreviews'
 import { getAllBlocks } from '@/src/lib/notion/getBlocks'
 import { Post } from '@/src/types/blog'
 

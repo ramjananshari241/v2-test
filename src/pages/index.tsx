@@ -75,13 +75,24 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       })
 
       const activeTheme = sharedPageStaticProps.props.activeTheme
-      const tweetFeedMedia = isTweetTheme(activeTheme)
-        ? await loadTweetFeedMedia(filteredPosts)
-        : null
-      const galleryFeedCovers =
-        activeTheme === 'gallery'
-          ? await loadGalleryFeedCovers(filteredPosts.map((p) => p.slug))
-          : null
+      let tweetFeedMedia = null
+      if (isTweetTheme(activeTheme)) {
+        try {
+          tweetFeedMedia = await loadTweetFeedMedia(filteredPosts)
+        } catch (tweetMediaErr) {
+          console.error('Index tweetFeedMedia load failed:', tweetMediaErr)
+        }
+      }
+      let galleryFeedCovers = null
+      if (activeTheme === 'gallery') {
+        try {
+          galleryFeedCovers = await loadGalleryFeedCovers(
+            filteredPosts.map((p) => p.slug)
+          )
+        } catch (galleryCoverErr) {
+          console.error('Index galleryFeedCovers load failed:', galleryCoverErr)
+        }
+      }
 
       const finalProps = JSON.parse(JSON.stringify(sharedPageStaticProps.props))
       const finalPosts = JSON.parse(JSON.stringify(filteredPosts))
