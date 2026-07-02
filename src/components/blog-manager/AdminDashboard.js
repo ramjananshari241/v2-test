@@ -3777,7 +3777,7 @@ const [mounted, setMounted] = useState(false);
   const [showAllTags, setShowAllTags] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [previewData, setPreviewData] = useState(null);
-  const [form, setForm] = useState({ title: '', slug: '', excerpt: '', content: '', category: '', tags: '', cover: '', status: 'Published', type: 'Post', date: '', download: '', download_size: '', download_count: '' });
+  const [form, setForm] = useState({ title: '', slug: '', excerpt: '', content: '', category: '', tags: '', cover: '', status: 'Published', type: 'Post', date: '', download: '', download_size: '', download_count: '', article_password: '' });
   const [currentId, setCurrentId] = useState(null);
   const [siteTitle, setSiteTitle] = useState('PROBLOG');
   const [navIdx, setNavIdx] = useState(1); 
@@ -4504,7 +4504,7 @@ const [mounted, setMounted] = useState(false);
       revokePendingEditorMedia(prev);
       return [];
     });
-    setForm({ title: '', slug: generateAdminPostSlug(), excerpt:'', content:'', category:'', tags:'', cover:'', status:'Published', type: 'Post', date: new Date().toISOString().split('T')[0], download: '', download_size: '', download_count: '' });
+    setForm({ title: '', slug: generateAdminPostSlug(), excerpt:'', content:'', category:'', tags:'', cover:'', status:'Published', type: 'Post', date: new Date().toISOString().split('T')[0], download: '', download_size: '', download_count: '', article_password: '' });
     resetSmartParseState();
     setCurrentId(null);
     editingSlugRef.current = null;
@@ -5041,7 +5041,7 @@ const [mounted, setMounted] = useState(false);
     editingCategoryRef.current = null;
     editingTagsRef.current = null;
     setCurrentId(null);
-    setForm({ title: '', slug: '', excerpt: '', content: '', category: '', tags: '', cover: '', status: 'Published', type: 'Post', date: '', download: '', download_size: '', download_count: '' });
+    setForm({ title: '', slug: '', excerpt: '', content: '', category: '', tags: '', cover: '', status: 'Published', type: 'Post', date: '', download: '', download_size: '', download_count: '', article_password: '' });
     resetSmartParseState();
     setView('list');
   };
@@ -6715,6 +6715,24 @@ const [mounted, setMounted] = useState(false);
                ) : null}
                <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>标题 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" value={form.title} onChange={e=>setForm({...form, title:e.target.value})} placeholder="输入标题" /></div>
                <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>摘要</label><input className="glow-input" value={form.excerpt} onChange={e=>setForm({...form, excerpt:e.target.value})} placeholder="输入摘要" /></div>
+               {!editingSimplePage ? (
+               <div style={{marginTop:'4px', marginBottom:'18px', paddingTop:'16px', borderTop:'1px solid #333'}}>
+                 <label style={{display:'block', fontSize:'11px', color:'#fbbf24', marginBottom:'6px', fontWeight:'bold'}}>🔒 文章访问密码</label>
+                 <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>留空则文章公开；填写后，读者点击文章卡片需输入密码才能查看正文。</p>
+                 <input
+                   className="glow-input"
+                   type="password"
+                   value={form.article_password || ''}
+                   onChange={e=>setForm({...form, article_password:e.target.value})}
+                   placeholder="留空 = 不上锁"
+                   style={{fontSize:'13px', maxWidth:'320px'}}
+                   autoComplete="new-password"
+                 />
+                 {form.article_password?.trim() ? (
+                   <p style={{fontSize:'11px', color:'#fbbf24', margin:'8px 0 0', lineHeight:1.5}}>当前文章已启用全篇加密。</p>
+                 ) : null}
+               </div>
+               ) : null}
                {!editingSimplePage ? (
                <div style={{marginTop:'4px', paddingTop:'16px', borderTop:'1px solid #333'}}>
                  <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载链接 <GalleryOnlyTag /></label>

@@ -8,7 +8,7 @@ import {
   readPinnedFromNotionProperties,
   sortPostsByPinnedThenDate,
 } from '../pinnedPosts'
-import { readCoverDarkFromPageProperties, readCoverFromPageProperties, readPageCoverUrl, readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties } from '../../notion/readProperty'
+import { readCoverDarkFromPageProperties, readCoverFromPageProperties, readPageCoverUrl, readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties, isArticlePasswordProtectedFromProperties } from '../../notion/readProperty'
 import { getImageInfo } from '../getImageInfo'
 
 export type FormatPostOptions = {
@@ -142,6 +142,7 @@ const formatPost = async (
       '',
     downloadSize: readDownloadSizeFromPageProperties(properties),
     downloadCount: readDownloadCountFromPageProperties(properties),
+    isPasswordProtected: isArticlePasswordProtectedFromProperties(properties),
   }
 
   const formattedPost = {
@@ -180,6 +181,7 @@ const formatPost = async (
       download: postOptions.download ?? '',
       downloadSize: postOptions.downloadSize ?? '',
       downloadCount: postOptions.downloadCount ?? '',
+      isPasswordProtected: postOptions.isPasswordProtected ?? false,
     },
   } as Post
   return formattedPost

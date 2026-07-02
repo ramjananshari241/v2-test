@@ -105,6 +105,14 @@ export const DOWNLOAD_COUNT_PROPERTY_NAMES = [
   '下载数量',
 ]
 
+export const ARTICLE_PASSWORD_PROPERTY_NAMES = [
+  'article_password',
+  'Article_password',
+  'articlePassword',
+  '文章密码',
+  '访问密码',
+]
+
 export function pickNotionProperty(
   properties: PageObjectResponse['properties'],
   names: string[]
@@ -150,6 +158,23 @@ export function readDownloadCountFromPageProperties(
   return readRichTextPlain(
     pickNotionProperty(properties, DOWNLOAD_COUNT_PROPERTY_NAMES)
   ) ?? ''
+}
+
+/** 文章全篇访问密码（Notion article_password）；留空表示不上锁 */
+export function readArticlePasswordFromPageProperties(
+  properties: PageObjectResponse['properties']
+): string {
+  return (
+    readRichTextPlain(
+      pickNotionProperty(properties, ARTICLE_PASSWORD_PROPERTY_NAMES)
+    ) ?? ''
+  ).trim()
+}
+
+export function isArticlePasswordProtectedFromProperties(
+  properties: PageObjectResponse['properties']
+): boolean {
+  return readArticlePasswordFromPageProperties(properties).length > 0
 }
 
 export function findNotionPropertyKey(

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Post, Tag } from '@/src/types/blog'
 import { resolveGalleryListCoverSrc } from '@/src/lib/gallery/postCover'
 import { galleryPostDownloadHref } from '@/src/lib/gallery/galleryDownloadPaths'
+import { PostLockBadge } from '@/src/components/post/PostLockBadge'
 import {
   galleryCardCategoryClass,
   galleryCardTagClass,
@@ -68,6 +69,11 @@ export const GalleryCard = ({
               </div>
             )}
             {loading ? <GalleryCardLoading stalled={isStalled(post.slug)} reloading={isReloading(post.slug)} /> : null}
+            {post.options?.isPasswordProtected ? (
+              <span className="absolute left-2 top-2 z-10">
+                <PostLockBadge className="px-2 py-1 text-[11px]" />
+              </span>
+            ) : null}
             {downloadCount ? (
               <span
                 className="absolute bottom-2 right-2 text-[11px] font-medium leading-tight text-white"

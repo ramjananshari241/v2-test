@@ -102,6 +102,8 @@ export type Post = {
     downloadSize: string
     /** 媒体数量，如 82P、50P+2v；留空则卡片封面不展示 */
     downloadCount: string
+    /** 是否设置了全篇访问密码（不含明文密码） */
+    isPasswordProtected?: boolean
   }
 }
 

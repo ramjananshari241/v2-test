@@ -5,6 +5,7 @@ import { BlogLayoutPure } from '@/src/components/layout/BlogLayout'
 import ContentLayout from '@/src/components/layout/ContentLayout'
 import PostFooter from '@/src/components/post/PostFooter'
 import PostHeader from '@/src/components/post/PostHeader'
+import { ArticlePasswordGate } from '@/src/components/post/ArticlePasswordGate'
 import PostMessage from '@/src/components/post/PostMessage'
 import { Section404 } from '@/src/components/section/Section404'
 import withNavFooter from '@/src/components/withNavFooter'
@@ -58,7 +59,10 @@ export const getStaticProps = withNavFooterStaticProps(
     }
 
     if (post) {
-      blocks = await getAllBlocks(post.id)
+      const isPasswordProtected = !!post.options?.isPasswordProtected
+      if (!isPasswordProtected) {
+        blocks = await getAllBlocks(post.id)
+      }
       addSubTitle(sharedPageStaticProps.props, '', {
         text: 'Draft',
         color: 'gray',
@@ -93,7 +97,9 @@ const PostPage: NextPage<{
       <PostHeader post={post} blocks={blocks} />
       <ContentLayout>
         <PostMessage post={post} />
-        <BlockRender blocks={blocks} />
+        <ArticlePasswordGate post={post} initialBlocks={blocks}>
+          {(resolvedBlocks) => <BlockRender blocks={resolvedBlocks} />}
+        </ArticlePasswordGate>
         {/* <PostFooter post={post} /> */}
         {enableDraftDialog && <DraftDialog />}
       </ContentLayout>

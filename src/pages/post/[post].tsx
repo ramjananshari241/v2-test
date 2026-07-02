@@ -5,6 +5,7 @@ import { BlogLayoutPure } from '../../components/layout/BlogLayout'
 import ContentLayout from '../../components/layout/ContentLayout'
 import PostFooter from '../../components/post/PostFooter'
 import PostHeader from '../../components/post/PostHeader'
+import { ArticlePasswordGate } from '../../components/post/ArticlePasswordGate'
 import PostMessage from '../../components/post/PostMessage'
 import PostNavigation from '../../components/post/PostNavigation'
 import CommentSection from '../../components/section/CommentSection'
@@ -115,8 +116,12 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         }
       }
 
-      const blocks = await getAllBlocks(postForPage.id)
-      const formattedBlocks = await formatBlocks(blocks)
+      const isPasswordProtected = !!postForPage.options?.isPasswordProtected
+      let formattedBlocks: Awaited<ReturnType<typeof formatBlocks>> = []
+      if (!isPasswordProtected) {
+        const blocks = await getAllBlocks(postForPage.id)
+        formattedBlocks = await formatBlocks(blocks)
+      }
 
       let galleryAdBanner = null
       if (activeTheme === 'gallery' || isTweetTheme(activeTheme)) {
@@ -245,10 +250,16 @@ const PostPage: NextPage<{
       <PostHeader post={post} blocks={blocks} />
       <ContentLayout>
         <PostMessage post={post} />
-        <BlockRender blocks={blocks} />
-        <PostFooter post={post} />
-        <PostNavigation navigation={navigation} />
-        {CONFIG.ENABLE_COMMENT && <CommentSection />}
+        <ArticlePasswordGate post={post} initialBlocks={blocks}>
+          {(resolvedBlocks) => (
+            <>
+              <BlockRender blocks={resolvedBlocks} />
+              <PostFooter post={post} />
+              <PostNavigation navigation={navigation} />
+              {CONFIG.ENABLE_COMMENT && <CommentSection />}
+            </>
+          )}
+        </ArticlePasswordGate>
       </ContentLayout>
     </>
   )
