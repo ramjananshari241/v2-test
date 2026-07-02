@@ -2,10 +2,9 @@ import { classNames } from '@/src/lib/util'
 import { Post } from '@/src/types/blog'
 import Link from 'next/link'
 import { PostCategory, PostImage, PostTime } from './CardInfo'
-import { PostLockBadge } from '../post/PostLockBadge'
 
 export const ListCardPlain = ({ post }: { post: Post }) => {
-  const { title, slug, cover, date, category, options } = post
+  const { title, slug, cover, date, category } = post
 
   return (
     <Link
@@ -28,11 +27,6 @@ export const ListCardPlain = ({ post }: { post: Post }) => {
         <PostCategory category={category} />
         <p className="font-semibold leading-5 text-black line-clamp-3 dark:text-white">
           {title}
-          {options?.isPasswordProtected ? (
-            <span className="ml-2 inline-flex align-middle">
-              <PostLockBadge />
-            </span>
-          ) : null}
         </p>
         <PostTime date={date.created} />
       </div>

@@ -4,7 +4,6 @@ import { Post } from '@/src/types/blog'
 import Link from 'next/link'
 import React from 'react'
 import { PostCategory, PostImage, PostTime } from './CardInfo'
-import { PostLockBadge } from '../post/PostLockBadge'
 
 type GridCardProps = {
   post: Post
@@ -30,7 +29,7 @@ const SIZE = {
 }
 
 const GridCard = ({ post, size }: GridCardProps) => {
-  const { title, slug, cover, date, category, options } = post
+  const { title, slug, cover, date, category } = post
 
   return (
     <React.StrictMode>
@@ -44,12 +43,6 @@ const GridCard = ({ post, size }: GridCardProps) => {
           )}
         >
           <header className={classNames('relative overflow-hidden shrink-0', SIZE[size].image)}>
-            {/* ✅ 彻底移除所有遮罩层和滤镜，确保图片原彩清晰显示 */}
-            {options?.isPasswordProtected ? (
-              <span className="absolute top-3 right-3 z-20">
-                <PostLockBadge className="px-2 py-1 text-xs" />
-              </span>
-            ) : null}
             <PostImage
               cover={cover}
               alt={title}

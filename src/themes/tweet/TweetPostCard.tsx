@@ -6,7 +6,6 @@ import { formatTweetDate } from './tweetSearch'
 import { TweetPostCardAuthor } from './TweetPostCardAuthor'
 import { TweetPostCardCoverLazy } from './TweetPostCardCoverLazy'
 import { TweetPostCardMedia } from './TweetPostCardMedia'
-import { PostLockBadge } from '@/src/components/post/PostLockBadge'
 import {
   isDeferredTweetBodyImage,
   resolveTweetCardMedia,
@@ -46,14 +45,7 @@ export function TweetPostCard({
         />
         <Link href={postHref} className="tweet-post-card__article">
           <div className="tweet-post-card__body">
-            <h2 className="tweet-post-card__title">
-              {post.title}
-              {post.options?.isPasswordProtected ? (
-                <span className="tweet-post-card__lock">
-                  <PostLockBadge className="ml-2 align-middle text-[11px]" />
-                </span>
-              ) : null}
-            </h2>
+            <h2 className="tweet-post-card__title">{post.title}</h2>
 
             {excerpt ? (
               <p className="tweet-post-card__excerpt">{excerpt}</p>
