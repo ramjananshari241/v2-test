@@ -59,10 +59,7 @@ export const getStaticProps = withNavFooterStaticProps(
     }
 
     if (post) {
-      const isPasswordProtected = !!post.options?.isPasswordProtected
-      if (!isPasswordProtected) {
-        blocks = await getAllBlocks(post.id)
-      }
+      blocks = await getAllBlocks(post.id)
       addSubTitle(sharedPageStaticProps.props, '', {
         text: 'Draft',
         color: 'gray',
@@ -93,17 +90,18 @@ const PostPage: NextPage<{
   const enableDraftDialog = CONFIG.ENABLE_DRAFT_DIALOG
 
   return (
-    <>
-      <PostHeader post={post} blocks={blocks} />
-      <ContentLayout>
-        <PostMessage post={post} />
-        <ArticlePasswordGate post={post} initialBlocks={blocks}>
-          {(resolvedBlocks) => <BlockRender blocks={resolvedBlocks} />}
-        </ArticlePasswordGate>
-        {/* <PostFooter post={post} /> */}
-        {enableDraftDialog && <DraftDialog />}
-      </ContentLayout>
-    </>
+    <ArticlePasswordGate post={post} initialBlocks={blocks}>
+      {(resolvedBlocks) => (
+        <>
+          <PostHeader post={post} blocks={resolvedBlocks} />
+          <ContentLayout>
+            <PostMessage post={post} />
+            <BlockRender blocks={resolvedBlocks} />
+            {enableDraftDialog && <DraftDialog />}
+          </ContentLayout>
+        </>
+      )}
+    </ArticlePasswordGate>
   )
 }
 

@@ -3540,7 +3540,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
             </div>
             {isEditorBlockLocked(b) && b.type !== 'lock' ? (
               <div className="block-lock-hint">
-                🔒 已加密 · {getEditorBlockLockPwd(b) ? '前台需密码解锁' : '无密码毛玻璃遮罩'} · 正文仍可编辑
+                🔒 已加密 · {getEditorBlockLockPwd(b) ? '前台需密码解锁' : '无密码'} · 正文仍可编辑
               </div>
             ) : null}
             {b.type !== 'image' && <FormatBar b={b} onChange={(key, val) => updateBlock(b.id, val, key)} onInsertLink={['text','h1','quote','note'].includes(b.type) ? () => insertLinkForBlock(b) : undefined} />}

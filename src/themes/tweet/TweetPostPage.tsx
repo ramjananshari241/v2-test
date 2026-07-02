@@ -6,7 +6,6 @@ import { formatTweetDate } from './tweetSearch'
 import { TweetAdBanner } from './TweetAdBanner'
 import { TweetPostContent } from './TweetPostContent'
 import { TweetPostFooter } from './TweetPostFooter'
-import { ArticlePasswordGate } from '@/src/components/post/ArticlePasswordGate'
 
 type TweetPostPageProps = {
   post: Post
@@ -38,11 +37,7 @@ export function TweetPostPage({
       {post.excerpt?.trim() ? (
         <p className="tweet-article-excerpt">{post.excerpt}</p>
       ) : null}
-      <ArticlePasswordGate post={post} initialBlocks={blocks}>
-        {(resolvedBlocks) => (
-          <TweetPostContent postSlug={post.slug} blocks={resolvedBlocks} />
-        )}
-      </ArticlePasswordGate>
+      <TweetPostContent postSlug={post.slug} blocks={blocks} />
       {galleryAdBanner ? <TweetAdBanner banner={galleryAdBanner} /> : null}
       <TweetPostFooter previousPost={previousPost} nextPost={nextPost} />
     </article>

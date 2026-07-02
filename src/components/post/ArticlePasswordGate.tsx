@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   clearArticleUnlockToken,
   getArticleUnlockToken,
@@ -15,22 +17,125 @@ type ArticlePasswordGateProps = {
   children: (blocks: BlockResponse[]) => React.ReactNode
 }
 
+/** 固定全视口毛玻璃层：不拦截滚动，仅居中密码面板可交互 */
+function ArticlePasswordOverlay({
+  post,
+  input,
+  error,
+  loading,
+  onInputChange,
+  onUnlock,
+}: {
+  post: Post
+  input: string
+  error: boolean
+  loading: boolean
+  onInputChange: (value: string) => void
+  onUnlock: () => void
+}) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
+
+  return createPortal(
+    <div
+      className="article-password-overlay fixed inset-0 z-[9999] pointer-events-none"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div className="article-password-overlay__glass absolute inset-0 bg-black/25 backdrop-blur-xl backdrop-saturate-150 dark:bg-black/40" />
+      <div
+        className="article-password-overlay__panel pointer-events-auto fixed left-1/2 top-1/2 z-10 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="article-password-title"
+      >
+        <div className="gallery-encrypted-panel relative overflow-hidden rounded-2xl border border-neutral-200/80 bg-white/95 shadow-2xl dark:border-neutral-700 dark:bg-[#181818]/95">
+          <div className="gallery-encrypted-panel__bg absolute inset-0 bg-neutral-50/90 dark:bg-[#121212]/90" />
+          <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-blue-500/10 blur-[70px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-purple-500/10 blur-[70px] pointer-events-none" />
+          <div className="relative z-10 flex flex-col items-center px-6 py-9 text-center select-none sm:py-10">
+            <p className="font-gallery mb-2 text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+              🔒 会员专享内容
+            </p>
+            <h2
+              id="article-password-title"
+              className="font-gallery mb-2 line-clamp-2 text-lg font-semibold text-neutral-900 dark:text-white sm:text-xl"
+            >
+              {post.title}
+            </h2>
+            <p className="font-gallery mb-6 max-w-xs text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+              {loading && !input.trim()
+                ? '正在验证访问权限…'
+                : '输入密码解锁清晰阅读；您可先滚动预览模糊内容。'}
+            </p>
+            <div className="flex w-full flex-col items-stretch justify-center gap-3 sm:flex-row">
+              <input
+                type="password"
+                placeholder="请输入文章密码…"
+                className={`flex-1 rounded-xl border-2 bg-white px-4 py-2.5 font-gallery text-neutral-900 outline-none transition-all dark:bg-neutral-900 dark:text-white ${
+                  error
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 dark:border-transparent dark:hover:bg-neutral-800 dark:focus:border-blue-500'
+                }`}
+                value={input}
+                onChange={(e) => onInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !loading && input.trim()) void onUnlock()
+                }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => void onUnlock()}
+                disabled={loading || !input.trim()}
+                className="gallery-encrypted-panel__unlock whitespace-nowrap rounded-xl bg-neutral-900 px-6 py-2.5 font-gallery text-sm font-semibold text-white shadow-sm transition-all hover:bg-neutral-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+              >
+                {loading ? '验证中…' : '解锁阅读'}
+              </button>
+            </div>
+            {error ? (
+              <p className="mt-4 text-sm font-medium text-red-500">🚫 密码错误</p>
+            ) : null}
+            <Link
+              href="/"
+              className="mt-6 text-sm text-neutral-500 transition-colors hover:text-neutral-800 dark:hover:text-neutral-300"
+            >
+              ← 返回首页
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export function ArticlePasswordGate({
   post,
   initialBlocks,
   children,
 }: ArticlePasswordGateProps) {
   const protectedPost = !!post.options?.isPasswordProtected
-  const [blocks, setBlocks] = useState<BlockResponse[]>(
-    protectedPost ? [] : initialBlocks
-  )
+  const [blocks, setBlocks] = useState<BlockResponse[]>(initialBlocks)
   const [unlocked, setUnlocked] = useState(!protectedPost)
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(protectedPost)
   const [relockHover, setRelockHover] = useState(false)
 
-  const fetchWithToken = useCallback(
+  const applyUnlock = useCallback((nextBlocks: BlockResponse[], token?: string) => {
+    if (token) setArticleUnlockToken(post.slug, token)
+    if (nextBlocks.length) setBlocks(nextBlocks)
+    setUnlocked(true)
+    setError(false)
+  }, [post.slug])
+
+  const verifyWithToken = useCallback(
     async (token: string) => {
       const res = await fetch('/api/post/unlock', {
         method: 'POST',
@@ -41,17 +146,17 @@ export function ArticlePasswordGate({
       if (!res.ok || !data.success) {
         throw new Error(data.error || '解锁失败')
       }
-      setArticleUnlockToken(post.slug, data.token || token)
-      setBlocks(data.blocks || [])
-      setUnlocked(true)
-      setError(false)
+      applyUnlock(data.blocks?.length ? data.blocks : initialBlocks, data.token || token)
     },
-    [post.slug]
+    [post.slug, initialBlocks, applyUnlock]
   )
 
   useEffect(() => {
+    setBlocks(initialBlocks)
+  }, [initialBlocks])
+
+  useEffect(() => {
     if (!protectedPost) {
-      setBlocks(initialBlocks)
       setUnlocked(true)
       setLoading(false)
       return
@@ -66,7 +171,7 @@ export function ArticlePasswordGate({
     let cancelled = false
     ;(async () => {
       try {
-        await fetchWithToken(token)
+        await verifyWithToken(token)
       } catch {
         clearArticleUnlockToken(post.slug)
         if (!cancelled) setUnlocked(false)
@@ -78,7 +183,7 @@ export function ArticlePasswordGate({
     return () => {
       cancelled = true
     }
-  }, [protectedPost, initialBlocks, post.slug, fetchWithToken])
+  }, [protectedPost, post.slug, verifyWithToken])
 
   const handleUnlock = async () => {
     setLoading(true)
@@ -97,9 +202,7 @@ export function ArticlePasswordGate({
         }
         return
       }
-      if (data.token) setArticleUnlockToken(post.slug, data.token)
-      setBlocks(data.blocks || [])
-      setUnlocked(true)
+      applyUnlock(data.blocks?.length ? data.blocks : initialBlocks, data.token)
       setInput('')
     } catch {
       setError(true)
@@ -111,91 +214,55 @@ export function ArticlePasswordGate({
   const handleRelock = () => {
     clearArticleUnlockToken(post.slug)
     setUnlocked(false)
-    setBlocks([])
+    setBlocks(initialBlocks)
     setInput('')
     setError(false)
   }
 
-  if (!protectedPost) {
-    return <>{children(blocks)}</>
-  }
-
-  if (loading && !unlocked) {
-    return (
-      <div className="gallery-encrypted-panel relative my-10 overflow-hidden rounded-2xl border border-neutral-200 bg-white px-6 py-12 text-center dark:border-neutral-800 dark:bg-[#181818]">
-        <p className="font-gallery text-sm text-neutral-500 dark:text-neutral-400">
-          正在验证访问权限…
-        </p>
-      </div>
-    )
-  }
-
-  if (!unlocked) {
-    return (
-      <div className="gallery-encrypted-panel relative my-8 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:border-neutral-800 dark:bg-[#181818] dark:shadow-xl">
-        <div className="gallery-encrypted-panel__bg absolute inset-0 bg-neutral-50 dark:bg-[#121212]" />
-        <div className="relative z-10 flex flex-col items-center justify-center px-6 py-10 text-center select-none">
-          <h2 className="font-gallery mb-2 text-xl font-semibold text-neutral-900 dark:text-white sm:text-2xl">
-            {post.title}
-          </h2>
-          <p className="font-gallery mb-1 text-sm font-medium text-amber-600 dark:text-amber-400">
-            🔒 该文章已加密
-          </p>
-          <p className="font-gallery mb-6 max-w-sm text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-            请输入访问密码以查看正文内容。
-          </p>
-          <div className="flex w-full max-w-sm flex-col items-stretch justify-center gap-3 sm:flex-row">
-            <input
-              type="password"
-              placeholder="请输入文章密码…"
-              className={`flex-1 rounded-xl border-2 bg-white px-4 py-2.5 font-gallery text-neutral-900 outline-none transition-all dark:bg-neutral-900 dark:text-white ${
-                error
-                  ? 'border-red-500 focus:border-red-500'
-                  : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 dark:border-transparent dark:hover:bg-neutral-800 dark:focus:border-blue-500'
-              }`}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value)
-                if (error) setError(false)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !loading) void handleUnlock()
-              }}
-              autoFocus
-            />
-            <button
-              type="button"
-              onClick={() => void handleUnlock()}
-              disabled={loading || !input.trim()}
-              className="gallery-encrypted-panel__unlock whitespace-nowrap rounded-xl bg-neutral-900 px-6 py-2.5 font-gallery text-sm font-semibold text-white shadow-sm transition-all hover:bg-neutral-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
-            >
-              {loading ? '验证中…' : '进入文章'}
-            </button>
-          </div>
-          {error ? (
-            <p className="mt-4 text-sm font-medium text-red-500">🚫 密码错误</p>
-          ) : null}
-        </div>
-      </div>
-    )
-  }
+  const lockedPreview = protectedPost && !unlocked
 
   return (
-    <div className="relative">
+    <div className="article-password-gate relative">
       <div
-        className={`absolute top-0 right-0 z-10 transition-opacity duration-300 ${relockHover ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`}
-        onMouseEnter={() => setRelockHover(true)}
-        onMouseLeave={() => setRelockHover(false)}
+        className={
+          lockedPreview
+            ? 'pointer-events-none select-none [filter:saturate(0.85)]'
+            : undefined
+        }
+        aria-hidden={lockedPreview ? true : undefined}
       >
-        <button
-          type="button"
-          onClick={handleRelock}
-          className="rounded-md bg-neutral-200/90 px-2 py-1 text-xs text-neutral-600 backdrop-blur-sm transition-colors hover:bg-red-500 hover:text-white dark:bg-neutral-800/80 dark:text-neutral-400"
-        >
-          🔒 重新锁定
-        </button>
+        {children(blocks)}
       </div>
-      {children(blocks)}
+
+      {lockedPreview ? (
+        <ArticlePasswordOverlay
+          post={post}
+          input={input}
+          error={error}
+          loading={loading}
+          onInputChange={(value) => {
+            setInput(value)
+            if (error) setError(false)
+          }}
+          onUnlock={handleUnlock}
+        />
+      ) : null}
+
+      {protectedPost && unlocked ? (
+        <div
+          className={`fixed top-20 right-4 z-[9000] transition-opacity duration-300 ${relockHover ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`}
+          onMouseEnter={() => setRelockHover(true)}
+          onMouseLeave={() => setRelockHover(false)}
+        >
+          <button
+            type="button"
+            onClick={handleRelock}
+            className="pointer-events-auto rounded-lg bg-neutral-900/90 px-3 py-1.5 text-xs font-medium text-neutral-300 shadow-lg backdrop-blur-sm transition-colors hover:bg-red-600 hover:text-white"
+          >
+            🔒 重新锁定
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }

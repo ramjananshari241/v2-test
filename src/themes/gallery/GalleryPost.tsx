@@ -14,7 +14,6 @@ import { GalleryPostRecommendations } from './GalleryPostRecommendations'
 import { GalleryPostStats } from './GalleryPostStats'
 import { GalleryPostTitleLine } from './GalleryPostTitleDownloadMeta'
 import { galleryContentContainerClass, galleryPostTitleClass } from './galleryFonts'
-import { ArticlePasswordGate } from '@/src/components/post/ArticlePasswordGate'
 
 type GalleryPostProps = {
   post: Post
@@ -86,11 +85,7 @@ export const GalleryPost = ({
               </p>
             ) : null}
 
-            <ArticlePasswordGate post={post} initialBlocks={blocks}>
-              {(resolvedBlocks) => (
-                <GalleryPostContent postSlug={post.slug} blocks={resolvedBlocks} />
-              )}
-            </ArticlePasswordGate>
+            <GalleryPostContent postSlug={post.slug} blocks={blocks} />
 
             <GalleryPostRecommendations posts={bottomRecommendations} />
 

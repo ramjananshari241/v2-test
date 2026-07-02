@@ -116,12 +116,8 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         }
       }
 
-      const isPasswordProtected = !!postForPage.options?.isPasswordProtected
-      let formattedBlocks: Awaited<ReturnType<typeof formatBlocks>> = []
-      if (!isPasswordProtected) {
-        const blocks = await getAllBlocks(postForPage.id)
-        formattedBlocks = await formatBlocks(blocks)
-      }
+      const blocks = await getAllBlocks(postForPage.id)
+      const formattedBlocks = await formatBlocks(blocks)
 
       let galleryAdBanner = null
       if (activeTheme === 'gallery' || isTweetTheme(activeTheme)) {
@@ -213,55 +209,55 @@ const PostPage: NextPage<{
 }) => {
   if (!post) return <Section404 />
 
-  if (activeTheme === 'gallery') {
-    return (
-      <GalleryPost
-        post={post}
-        blocks={blocks}
-        sidebarRecommendations={sidebarRecommendations}
-        bottomRecommendations={bottomRecommendations}
-        postStats={postStats}
-        galleryAdBanner={galleryAdBanner}
-        navPages={navPages}
-      />
-    )
-  }
-
-  if (isTweetTheme(activeTheme)) {
-    const shellWidgets = pickTweetShellWidgets(widgets)
-    return (
-      <TweetShell
-        siteTitle={siteTitle}
-        profile={shellWidgets.profile}
-        vendingEnabled={vendingEnabled !== false}
-      >
-        <TweetPostPage
-          post={post}
-          blocks={blocks}
-          navigation={navigation}
-          galleryAdBanner={galleryAdBanner}
-        />
-      </TweetShell>
-    )
-  }
-
   return (
-    <>
-      <PostHeader post={post} blocks={blocks} />
-      <ContentLayout>
-        <PostMessage post={post} />
-        <ArticlePasswordGate post={post} initialBlocks={blocks}>
-          {(resolvedBlocks) => (
-            <>
+    <ArticlePasswordGate post={post} initialBlocks={blocks}>
+      {(resolvedBlocks) => {
+        if (activeTheme === 'gallery') {
+          return (
+            <GalleryPost
+              post={post}
+              blocks={resolvedBlocks}
+              sidebarRecommendations={sidebarRecommendations}
+              bottomRecommendations={bottomRecommendations}
+              postStats={postStats}
+              galleryAdBanner={galleryAdBanner}
+              navPages={navPages}
+            />
+          )
+        }
+
+        if (isTweetTheme(activeTheme)) {
+          const shellWidgets = pickTweetShellWidgets(widgets)
+          return (
+            <TweetShell
+              siteTitle={siteTitle}
+              profile={shellWidgets.profile}
+              vendingEnabled={vendingEnabled !== false}
+            >
+              <TweetPostPage
+                post={post}
+                blocks={resolvedBlocks}
+                navigation={navigation}
+                galleryAdBanner={galleryAdBanner}
+              />
+            </TweetShell>
+          )
+        }
+
+        return (
+          <>
+            <PostHeader post={post} blocks={resolvedBlocks} />
+            <ContentLayout>
+              <PostMessage post={post} />
               <BlockRender blocks={resolvedBlocks} />
               <PostFooter post={post} />
               <PostNavigation navigation={navigation} />
               {CONFIG.ENABLE_COMMENT && <CommentSection />}
-            </>
-          )}
-        </ArticlePasswordGate>
-      </ContentLayout>
-    </>
+            </ContentLayout>
+          </>
+        )
+      }}
+    </ArticlePasswordGate>
   )
 }
 
