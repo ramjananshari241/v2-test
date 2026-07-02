@@ -31,6 +31,7 @@ import {
   applyManualCoverUrl,
   clearBodyCoverSelection,
   clearGalleryCoverFlags,
+  COVER_MODE_AUTO,
   COVER_MODE_BODY,
   COVER_MODE_DEFAULT,
   COVER_MODE_URL,
