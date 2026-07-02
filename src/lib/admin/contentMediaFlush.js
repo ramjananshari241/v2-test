@@ -79,6 +79,8 @@ export function serializeBlocksForSave(blocks) {
     type: b.type,
     content: b.content || '',
     pwd: b.pwd || '',
+    lockPwd: b.lockPwd ?? b.pwd ?? '',
+    locked: b.type === 'lock' ? true : !!b.locked,
     url: b.url || '',
     images: b.images || [],
     bold: !!b.bold,
@@ -98,12 +100,26 @@ export function blocksToMarkdown(blocks) {
       if (b.type === 'link') {
         return b.url ? `[${b.content || b.url}](${b.url})` : b.content || ''
       }
-      if (b.type === 'lock') {
+      if (b.type === 'lock' || b.locked) {
+        const pwd = b.type === 'lock' ? (b.pwd || '') : (b.lockPwd || b.pwd || '')
         const imgLines = (b.images || []).map((u) => `![](${u})`)
         const parts = []
-        if (b.content?.trim()) parts.push(b.content)
+        if (b.type === 'h1' && b.content?.trim()) parts.push(`# ${b.content.trim()}`)
+        else if (b.type === 'quote' && b.content?.trim()) {
+          b.content.split(/\r?\n/).forEach((l) => parts.push(`> ${l}`))
+        } else if (b.type === 'link') {
+          const label = b.content || b.url || ''
+          if (b.url) parts.push(`[${label}](${b.url})`)
+          else if (label) parts.push(label)
+        } else if (b.type === 'image' && b.content?.trim()) {
+          parts.push(`![](${b.content.trim()})`)
+        } else if (b.type === 'note' && b.content?.trim()) {
+          parts.push(`\`${b.content}\``)
+        } else if (b.content?.trim()) {
+          parts.push(b.content)
+        }
         imgLines.forEach((l) => parts.push(l))
-        return `:::lock ${b.pwd}\n${parts.join('\n')}\n:::`
+        return `:::lock ${pwd}\n${parts.join('\n')}\n:::`
       }
       if (b.type === 'image') return b.content ? `![](${b.content})` : ''
       return b.content

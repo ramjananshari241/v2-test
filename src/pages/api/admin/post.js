@@ -229,37 +229,83 @@ function styledLinesToChildren(text, b) {
   return out;
 }
 
+function makeLockCallout(pwd, innerChildren) {
+  const children = [{ object: 'block', type: 'divider', divider: {} }, ...innerChildren]
+  return {
+    object: 'block',
+    type: 'callout',
+    callout: {
+      rich_text: [{ text: { content: `LOCK:${pwd || ''}` }, annotations: { bold: true } }],
+      icon: { type: 'emoji', emoji: '🔒' },
+      color: 'gray_background',
+      children,
+    },
+  }
+}
+
+/** 单个编辑器块 → Notion 子块（不含 callout 外壳） */
+function editorBlockToNotionInner(b) {
+  const type = b.type
+  if (type === 'h1') {
+    return [{ object: 'block', type: 'heading_1', heading_1: { rich_text: inlineToRichRuns(b.content || '', annOf(b)) } }]
+  }
+  if (type === 'note') {
+    return [{
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [{
+          text: { content: b.content || '' },
+          annotations: annOf(b, { code: true, color: (b.color && b.color !== 'default') ? b.color : 'red' }),
+        }],
+      },
+    }]
+  }
+  if (type === 'quote') {
+    return [{ object: 'block', type: 'quote', quote: { rich_text: inlineToRichRuns(b.content || '', annOf(b)) } }]
+  }
+  if (type === 'link') {
+    const url = (b.url || '').trim()
+    const text = b.content || url
+    if (url) {
+      return [{ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: text, link: { url } }, annotations: annOf(b) }] } }]
+    }
+    if (text) {
+      return [{ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: text }, annotations: annOf(b) }] } }]
+    }
+    return []
+  }
+  if (type === 'image') {
+    const url = (b.content || '').trim()
+    if (!url) return []
+    const isVideo = url.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i)
+    if (isVideo) return [{ object: 'block', type: 'video', video: { type: 'external', external: { url } } }]
+    return [{ object: 'block', type: 'image', image: { type: 'external', external: { url } } }]
+  }
+  if (type === 'lock') {
+    const children = []
+    children.push(...styledLinesToChildren(b.content || '', b))
+    ;(b.images || []).forEach((url) => {
+      if (url) children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } })
+    })
+    return children
+  }
+  return styledLinesToChildren(b.content || '', b)
+}
+
 function structuredToBlocks(blocks) {
-  const out = [];
+  const out = []
   for (const b of (blocks || [])) {
-    const type = b.type;
-    if (type === 'h1') {
-      out.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: inlineToRichRuns(b.content || '', annOf(b)) } });
-    } else if (type === 'note') {
-      out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: b.content || '' }, annotations: annOf(b, { code: true, color: (b.color && b.color !== 'default') ? b.color : 'red' }) }] } });
-    } else if (type === 'quote') {
-      out.push({ object: 'block', type: 'quote', quote: { rich_text: inlineToRichRuns(b.content || '', annOf(b)) } });
-    } else if (type === 'link') {
-      const url = (b.url || '').trim();
-      const text = b.content || url;
-      if (url) out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: text, link: { url } }, annotations: annOf(b) }] } });
-      else if (text) out.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: text }, annotations: annOf(b) }] } });
-    } else if (type === 'image') {
-      const url = (b.content || '').trim();
-      if (!url) continue;
-      const isVideo = url.match(/\.(mp4|mov|webm|ogg|mkv)(\?|$)/i);
-      if (isVideo) out.push({ object: 'block', type: 'video', video: { type: 'external', external: { url } } });
-      else out.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } });
-    } else if (type === 'lock') {
-      const children = [{ object: 'block', type: 'divider', divider: {} }];
-      children.push(...styledLinesToChildren(b.content || '', b));
-      (b.images || []).forEach(url => { if (url) children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } }); });
-      out.push({ object: 'block', type: 'callout', callout: { rich_text: [{ text: { content: `LOCK:${b.pwd || ''}` }, annotations: { bold: true } }], icon: { type: 'emoji', emoji: '🔒' }, color: 'gray_background', children } });
+    const inner = editorBlockToNotionInner(b)
+    if (!inner.length) continue
+    if (b.type === 'lock' || b.locked) {
+      const pwd = b.type === 'lock' ? (b.pwd || b.lockPwd || '') : (b.lockPwd || b.pwd || '')
+      out.push(makeLockCallout(pwd, inner))
     } else {
-      out.push(...styledLinesToChildren(b.content || '', b));
+      out.push(...inner)
     }
   }
-  return out;
+  return out
 }
 
 // === 4. Notion 块 → 结构化编辑块 (读取，保留整块格式) ===
@@ -269,6 +315,88 @@ const annFrom = (rt) => ({
   italic: !!(rt && rt.annotations && rt.annotations.italic),
   color: (rt && rt.annotations && rt.annotations.color) || 'default',
 });
+
+function lockCalloutToEditorBlock(kids, pwd) {
+  const contentKids = (kids || []).filter((k) => k.type !== 'divider')
+  const images = []
+  const textLines = []
+  let lockAnn = null
+  let headingBlock = null
+  let quoteBlock = null
+  let singleLink = null
+  let singleNote = null
+
+  for (const k of contentKids) {
+    if (k.type === 'image') {
+      const u = k.image?.external?.url || k.image?.file?.url
+      if (u) images.push(u)
+    } else if (k.type === 'video') {
+      const u = k.video?.external?.url || k.video?.file?.url
+      if (u) images.push(u)
+    } else if (k.type === 'heading_1' || k.type === 'heading_2' || k.type === 'heading_3') {
+      headingBlock = k
+    } else if (k.type === 'quote') {
+      quoteBlock = k
+    } else if (k.type === 'paragraph') {
+      const rts = k.paragraph.rich_text || []
+      const p = richTextHasLink(rts) ? richToInlineMd(rts) : plainText(rts)
+      if (!p) continue
+      const rt = rts[0]
+      const onlyRun = rts.length === 1 ? rts[0] : null
+      const pureLink = onlyRun && ((onlyRun.text && onlyRun.text.link && onlyRun.text.link.url) || onlyRun.href)
+      if (pureLink && contentKids.length === 1) {
+        singleLink = {
+          content: plainText(rts),
+          url: pureLink,
+          ...annFrom(rt),
+        }
+      } else if (rt && rt.annotations && rt.annotations.code && contentKids.length === 1) {
+        singleNote = { content: plainText(rts), ...annFrom(rt) }
+      } else {
+        textLines.push(p)
+        if (!lockAnn) lockAnn = annFrom(rt)
+      }
+    }
+  }
+
+  // 专用加密块：文本 + 图片，或多张图片
+  if (images.length > 1 || (images.length >= 1 && textLines.length >= 1)) {
+    return { type: 'lock', pwd, content: textLines.join('\n'), images, ...(lockAnn || {}) }
+  }
+
+  if (headingBlock && !textLines.length && !images.length && !quoteBlock) {
+    const ht = headingBlock.type
+    const rts = headingBlock[ht].rich_text || []
+    const content = richTextHasLink(rts) ? richToInlineMd(rts) : plainText(rts)
+    return { type: 'h1', locked: true, lockPwd: pwd, content, ...annFrom(rts[0]) }
+  }
+
+  if (quoteBlock && !textLines.length && !images.length && !headingBlock) {
+    const rts = quoteBlock.quote.rich_text || []
+    const content = richTextHasLink(rts) ? richToInlineMd(rts) : plainText(rts)
+    return { type: 'quote', locked: true, lockPwd: pwd, content, ...annFrom(rts[0]) }
+  }
+
+  if (images.length === 1 && !textLines.length && !headingBlock && !quoteBlock) {
+    return { type: 'image', locked: true, lockPwd: pwd, content: images[0] }
+  }
+
+  if (singleLink) {
+    return { type: 'link', locked: true, lockPwd: pwd, ...singleLink }
+  }
+
+  if (singleNote && !textLines.length) {
+    return { type: 'note', locked: true, lockPwd: pwd, ...singleNote }
+  }
+
+  // 仅文本（含旧版「纯文字专用加密块」）→ 带 locked 的内容块，便于二次编辑
+  if (textLines.length >= 1 && !images.length) {
+    return { type: 'text', locked: true, lockPwd: pwd, content: textLines.join('\n'), ...(lockAnn || {}) }
+  }
+
+  // 兜底：仍还原为专用 lock 块，避免丢内容
+  return { type: 'lock', pwd, content: textLines.join('\n'), images, ...(lockAnn || {}) }
+}
 
 async function notionToEditorBlocks(blocks) {
   const out = [];
@@ -312,12 +440,7 @@ async function notionToEditorBlocks(blocks) {
         const pwd = lock[1].trim();
         let kids = [];
         try { const r = await withRetry(() => notion.blocks.children.list({ block_id: blk.id })); kids = r.results; } catch (e) {}
-        const images = []; const textLines = []; let lockAnn = null;
-        kids.forEach(k => {
-          if (k.type === 'image') { const u = k.image?.external?.url || k.image?.file?.url; if (u) images.push(u); }
-          else if (k.type === 'paragraph') { const rtk = k.paragraph.rich_text || []; const p = richTextHasLink(rtk) ? richToInlineMd(rtk) : plainText(rtk); if (p) { textLines.push(p); if (!lockAnn) lockAnn = annFrom(rtk[0]); } }
-        });
-        out.push({ type: 'lock', pwd, content: textLines.join('\n'), images, ...(lockAnn || {}) });
+        out.push(lockCalloutToEditorBlock(kids, pwd));
       } else {
         out.push({ type: 'text', content: txt, ...annFrom(rt[0]) });
       }
@@ -335,11 +458,20 @@ async function notionToEditorBlocks(blocks) {
       if (content) out.push({ type: 'text', content, ...annFrom(rts[0]) });
     }
   }
-  // 合并相邻、同样式的纯文本块，避免按行碎片化
+  // 合并相邻、同样式的纯文本块，避免按行碎片化（不合并已加密块）
   const merged = [];
   for (const b of out) {
     const last = merged[merged.length - 1];
-    if (b.type === 'text' && last && last.type === 'text' && !!last.bold === !!b.bold && !!last.italic === !!b.italic && (last.color || 'default') === (b.color || 'default')) {
+    if (
+      b.type === 'text' &&
+      last &&
+      last.type === 'text' &&
+      !b.locked &&
+      !last.locked &&
+      !!last.bold === !!b.bold &&
+      !!last.italic === !!b.italic &&
+      (last.color || 'default') === (b.color || 'default')
+    ) {
       last.content = last.content + '\n' + b.content;
     } else {
       merged.push(b);

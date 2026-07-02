@@ -25,6 +25,12 @@ import {
   serializeBlocksForSave,
 } from '@/src/lib/admin/contentMediaFlush';
 import {
+  createEditorBlock,
+  getEditorBlockLockPwd,
+  isEditorBlockLocked,
+  normalizeLoadedEditorBlocks,
+} from '@/src/lib/admin/editorBlockLock';
+import {
   parseSmartPostBySelection,
   inferRulesFromExample,
   findExistingOption,
@@ -500,6 +506,15 @@ const GlobalStyle = () => (
     .move-btn:hover { background: greenyellow; color: #000; box-shadow: 0 0 10px greenyellow; }
     .move-btn:active { transform: scale(0.9); }
     .block-label { font-size: 12px; color: greenyellow; margin-bottom: 8px; fontWeight: bold; text-transform: uppercase; letter-spacing: 1px; }
+    .block-label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .block-label-row .block-label { margin-bottom: 0; flex: 1; min-width: 0; }
+    .block-lock-btn { flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid #444; background: #1c1c1f; color: #888; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1; transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s; }
+    .block-lock-btn:hover { border-color: #fbbf24; color: #fbbf24; background: rgba(251, 191, 36, 0.08); }
+    .block-lock-btn.is-active { border-color: #fbbf24; color: #fcd34d; background: rgba(251, 191, 36, 0.16); box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25); }
+    .block-card.is-locked { border-color: rgba(251, 191, 36, 0.35); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.12), 0 0 18px rgba(251, 191, 36, 0.06); }
+    .block-card-wrap:hover .block-card.is-locked { border-color: rgba(251, 191, 36, 0.55); }
+    .block-lock-hint { font-size: 11px; color: #fbbf24; background: rgba(251, 191, 36, 0.08); border: 1px dashed rgba(251, 191, 36, 0.35); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; line-height: 1.5; }
+    .block-minimap-lock { font-size: 10px; color: #fcd34d; background: rgba(251, 191, 36, 0.14); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 4px; padding: 1px 5px; line-height: 1.3; }
     .block-del { width: 40px; background: #ff4d4f; border-radius: 10px; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; cursor: pointer; color: white; align-self: stretch; }
     .block-card-wrap:hover .block-del { opacity: 1; pointer-events: auto; }
     .block-add-btn-wrap { position: absolute; left: 50%; bottom: -52px; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; }
@@ -2542,6 +2557,7 @@ const BlockMinimapItem = ({
       <div className="block-minimap-main">
         <div className="block-minimap-type-row">
           <span className="block-minimap-type">{BLOCK_TYPE_SHORT[block.type] || block.type}</span>
+          {isEditorBlockLocked(block) ? <span className="block-minimap-lock" title="已加密">🔒</span> : null}
           {isCover ? <span className="block-minimap-cover">封面</span> : null}
         </div>
         {thumbUrl ? (
@@ -2614,6 +2630,7 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   const coverImageBlockId = findCoverImageBlock(blocks)?.id ?? null;
   // 行内超链接弹窗：{ blockId, start, end, label, url }，为 null 时关闭
   const [linkModal, setLinkModal] = useState(null);
+  const [lockModal, setLockModal] = useState(null);
 
   const scrollToBlock = (id, delay = 100) => {
     setTimeout(() => {
@@ -2630,10 +2647,10 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
   };
 
   const addBlock = (type) => {
-    const newId = Date.now() + Math.random();
-    setBlocks([...blocks, { id: newId, type, content: '', pwd: '', url: '', images: [], bold: false, italic: false, color: 'default' }]);
+    const newBlock = createEditorBlock(type);
+    setBlocks([...blocks, newBlock]);
     setBlockViewMode('expanded');
-    scrollToBlock(newId);
+    scrollToBlock(newBlock.id);
   };
 
   // 行内「+添加块」菜单：值为菜单 key（插入位置由 toggle 时传入的回调决定）
@@ -2678,16 +2695,15 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
 
   // 在指定下标之后插入新块；index 传 -1 表示插到最前
   const addBlockAfter = (index, type, options = {}) => {
-    const newId = Date.now() + Math.random();
-    const newBlock = { id: newId, type, content: '', pwd: '', url: '', images: [], bold: false, italic: false, color: 'default' };
+    const newBlock = createEditorBlock(type);
     setBlocks([...blocks.slice(0, index + 1), newBlock, ...blocks.slice(index + 1)]);
     closeAddMenu();
     if (options.stayCompact || blockViewMode === 'compact') {
-      setMovingId(newId);
+      setMovingId(newBlock.id);
       setTimeout(() => setMovingId(null), 600);
     } else {
       setBlockViewMode('expanded');
-      scrollToBlock(newId);
+      scrollToBlock(newBlock.id);
     }
   };
 
@@ -2809,6 +2825,39 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
       }
     }, 0);
   };
+
+  const openLockModal = (b) => {
+    setLockModal({
+      blockId: b.id,
+      blockType: b.type,
+      pwd: getEditorBlockLockPwd(b),
+      isLocked: isEditorBlockLocked(b),
+    });
+  };
+
+  const confirmLockModal = () => {
+    if (!lockModal) return;
+    const pwd = (lockModal.pwd || '').trim();
+    setBlocks(blocks.map((b) => {
+      if (b.id !== lockModal.blockId) return b;
+      if (b.type === 'lock') {
+        return { ...b, pwd, lockPwd: pwd };
+      }
+      return { ...b, locked: true, lockPwd: pwd };
+    }));
+    setLockModal(null);
+  };
+
+  const unlockBlockFromModal = () => {
+    if (!lockModal) return;
+    setBlocks(blocks.map((b) => {
+      if (b.id !== lockModal.blockId) return b;
+      if (b.type === 'lock') return b;
+      return { ...b, locked: false, lockPwd: '' };
+    }));
+    setLockModal(null);
+  };
+
   const removeBlock = (id) => {
     setBlocks(prev => {
       const block = prev.find(b => b.id === id);
@@ -3257,9 +3306,62 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
       return '📄 内容块';
   };
   const linkModalValid = !!(linkModal && (linkModal.label || '').trim() && (linkModal.url || '').trim() && (linkModal.url || '').trim() !== 'https://');
+  const lockModalBlock = lockModal ? blocks.find((b) => b.id === lockModal.blockId) : null;
+  const lockModalIsDedicated = lockModalBlock?.type === 'lock';
   return (
     <div style={{marginTop:'30px'}}>
       {renderFloatingBlockTypeMenu()}
+      {lockModal && (
+        <div
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setLockModal(null); }}
+          style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(2px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}
+        >
+          <div style={{ width:'100%', maxWidth:'420px', background:'#1f1f24', border:'1px solid #3a3a42', borderRadius:'14px', boxShadow:'0 12px 40px rgba(0,0,0,0.5)', padding:'22px' }}>
+            <div style={{ fontSize:'16px', fontWeight:'bold', color:'#fff', marginBottom:'4px', display:'flex', alignItems:'center', gap:'6px' }}>
+              🔒 {lockModalIsDedicated ? '加密块密码' : (lockModal.isLocked ? '修改加密设置' : '内容加密')}
+            </div>
+            <div style={{ fontSize:'12px', color:'#999', marginBottom:'18px', lineHeight:1.6 }}>
+              {lockModalIsDedicated
+                ? '专用加密块始终受保护。密码留空则前台仅显示毛玻璃遮罩。'
+                : '设置密码后前台需输入密码解锁；留空则仅毛玻璃遮罩，无需密码。'}
+            </div>
+            <label style={{ display:'block', fontSize:'12px', color:'#bbb', marginBottom:'6px' }}>访问密码（可选）</label>
+            <input
+              className="glow-input"
+              autoFocus
+              type="password"
+              value={lockModal.pwd}
+              onChange={(e) => setLockModal({ ...lockModal, pwd: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmLockModal(); if (e.key === 'Escape') setLockModal(null); }}
+              placeholder="留空则无密码，仅毛玻璃遮罩"
+              style={{ marginBottom:'22px', fontSize:'14px' }}
+            />
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+              <div>
+                {!lockModalIsDedicated && lockModal.isLocked ? (
+                  <button
+                    type="button"
+                    onClick={unlockBlockFromModal}
+                    style={{ height:'36px', padding:'0 14px', borderRadius:'8px', cursor:'pointer', border:'1px solid #664', background:'transparent', color:'#fbbf24', fontSize:'13px' }}
+                  >取消加密</button>
+                ) : null}
+              </div>
+              <div style={{ display:'flex', gap:'10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setLockModal(null)}
+                  style={{ height:'36px', padding:'0 16px', borderRadius:'8px', cursor:'pointer', border:'1px solid #444', background:'transparent', color:'#ccc', fontSize:'13px' }}
+                >关闭</button>
+                <button
+                  type="button"
+                  onClick={confirmLockModal}
+                  style={{ height:'36px', padding:'0 18px', borderRadius:'8px', cursor:'pointer', border:'none', background:'#f59e0b', color:'#1a1200', fontSize:'13px', fontWeight:'bold' }}
+                >{lockModal.isLocked && !lockModalIsDedicated ? '保存设置' : '确认加密'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {linkModal && (
         <div
           onMouseDown={(e) => { if (e.target === e.currentTarget) setLinkModal(null); }}
@@ -3417,14 +3519,30 @@ const BlockBuilder = ({ blocks, setBlocks }) => {
             onDragOver={(e) => handleExpandedFileDragOver(e, index)}
             onDrop={(e) => handleExpandedFileDrop(e, index)}
           >
-          <div id={`block-${b.id}`} className={`block-card ${movingId === b.id ? 'just-moved' : ''}`}>
+          <div id={`block-${b.id}`} className={`block-card ${movingId === b.id ? 'just-moved' : ''}${isEditorBlockLocked(b) ? ' is-locked' : ''}`}>
             <div className="block-left-ctrl">
                <div className="move-btn" onClick={() => moveToTop(index)} title="置顶"><Icons.Top /></div>
                <div className="move-btn" onClick={() => moveBlock(index, -1)}><Icons.ArrowUp /></div>
                <div className="move-btn" onClick={() => moveBlock(index, 1)}><Icons.ArrowDown /></div>
                <div className="move-btn" onClick={() => moveToBottom(index)} title="置底"><Icons.Bottom /></div>
             </div>
-            <div className="block-label">{getBlockLabel(b.type)}</div>
+            <div className="block-label-row">
+              <div className="block-label">{getBlockLabel(b.type)}</div>
+              <button
+                type="button"
+                className={`block-lock-btn${isEditorBlockLocked(b) ? ' is-active' : ''}`}
+                title={isEditorBlockLocked(b) ? '已加密 · 点击修改密码或取消加密' : '加密此块（可选密码）'}
+                onClick={() => openLockModal(b)}
+                aria-label={isEditorBlockLocked(b) ? '修改加密设置' : '加密此块'}
+              >
+                {isEditorBlockLocked(b) ? '🔒' : '🔓'}
+              </button>
+            </div>
+            {isEditorBlockLocked(b) && b.type !== 'lock' ? (
+              <div className="block-lock-hint">
+                🔒 已加密 · {getEditorBlockLockPwd(b) ? '前台需密码解锁' : '无密码毛玻璃遮罩'} · 正文仍可编辑
+              </div>
+            ) : null}
             {b.type !== 'image' && <FormatBar b={b} onChange={(key, val) => updateBlock(b.id, val, key)} onInsertLink={['text','h1','quote','note'].includes(b.type) ? () => insertLinkForBlock(b) : undefined} />}
             {b.type === 'h1' && <input id={'editfield-' + b.id} className="glow-input" placeholder="输入大标题..." value={b.content} onChange={e=>updateBlock(b.id, e.target.value)} style={{fontSize:'20px', ...fmtStyle(b), fontWeight:'bold'}} />}
             {b.type === 'text' && (
@@ -4364,8 +4482,8 @@ const [mounted, setMounted] = useState(false);
         resetSmartParseState();
         // 优先使用后端按 Notion 原生块重建的结构化块(保留格式)，否则回退到 Markdown 解析
         const eb = (Array.isArray(post.editorBlocks) && post.editorBlocks.length)
-          ? post.editorBlocks.map((b, i) => ({ ...b, id: Date.now() + i + Math.random() }))
-          : parseContentToBlocks(post.content);
+          ? normalizeLoadedEditorBlocks(post.editorBlocks)
+          : normalizeLoadedEditorBlocks(parseContentToBlocks(post.content));
         setEditorBlocks(eb);
         setCurrentId(p.id);
         editingSlugRef.current = post.slug || null;
