@@ -921,6 +921,20 @@ const CategoryPicker = ({ value, categories, onChange }) => {
 
   const listCategories = showAll ? allCategories : filteredCategories;
 
+  const findExistingCategory = (text) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return null;
+    if (allCategories.includes(trimmed)) return trimmed;
+    const lower = trimmed.toLowerCase();
+    return allCategories.find((c) => c.toLowerCase() === lower) || null;
+  };
+
+  const commitCategory = (text) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return;
+    pickCategory(findExistingCategory(trimmed) || trimmed);
+  };
+
   const pickCategory = (cat) => {
     onChange(cat);
     setQuery('');
@@ -1017,24 +1031,38 @@ const CategoryPicker = ({ value, categories, onChange }) => {
               setOpen(true);
               const trimmed = e.target.value.trim();
               if (!trimmed) onChange('');
-              else if (allCategories.includes(trimmed)) onChange(trimmed);
+              else {
+                const existing = findExistingCategory(trimmed);
+                if (existing) onChange(existing);
+              }
             }}
             onFocus={() => { setOpen(true); setShowAll(false); }}
+            onBlur={() => {
+              const trimmed = query.trim();
+              if (!trimmed) return;
+              const existing = findExistingCategory(trimmed);
+              if (existing) {
+                if (existing !== value) pickCategory(existing);
+                return;
+              }
+              if (filteredCategories.length === 0) commitCategory(trimmed);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                if (listCategories.length === 1) pickCategory(listCategories[0]);
-                else {
-                  const exact = listCategories.find((c) => c === query.trim());
-                  if (exact) pickCategory(exact);
-                }
+                const trimmed = query.trim();
+                if (!trimmed) return;
+                const existing = findExistingCategory(trimmed);
+                if (existing) pickCategory(existing);
+                else if (listCategories.length === 1) pickCategory(listCategories[0]);
+                else commitCategory(trimmed);
               } else if (e.key === 'Escape') {
                 setOpen(false);
                 setShowAll(false);
                 setQuery('');
               }
             }}
-            placeholder="搜索分类"
+            placeholder="搜索或输入新分类，回车确认"
             style={{
               flex: 1,
               marginBottom: 0,
@@ -1092,6 +1120,7 @@ const CategoryPicker = ({ value, categories, onChange }) => {
                 <button
                   key={cat}
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => pickCategory(cat)}
                   style={{
                     display: 'block',
@@ -1116,6 +1145,25 @@ const CategoryPicker = ({ value, categories, onChange }) => {
                 </button>
               );
             })
+          ) : query.trim() ? (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => commitCategory(query)}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                padding: '10px 14px',
+                border: 'none',
+                background: 'rgba(173,255,47,0.08)',
+                color: 'greenyellow',
+                fontSize: '13px',
+                cursor: 'pointer',
+              }}
+            >
+              创建分类「{query.trim()}」
+            </button>
           ) : (
             <div style={{ padding: '14px', fontSize: '12px', color: '#888', textAlign: 'center' }}>
               无匹配分类
@@ -6575,7 +6623,7 @@ const [mounted, setMounted] = useState(false);
                    <CategoryPicker
                      value={form.category || ''}
                      categories={options.categories}
-                     onChange={(cat) => setForm({ ...form, category: cat })}
+                     onChange={setCategory}
                    />
                    {showCatInput ? (
                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
