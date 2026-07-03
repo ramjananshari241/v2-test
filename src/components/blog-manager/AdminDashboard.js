@@ -455,6 +455,17 @@ const GlobalStyle = () => (
     .pin-divider::before, .pin-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #666, transparent); }
     .pin-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.45); margin-right: 6px; }
     .dr-btn { flex: 1; display: flex; align-items: center; justify-content: center; color: #fff; transition: 0.2s; }
+    .dr-btn.is-loading { pointer-events: none; cursor: wait; }
+    .dr-btn-spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fbbf24; border-radius: 50%; animation: imgspin 0.8s linear infinite; flex: none; }
+    .admin-list-tabs { background: #424242; padding: 4px; border-radius: 12px; display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; flex-shrink: 0; }
+    .admin-list-tab { padding: 7px 12px; border: none; background: none; color: #888; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; line-height: 1; display: inline-flex; align-items: center; gap: 5px; }
+    .admin-list-tab.is-active { background: #555; color: #fff; }
+    .admin-list-tab-count { font-size: 10px; font-weight: 800; line-height: 1; }
+    .admin-list-tab-count.is-published { color: #adff2f; }
+    .admin-list-tab-count.is-published-idle { color: #666; }
+    .admin-list-tab-count.is-favourites { color: #fbbf24; }
+    .admin-list-tab-count.is-favourites-idle { color: #666; }
+    .admin-list-head-left { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; flex: 1; min-width: 0; }
     .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
     .modal-box { background: #202024; width: 90%; maxWidth: 900px; height: 90vh; border-radius: 24px; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
     .modal-body { flex: 1; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
@@ -3917,6 +3928,7 @@ const [mounted, setMounted] = useState(false);
   const [viewMode, setViewMode] = useState('covered');
   const [options, setOptions] = useState({ categories: [], tags: [] });
   const [activeTab, setActiveTab] = useState('Post');
+  const [favouriteBusyId, setFavouriteBusyId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllTags, setShowAllTags] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -5746,7 +5758,9 @@ const [mounted, setMounted] = useState(false);
 
   const handleToggleFavourite = async (e, p) => {
     e.stopPropagation();
+    if (favouriteBusyId === p.id) return;
     const nextFavourited = !p.favourited;
+    setFavouriteBusyId(p.id);
     try {
       const r = await fetch('/api/admin/post?id=' + p.id, {
         method: 'PATCH',
@@ -5767,6 +5781,8 @@ const [mounted, setMounted] = useState(false);
       fetchPosts({ silent: true });
     } catch (err) {
       showAdminToast(err.message || '收藏操作失败', 2000);
+    } finally {
+      setFavouriteBusyId(null);
     }
   };
 
@@ -6027,11 +6043,18 @@ const [mounted, setMounted] = useState(false);
       {showPin ? (
         <div
           onClick={(e) => handleToggleFavourite(e, p)}
-          style={{ background: p.favourited ? '#fbbf24' : '#5c5c62', color: p.favourited ? '#000' : '#fff' }}
-          className="dr-btn"
+          style={{
+            background: favouriteBusyId === p.id ? '#4a4a50' : (p.favourited ? '#fbbf24' : '#5c5c62'),
+            color: p.favourited && favouriteBusyId !== p.id ? '#000' : '#fff',
+          }}
+          className={`dr-btn${favouriteBusyId === p.id ? ' is-loading' : ''}`}
           title={p.favourited ? '取消收藏' : '收藏（在「已收藏」标签中查看）'}
         >
-          <Icons.Star filled={!!p.favourited} />
+          {favouriteBusyId === p.id ? (
+            <span className="dr-btn-spin" aria-hidden />
+          ) : (
+            <Icons.Star filled={!!p.favourited} />
+          )}
         </div>
       ) : null}
       <div onClick={(e) => { e.stopPropagation(); handleEdit(p); }} style={{ background: 'greenyellow', color: '#000' }} className="dr-btn"><Icons.Edit /></div>
@@ -6392,15 +6415,16 @@ const [mounted, setMounted] = useState(false);
               loading={galleryStorageLoading}
               error={galleryStorageError}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
+              <div className="admin-list-head-left">
                 {/* 1. 分类标签组 */}
-                <div style={{ background: '#424242', padding: '5px', borderRadius: '12px', display: 'flex' }}>
+                <div className="admin-list-tabs">
                   {['Post', 'Favourites', 'Widget', 'Page'].map(t => (
                     <button
                       key={t}
+                      type="button"
                       onClick={() => { setActiveTab(t); setSelectedFolder(null); setSelectedPublishDate(null); setDatePickerOpen(false); }}
-                      style={activeTab === t ? { padding: '8px 20px', border: 'none', background: '#555', color: '#fff', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' } : { padding: '8px 20px', border: 'none', background: 'none', color: '#888', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}
+                      className={`admin-list-tab${activeTab === t ? ' is-active' : ''}`}
                     >
                       {t === 'Page' ? (
                         '自定义页面'
@@ -6408,12 +6432,7 @@ const [mounted, setMounted] = useState(false);
                         <>
                           已发布
                           <span
-                            style={{
-                              marginLeft: '6px',
-                              fontSize: '11px',
-                              fontWeight: '800',
-                              color: activeTab === t ? 'greenyellow' : '#666',
-                            }}
+                            className={`admin-list-tab-count${activeTab === t ? ' is-published' : ' is-published-idle'}`}
                           >
                             {publishedPostCount}
                           </span>
@@ -6422,12 +6441,7 @@ const [mounted, setMounted] = useState(false);
                         <>
                           已收藏
                           <span
-                            style={{
-                              marginLeft: '6px',
-                              fontSize: '11px',
-                              fontWeight: '800',
-                              color: activeTab === t ? '#fbbf24' : '#666',
-                            }}
+                            className={`admin-list-tab-count${activeTab === t ? ' is-favourites' : ' is-favourites-idle'}`}
                           >
                             {favouritedPostCount}
                           </span>
@@ -6440,7 +6454,7 @@ const [mounted, setMounted] = useState(false);
                 </div>
 
                 {/* 2. 🎨 主题切换器 */}
-                <div style={{ marginLeft: '16px', position: 'relative' }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
                   <button
                     disabled={isThemeLoading}
                     onClick={() => setThemeMenuOpen(o => { const next = !o; if (next) void loadThemeSwitchQuota(); return next; })}
@@ -6499,7 +6513,7 @@ const [mounted, setMounted] = useState(false);
               </div>
 
               {/* 3. 右侧视图栏 + 发布日期筛选 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative', flexShrink: 0 }}>
                 {activeTab === 'Post' ? (
                   <>
                     <button
