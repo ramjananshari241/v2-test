@@ -8,6 +8,7 @@ import { ThemeHomeProps } from '@/src/themes/types'
 export const TouchgalLayout = ({
   posts,
   widgets,
+  vendingEnabled = true,
 }: ThemeHomeProps) => {
   const allPosts = posts && posts.length > 0 ? posts : []
   const { ARCHIVE } = CONFIG.DEFAULT_SPECIAL_PAGES
@@ -35,7 +36,7 @@ export const TouchgalLayout = ({
       {/* 1. 顶部双栏 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10 pt-6">
         <div className="flex flex-col h-full"><ProfileWidget data={widgets?.profile} /></div>
-        <div className="flex flex-col h-full"><StatsWidget data={widgets?.announcement} vendingEnabled={vendingEnabled} /></div>
+        <div className="flex flex-col h-full"><StatsWidget data={widgets?.announcement} vendingEnabled={vendingEnabled !== false} /></div>
       </div>
 
       {/* 2. 标题装饰区 - 添加 ID 用于翻页锚点 */}
