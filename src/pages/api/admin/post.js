@@ -1,6 +1,7 @@
 import { Client, isFullPage } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import { readPinnedFromNotionProperties } from '@/src/lib/blog/pinnedPosts';
+import { getFavouritePropertyKey, readFavouritedFromNotionProperties } from '@/src/lib/blog/favouritePosts';
 import { syncSiteThemeFromAdmin, getSiteThemeCode } from '@/src/lib/blog/siteTheme';
 import {
   assertThemeSwitchAllowed,
@@ -550,13 +551,13 @@ export default async function handler(req, res) {
         readNotionCoverUrl(p.cover) ||
         readPageCoverUrl(page.cover) ||
         '';
-      return res.status(200).json({ success: true, post: { id: page.id, title: p.title?.title?.[0]?.plain_text || p.Page?.title?.[0]?.plain_text || '无标题', slug: p.slug?.rich_text?.[0]?.plain_text || '', excerpt: p.excerpt?.rich_text?.[0]?.plain_text || '', category: p.category?.select?.name || '', tags: (p.tags?.multi_select || []).map(t => t.name).join(','), status: p.status?.status?.name || p.status?.select?.name || 'Published', type: p.type?.select?.name || 'Post', date: p.date?.date?.start || '', cover: coverUrl, pinned: readPinnedFromNotionProperties(p), download: readDownloadProperty(p.download), download_size: readDownloadSizeFromPageProperties(p), download_count: readDownloadCountFromPageProperties(p), article_password: readArticlePasswordFromPageProperties(p), content: cleanContent, rawBlocks: rawBlocks, editorBlocks: editorBlocks } });
+      return res.status(200).json({ success: true, post: { id: page.id, title: p.title?.title?.[0]?.plain_text || p.Page?.title?.[0]?.plain_text || '无标题', slug: p.slug?.rich_text?.[0]?.plain_text || '', excerpt: p.excerpt?.rich_text?.[0]?.plain_text || '', category: p.category?.select?.name || '', tags: (p.tags?.multi_select || []).map(t => t.name).join(','), status: p.status?.status?.name || p.status?.select?.name || 'Published', type: p.type?.select?.name || 'Post', date: p.date?.date?.start || '', cover: coverUrl, pinned: readPinnedFromNotionProperties(p), favourited: readFavouritedFromNotionProperties(p), download: readDownloadProperty(p.download), download_size: readDownloadSizeFromPageProperties(p), download_count: readDownloadCountFromPageProperties(p), article_password: readArticlePasswordFromPageProperties(p), content: cleanContent, rawBlocks: rawBlocks, editorBlocks: editorBlocks } });
     }
 
     if (req.method === 'PATCH') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const pageId = queryId || body.id;
-      const { pinned, type } = body;
+      const { pinned, favourited, type } = body;
       if (!pageId) {
         return res.status(400).json({ success: false, error: '缺少 id' });
       }
@@ -575,27 +576,46 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, type: nextType });
       }
 
-      if (pinned === undefined) {
-        return res.status(400).json({ success: false, error: '缺少 pinned 或 type' });
+      if (pinned !== undefined) {
+        const page = await withRetry(() => notion.pages.retrieve({ page_id: pageId }));
+        const pinKey = getPinnedPropertyKey(page.properties);
+        if (!pinKey) {
+          return res.status(400).json({
+            success: false,
+            error: '置顶功能暂不可用，请联系管理员。',
+          });
+        }
+        if (pinned) {
+          await unpinAllExcept(notion, databaseId, pageId, pinKey);
+        }
+        await withRetry(() =>
+          notion.pages.update({
+            page_id: pageId,
+            properties: { [pinKey]: { checkbox: !!pinned } },
+          })
+        );
+        return res.status(200).json({ success: true, pinned: !!pinned });
       }
-      const page = await withRetry(() => notion.pages.retrieve({ page_id: pageId }));
-      const pinKey = getPinnedPropertyKey(page.properties);
-      if (!pinKey) {
-        return res.status(400).json({
-          success: false,
-          error: '置顶功能暂不可用，请联系管理员。',
-        });
+
+      if (favourited !== undefined) {
+        const page = await withRetry(() => notion.pages.retrieve({ page_id: pageId }));
+        const favKey = getFavouritePropertyKey(page.properties);
+        if (!favKey) {
+          return res.status(400).json({
+            success: false,
+            error: '收藏功能暂不可用：请在 Notion 数据库添加 checkbox 属性「favourited」（或 favourite / 收藏）。',
+          });
+        }
+        await withRetry(() =>
+          notion.pages.update({
+            page_id: pageId,
+            properties: { [favKey]: { checkbox: !!favourited } },
+          })
+        );
+        return res.status(200).json({ success: true, favourited: !!favourited });
       }
-      if (pinned) {
-        await unpinAllExcept(notion, databaseId, pageId, pinKey);
-      }
-      await withRetry(() =>
-        notion.pages.update({
-          page_id: pageId,
-          properties: { [pinKey]: { checkbox: !!pinned } },
-        })
-      );
-      return res.status(200).json({ success: true, pinned: !!pinned });
+
+      return res.status(400).json({ success: false, error: '缺少 pinned、favourited 或 type' });
     }
 
     if (req.method === 'POST') {

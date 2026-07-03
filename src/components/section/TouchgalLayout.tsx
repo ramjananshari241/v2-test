@@ -8,7 +8,6 @@ import { ThemeHomeProps } from '@/src/themes/types'
 export const TouchgalLayout = ({
   posts,
   widgets,
-  vendingEnabled = true,
 }: ThemeHomeProps) => {
   const allPosts = posts && posts.length > 0 ? posts : []
   const { ARCHIVE } = CONFIG.DEFAULT_SPECIAL_PAGES
@@ -141,34 +140,6 @@ export const TouchgalLayout = ({
           )}
         </>
       )}
-
-      {vendingEnabled ? (
-      <div className="bg-neutral-100 dark:bg-neutral-900 rounded-[2.5rem] p-12 border border-neutral-200 dark:border-neutral-800 mb-16 text-center relative overflow-hidden">
-         <div className="absolute -left-20 -top-20 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl"></div>
-         <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-orange-600/10 rounded-full blur-3xl"></div>
-         
-         <div className="inline-block px-4 py-1 bg-gradient-to-r from-purple-600 to-orange-600 text-white text-[10px] font-black rounded-full mb-6 uppercase tracking-widest shadow-xl shadow-purple-500/20">
-            作品购买
-         </div>
-         
-         <h4 className="text-3xl font-black mb-10 tracking-tighter text-neutral-800 dark:text-white">前往贩售机购买我的作品吧！</h4>
-         
-         <div className="flex flex-wrap justify-center gap-6 relative z-10">
-            <button 
-              onClick={() => window.open('https://store.proplus.onl/buy', '_blank')} 
-              className="px-10 py-4 bg-[#A855F7] text-white rounded-2xl text-sm font-black hover:bg-[#9333EA] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/40 flex items-center gap-2"
-            >
-              <span>🛒</span> 前往贩售机
-            </button>
-            
-            <Link 
-              href="/vending"
-              className="px-10 py-4 bg-[#F97316] text-white rounded-2xl text-sm font-black hover:bg-[#EA580C] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-orange-500/40 flex items-center gap-2"
-            >
-              <span>👑</span> 贩售机使用说明
-            </Link>
-         </div>
-      </div>
-      ) : null}    </div>
+    </div>
   )
 }

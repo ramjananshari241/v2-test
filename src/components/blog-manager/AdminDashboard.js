@@ -56,6 +56,7 @@ import {
   findExistingOption,
 } from '@/src/lib/blog/smartPostParse';
 import { generateAdminPostSlug } from '@/src/lib/blog/generateAdminPostSlug';
+import { ADMIN_FAVOURITES_FOLDER } from '@/src/lib/blog/favouritePosts';
 import {
   getAllSmartParseTemplates,
   addSmartParseTemplate,
@@ -422,6 +423,11 @@ const Icons = {
       <line x1="7" y1="5" x2="17" y2="5" />
     </svg>
   ),
+  Star: ({ filled = false } = {}) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  ),
   Settings: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
   ArrowUp: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>,
   ArrowDown: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>,
@@ -444,7 +450,7 @@ const GlobalStyle = () => (
     body { background-color: #303030; color: #ffffff; margin: 0; font-family: system-ui, sans-serif; overflow-x: hidden; }
     .card-item { position: relative; background: #424242; border-radius: 12px; margin-bottom: 12px; border: 1px solid transparent; cursor: pointer; transition: 0.3s; overflow: hidden; display: flex !important; flex-direction: row !important; align-items: stretch; }
     .card-item:hover { border-color: greenyellow; transform: translateY(-2px); background: #4d4d4d; box-shadow: 0 0 10px rgba(173, 255, 47, 0.1); }
-    .drawer { position: absolute; right: -180px; top: 0; bottom: 0; width: 180px; display: flex; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; }
+    .drawer { position: absolute; right: -240px; top: 0; bottom: 0; width: 240px; display: flex; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; }
     .card-item:hover .drawer { right: 0; }
     .pin-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 20px; color: #888; font-size: 11px; letter-spacing: 0.5px; }
     .pin-divider::before, .pin-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #666, transparent); }
@@ -2201,7 +2207,7 @@ const AdminHeaderActionsMenu = ({
                 ? '未配置 Vercel 部署钩子，请联系管理'
                 : fullRedeployCooldownSec > 0
                   ? '12h 内已执行全量更新，请稍后再试'
-                  : '触发 Vercel 全量重部署（12 小时内仅一次）'
+                  : '网站全量重部署（24小时内仅可执行一次，慎点！）'
             }
           >
             {fullRedeployBusy ? '全量更新中…' : '全量更新'}
@@ -5739,6 +5745,29 @@ const [mounted, setMounted] = useState(false);
     }
   };
 
+  const handleToggleFavourite = async (e, p) => {
+    e.stopPropagation();
+    const nextFavourited = !p.favourited;
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/post?id=' + p.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favourited: nextFavourited }),
+      });
+      const d = await r.json();
+      if (!d.success) alert(d.error || '收藏操作失败');
+      else {
+        await fetchPosts();
+        showAdminToast(nextFavourited ? '已加入收藏' : '已取消收藏');
+      }
+    } catch (err) {
+      alert(err.message || '收藏操作失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const runListMutation = (options) =>
     executeListMutationWithProgress({
       ...options,
@@ -5993,6 +6022,16 @@ const [mounted, setMounted] = useState(false);
           <Icons.Pin />
         </div>
       ) : null}
+      {showPin ? (
+        <div
+          onClick={(e) => handleToggleFavourite(e, p)}
+          style={{ background: p.favourited ? '#fbbf24' : '#5c5c62', color: p.favourited ? '#000' : '#fff' }}
+          className="dr-btn"
+          title={p.favourited ? '取消收藏' : '收藏（在「已收藏」分类中查看）'}
+        >
+          <Icons.Star filled={!!p.favourited} />
+        </div>
+      ) : null}
       <div onClick={(e) => { e.stopPropagation(); handleEdit(p); }} style={{ background: 'greenyellow', color: '#000' }} className="dr-btn"><Icons.Edit /></div>
       <div onClick={(e) => { e.stopPropagation(); handleDeletePost(p); }} style={{ background: '#ff4d4f' }} className="dr-btn" title="移到回收站"><Icons.Trash /></div>
     </div>
@@ -6040,7 +6079,11 @@ const [mounted, setMounted] = useState(false);
      }
 
      if (searchQuery) list = list.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
-     if (selectedFolder) list = list.filter(p => p.category === selectedFolder);
+     if (selectedFolder === ADMIN_FAVOURITES_FOLDER) {
+       list = list.filter(p => p.favourited);
+     } else if (selectedFolder) {
+       list = list.filter(p => p.category === selectedFolder);
+     }
      if (selectedPublishDate && activeTab === 'Post') {
        list = list.filter(p => toDateKey(p.date) === selectedPublishDate);
      }
@@ -6549,6 +6592,16 @@ const [mounted, setMounted] = useState(false);
                     <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>站点头像、标题与简介</div>
                   </div>
                   <div style={{ color: 'greenyellow', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
+                </div>
+              )}
+              {viewMode === 'folder' && activeTab === 'Post' && (
+                <div
+                  onClick={() => { setSelectedFolder(ADMIN_FAVOURITES_FOLDER); handleNavClick(1); }}
+                  style={{ padding: '15px', background: '#4a4638', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(251, 191, 36, 0.45)', cursor: 'pointer' }}
+                  className="btn-ia"
+                >
+                  <span style={{ color: '#fbbf24', display: 'flex' }}><Icons.Star filled /></span>
+                  已收藏
                 </div>
               )}
               {viewMode === 'folder' && options.categories.map(cat => (

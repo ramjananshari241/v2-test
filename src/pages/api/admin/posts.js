@@ -1,5 +1,6 @@
 import { Client } from '@notionhq/client';
 import { readPinnedFromNotionProperties } from '@/src/lib/blog/pinnedPosts';
+import { readFavouritedFromNotionProperties } from '@/src/lib/blog/favouritePosts';
 import { readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties } from '@/src/lib/notion/readProperty';
 
 export default async function handler(req, res) {
@@ -53,6 +54,7 @@ export default async function handler(req, res) {
         date: p.date?.date?.start || p.Date?.date?.start || '',
         cover: p.cover?.url || p.cover?.file?.url || p.cover?.external?.url || '',
         pinned: readPinnedFromNotionProperties(p),
+        favourited: readFavouritedFromNotionProperties(p),
         download: (p.download?.type === 'rich_text'
           ? (p.download.rich_text || []).map((t) => t.plain_text).join('')
           : p.download?.url) || '',
