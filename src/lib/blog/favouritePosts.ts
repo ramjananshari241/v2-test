@@ -1,6 +1,3 @@
-/** 后台分类栏「已收藏」虚拟文件夹 key（非 Notion 分类名） */
-export const ADMIN_FAVOURITES_FOLDER = '__favourited__'
-
 const FAVOURITE_PROPERTY_KEYS = [
   'favourited',
   'Favourited',

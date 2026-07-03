@@ -56,7 +56,6 @@ import {
   findExistingOption,
 } from '@/src/lib/blog/smartPostParse';
 import { generateAdminPostSlug } from '@/src/lib/blog/generateAdminPostSlug';
-import { ADMIN_FAVOURITES_FOLDER } from '@/src/lib/blog/favouritePosts';
 import {
   getAllSmartParseTemplates,
   addSmartParseTemplate,
@@ -4217,7 +4216,7 @@ const [mounted, setMounted] = useState(false);
     }, 240);
   };
 
-  const showAdminToast = (message) => {
+  const showAdminToast = (message, durationMs = 2800) => {
     if (adminToastTimerRef.current) clearTimeout(adminToastTimerRef.current);
     setAdminToast({ message, visible: true, closing: false });
     adminToastTimerRef.current = setTimeout(() => {
@@ -4225,7 +4224,7 @@ const [mounted, setMounted] = useState(false);
       adminToastTimerRef.current = setTimeout(() => {
         setAdminToast({ message: '', visible: false, closing: false });
       }, 280);
-    }, 2800);
+    }, durationMs);
   };
 
   // 刷新后提示：上次会话中可能有未完成的发布任务
@@ -5748,7 +5747,6 @@ const [mounted, setMounted] = useState(false);
   const handleToggleFavourite = async (e, p) => {
     e.stopPropagation();
     const nextFavourited = !p.favourited;
-    setLoading(true);
     try {
       const r = await fetch('/api/admin/post?id=' + p.id, {
         method: 'PATCH',
@@ -5756,15 +5754,19 @@ const [mounted, setMounted] = useState(false);
         body: JSON.stringify({ favourited: nextFavourited }),
       });
       const d = await r.json();
-      if (!d.success) alert(d.error || '收藏操作失败');
-      else {
-        await fetchPosts();
-        showAdminToast(nextFavourited ? '已加入收藏' : '已取消收藏');
+      if (!d.success) {
+        showAdminToast(d.error || '收藏操作失败', 2000);
+        return;
       }
+      setPosts((prev) =>
+        prev.map((item) =>
+          item.id === p.id ? { ...item, favourited: nextFavourited } : item
+        )
+      );
+      showAdminToast(nextFavourited ? '收藏成功' : '已取消收藏', 2000);
+      fetchPosts({ silent: true });
     } catch (err) {
-      alert(err.message || '收藏操作失败');
-    } finally {
-      setLoading(false);
+      showAdminToast(err.message || '收藏操作失败', 2000);
     }
   };
 
@@ -6027,7 +6029,7 @@ const [mounted, setMounted] = useState(false);
           onClick={(e) => handleToggleFavourite(e, p)}
           style={{ background: p.favourited ? '#fbbf24' : '#5c5c62', color: p.favourited ? '#000' : '#fff' }}
           className="dr-btn"
-          title={p.favourited ? '取消收藏' : '收藏（在「已收藏」分类中查看）'}
+          title={p.favourited ? '取消收藏' : '收藏（在「已收藏」标签中查看）'}
         >
           <Icons.Star filled={!!p.favourited} />
         </div>
@@ -6073,15 +6075,22 @@ const [mounted, setMounted] = useState(false);
      else if (activeTab === 'Widget') {
         list = [];
      }
+     else if (activeTab === 'Favourites') {
+        list = list.filter(p =>
+          p.type === 'Post' &&
+          p.status !== 'Draft' &&
+          p.slug !== ANNOUNCEMENT_SLUG &&
+          p.favourited
+        );
+        list = sortAdminPosts(list);
+     }
      else {
         list = list.filter(p => p.type === 'Post' && p.status !== 'Draft' && p.slug !== ANNOUNCEMENT_SLUG);
         list = sortAdminPosts(list);
      }
 
      if (searchQuery) list = list.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
-     if (selectedFolder === ADMIN_FAVOURITES_FOLDER) {
-       list = list.filter(p => p.favourited);
-     } else if (selectedFolder) {
+     if (selectedFolder) {
        list = list.filter(p => p.category === selectedFolder);
      }
      if (selectedPublishDate && activeTab === 'Post') {
@@ -6105,6 +6114,13 @@ const [mounted, setMounted] = useState(false);
       p.type === 'Post' &&
       p.status !== 'Draft' &&
       p.slug !== ANNOUNCEMENT_SLUG
+  ).length;
+  const favouritedPostCount = posts.filter(
+    (p) =>
+      p.type === 'Post' &&
+      p.status !== 'Draft' &&
+      p.slug !== ANNOUNCEMENT_SLUG &&
+      p.favourited
   ).length;
   const siteInfoWidget = posts.find(p => p.type === 'Widget' && p.slug !== 'gallery-ad');
   const pinnedDividerIndex = activeTab === 'Post' ? filtered.findIndex(p => !p.pinned) : -1;
@@ -6380,7 +6396,7 @@ const [mounted, setMounted] = useState(false);
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 {/* 1. 分类标签组 */}
                 <div style={{ background: '#424242', padding: '5px', borderRadius: '12px', display: 'flex' }}>
-                  {['Post', 'Widget', 'Page'].map(t => (
+                  {['Post', 'Favourites', 'Widget', 'Page'].map(t => (
                     <button
                       key={t}
                       onClick={() => { setActiveTab(t); setSelectedFolder(null); setSelectedPublishDate(null); setDatePickerOpen(false); }}
@@ -6400,6 +6416,20 @@ const [mounted, setMounted] = useState(false);
                             }}
                           >
                             {publishedPostCount}
+                          </span>
+                        </>
+                      ) : t === 'Favourites' ? (
+                        <>
+                          已收藏
+                          <span
+                            style={{
+                              marginLeft: '6px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              color: activeTab === t ? '#fbbf24' : '#666',
+                            }}
+                          >
+                            {favouritedPostCount}
                           </span>
                         </>
                       ) : (
@@ -6594,17 +6624,7 @@ const [mounted, setMounted] = useState(false);
                   <div style={{ color: 'greenyellow', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
                 </div>
               )}
-              {viewMode === 'folder' && activeTab === 'Post' && (
-                <div
-                  onClick={() => { setSelectedFolder(ADMIN_FAVOURITES_FOLDER); handleNavClick(1); }}
-                  style={{ padding: '15px', background: '#4a4638', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(251, 191, 36, 0.45)', cursor: 'pointer' }}
-                  className="btn-ia"
-                >
-                  <span style={{ color: '#fbbf24', display: 'flex' }}><Icons.Star filled /></span>
-                  已收藏
-                </div>
-              )}
-              {viewMode === 'folder' && options.categories.map(cat => (
+              {viewMode === 'folder' && (activeTab === 'Post' || activeTab === 'Favourites') && options.categories.map(cat => (
                 <div key={cat} onClick={() => { setSelectedFolder(cat); handleNavClick(1); }} style={{ padding: '15px', background: '#424242', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #555', cursor: 'pointer' }} className="btn-ia">
                   <Icons.FolderIcon />{cat}
                 </div>
@@ -6651,7 +6671,7 @@ const [mounted, setMounted] = useState(false);
                     {viewMode === 'covered' && <><div style={{ width: '160px', flexShrink: 0, background: '#303030', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.cover ? <img src={p.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '28px', color: '#444' }}>{activeTab[0]}</div>}</div><div style={{ padding: '20px 35px', flex: 1 }}><div style={{ fontWeight: 'bold', fontSize: '20px', color: '#fff', marginBottom: '8px' }}>{pinBadge}{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ border: `1px solid ${st.color}`, color: st.color, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{st.label}</span>{p.category} · {p.date}</div></div></>}
                     {viewMode === 'text' && <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}><div style={{ flex: 1, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: p.pinned ? '#fbbf24' : st.color }}></span>{pinBadge}{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8 }}>{p.category} · {p.date}</div></div>}
                     {viewMode === 'gallery' && <><div style={{ height: '140px', background: '#303030', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}><div style={{ position: 'absolute', top: '10px', left: '10px', background: p.pinned ? '#fbbf24' : 'transparent', color: '#000', padding: p.pinned ? '2px 6px' : 0, borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{p.pinned ? 'PIN' : ''}</div><div style={{ position: 'absolute', top: '10px', right: '10px', background: st.color, color: '#000', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{p.status === 'Draft' ? 'DRAFT' : 'PUB'}</div>{p.cover ? <img src={p.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '40px', color: '#444' }}>{activeTab[0]}</div>}</div><div style={{ padding: '15px' }}><div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>{p.title}</div><div style={{ color: '#fff', fontSize: '12px', opacity: 0.8 }}>{p.category} · {p.date}</div></div></>}
-                    {renderCardDrawer(p, { showPin: activeTab === 'Post' })}
+                    {renderCardDrawer(p, { showPin: activeTab === 'Post' || activeTab === 'Favourites' })}
                   </div>
                   </React.Fragment>
                 );
