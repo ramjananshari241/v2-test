@@ -3,6 +3,7 @@ import { GetStaticPropsContext } from 'next'
 import { resolveActiveTheme } from '@/src/themes/getActiveTheme'
 import { getVendingEnabled } from '@/src/lib/blog/vendingSettings'
 import { getCachedNavFooter } from '../notion/getCachedMem'
+import { isTransientNotionError, isNotionBuildPhase } from '../notion/transientErrors'
 
 async function buildSharedProps(
   navPages: SharedNavFooterStaticProps['props']['navPages'],
@@ -32,7 +33,27 @@ export function withNavFooterStaticProps(
   return async (
     context: GetStaticPropsContext
   ): Promise<SharedNavFooterStaticProps> => {
-    const { navPages, siteTitle, logo } = await getCachedNavFooter()
+    let navPages: SharedNavFooterStaticProps['props']['navPages'] = []
+    let siteTitle: SharedNavFooterStaticProps['props']['siteTitle'] = {
+      text: 'PRO BLOG',
+      color: 'gray',
+      slug: '/',
+    }
+    let logo: SharedNavFooterStaticProps['props']['logo'] = null
+
+    try {
+      const nav = await getCachedNavFooter()
+      navPages = nav.navPages
+      siteTitle = nav.siteTitle
+      logo = nav.logo
+    } catch (error) {
+      if (!isTransientNotionError(error) || !isNotionBuildPhase()) throw error
+      console.warn(
+        '[withNavFooterStaticProps] nav load failed during build, using fallback:',
+        error instanceof Error ? error.message : error
+      )
+    }
+
     const sharedProps = await buildSharedProps(navPages, siteTitle, logo)
 
     if (getStaticPropsFunc == null) {
