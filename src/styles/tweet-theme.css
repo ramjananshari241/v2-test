@@ -530,6 +530,27 @@ html.tweet-theme ul {
   box-sizing: border-box;
 }
 
+.profile-bio-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+  transition: color 0.15s ease;
+}
+
+.profile-bio-link:hover {
+  color: #1d4ed8;
+}
+
+html.tweet-theme.tweet-theme--dark .profile-bio-link {
+  color: #60a5fa;
+}
+
+html.tweet-theme.tweet-theme--dark .profile-bio-link:hover {
+  color: #93c5fd;
+}
+
 /* —— Mobile profile (MobileProfileCard) —— */
 .tweet-profile-mobile {
   padding: 0.5rem;

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ProfileBioText } from '@/src/components/widget/ProfileBioText'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAsideFooter } from './TweetAsideFooter'
 import { TweetAvatar } from './TweetAvatar'
@@ -39,7 +40,10 @@ export function TweetMobileProfileCard({
             <div className="tweet-profile-mobile__text">
               <div className="tweet-profile-mobile__name">{name}</div>
               {description ? (
-                <p className="tweet-profile-mobile__bio">{description}</p>
+                <ProfileBioText
+                  text={description}
+                  className="tweet-profile-mobile__bio"
+                />
               ) : null}
             </div>
             <span

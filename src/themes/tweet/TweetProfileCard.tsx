@@ -1,3 +1,4 @@
+import { ProfileBioText } from '@/src/components/widget/ProfileBioText'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAvatar } from './TweetAvatar'
 import { TweetSectionTitle } from './TweetSectionTitle'
@@ -37,7 +38,10 @@ export function TweetProfileCard({
             <div className="tweet-profile-card__name">{name}</div>
           </div>
           {description ? (
-            <p className="tweet-profile-card__bio">{description}</p>
+            <ProfileBioText
+              text={description}
+              className="tweet-profile-card__bio"
+            />
           ) : null}
         </div>
         {vendingEnabled ? <TweetVendingButton /> : null}

@@ -4,6 +4,7 @@ import { isValidUrl } from '@/src/lib/util'
 import Link from 'next/link'
 import React from 'react'
 import { DynamicIcon } from '../DynamicIcon'
+import { ProfileBioText } from './ProfileBioText'
 
 const LinkIcon = ({ icon }: { icon: string }) => {
   if (!icon) return null;
@@ -55,9 +56,11 @@ export const ProfileWidget = ({ data }: { data: any }) => {
                     <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight antialiased drop-shadow-md truncate">
                       {name}
                     </h2>
-                    <p className="text-xs md:text-sm text-gray-400 font-medium line-clamp-2 leading-snug antialiased mt-1">
-                      {bio}
-                    </p>
+                    <ProfileBioText
+                      text={bio}
+                      className="text-xs md:text-sm text-gray-400 font-medium line-clamp-2 leading-snug antialiased mt-1"
+                      linkClassName="text-sky-400 hover:text-sky-300 underline underline-offset-2 break-all"
+                    />
                 </div>
             </div>
 
