@@ -8,6 +8,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ComponentPropsWithoutRef,
   type MouseEvent,
   type MutableRefObject,
   type ReactNode,
@@ -193,9 +194,8 @@ export function PostNavStallProvider({
   )
 }
 
-type PostNavLinkProps = LinkProps & {
+type PostNavLinkProps = ComponentPropsWithoutRef<typeof Link> & {
   navKey?: string
-  children: ReactNode
 }
 
 /** 文章内页链接：Standard / Tweet 主题下启用导航卡住兜底 */

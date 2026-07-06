@@ -52,7 +52,7 @@ export const TouchgalLayout = ({
           <div className="h-[2px] flex-1 bg-gradient-to-r from-neutral-200 to-transparent dark:from-neutral-800"></div>
         </div>
         <Link href={`/${ARCHIVE}/1`} className="ml-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 group">
-          全部归档 <span className="group-hover:translate-x-1 transition-transform">→</span>
+          归档 <span className="group-hover:translate-x-1 transition-transform">→</span>
         </Link>
       </div>
 
