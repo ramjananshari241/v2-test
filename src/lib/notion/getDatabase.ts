@@ -11,24 +11,22 @@ import {
 import { ApiFilter, ApiScope } from './../../types/notion'
 import { filterSwitch } from './filter'
 import { databaseId, notion } from './notion'
+import {
+  isTransientNotionError,
+  notionRetryDelayMs,
+} from './transientErrors'
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-const isTransient = (e: unknown) => {
-  const msg = String((e as Error)?.message || '')
-  const code = String((e as { code?: string })?.code || '')
-  return /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|socket hang up|network|fetch failed|aborted/i.test(msg)
-    || /ECONNRESET|ETIMEDOUT|EAI_AGAIN|ECONNREFUSED|ENOTFOUND/i.test(code)
-}
-
-async function withRetry<T>(fn: () => Promise<T>, retries = 4): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 6): Promise<T> {
   let lastErr: unknown
   for (let i = 0; i < retries; i++) {
-    try { return await fn() }
-    catch (e) {
+    try {
+      return await fn()
+    } catch (e) {
       lastErr = e
-      if (!isTransient(e) || i === retries - 1) throw e
-      await sleep(500 * Math.pow(2, i))
+      if (!isTransientNotionError(e) || i === retries - 1) throw e
+      await sleep(notionRetryDelayMs(e, i))
     }
   }
   throw lastErr

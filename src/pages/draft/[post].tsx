@@ -19,6 +19,7 @@ import {
   onDemandStaticPaths,
 } from '@/src/lib/blog/postLimits'
 import { getPostBySlug, getPosts } from '@/src/lib/notion/getBlogData'
+import { isTransientNotionError } from '@/src/lib/notion/transientErrors'
 import { addSubTitle } from '@/src/lib/util'
 import {
   NextPageWithLayout,
@@ -32,12 +33,20 @@ export const getStaticPaths = async () => {
   if (!BLOG_STATIC_POST_PATHS_MAX || BLOG_STATIC_POST_PATHS_MAX <= 0) {
     return onDemandStaticPaths
   }
-  const posts = await getPosts(ApiScope.Draft)
-  const formattedPosts = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
-  const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
-    params: { post: post.slug },
-  }))
-  return { paths, fallback: 'blocking' as const }
+  try {
+    const posts = await getPosts(ApiScope.Draft)
+    const formattedPosts = await formatPosts(posts, FORMAT_POST_LIST_OPTIONS)
+    const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
+      params: { post: post.slug },
+    }))
+    return { paths, fallback: 'blocking' as const }
+  } catch (error) {
+    if (isTransientNotionError(error)) {
+      console.warn('[draft/post] getStaticPaths Notion limit, using on-demand paths')
+      return onDemandStaticPaths
+    }
+    throw error
+  }
 }
 
 export const getStaticProps = withNavFooterStaticProps(

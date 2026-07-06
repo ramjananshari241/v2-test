@@ -14,6 +14,7 @@ import {
   onDemandStaticPaths,
 } from '@/src/lib/blog/postLimits'
 import { getPostBySlug, getPosts } from '@/src/lib/notion/getBlogData'
+import { isTransientNotionError } from '@/src/lib/notion/transientErrors'
 import { addSubTitle } from '@/src/lib/util'
 import { GalleryPostDownloadPage } from '@/src/themes/gallery/GalleryPostDownloadPage'
 import { getPostStats } from '@/src/lib/gallery/postStats'
@@ -35,12 +36,20 @@ export const getStaticPaths = async () => {
   if (!BLOG_STATIC_POST_PATHS_MAX || BLOG_STATIC_POST_PATHS_MAX <= 0) {
     return onDemandStaticPaths
   }
-  const postsRaw = await getPosts(ApiScope.Archive)
-  const formattedPosts = await formatPosts(postsRaw, FORMAT_POST_LIST_OPTIONS)
-  const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
-    params: { post: post.slug },
-  }))
-  return { paths, fallback: 'blocking' as const }
+  try {
+    const postsRaw = await getPosts(ApiScope.Archive)
+    const formattedPosts = await formatPosts(postsRaw, FORMAT_POST_LIST_OPTIONS)
+    const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
+      params: { post: post.slug },
+    }))
+    return { paths, fallback: 'blocking' as const }
+  } catch (error) {
+    if (isTransientNotionError(error)) {
+      console.warn('[post/download] getStaticPaths Notion limit, using on-demand paths')
+      return onDemandStaticPaths
+    }
+    throw error
+  }
 }
 
 export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
@@ -113,14 +122,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       }
     } catch (error) {
       console.error('Gallery download page error:', error)
-      const message = error instanceof Error ? error.message : String(error)
-      const isTransient =
-        /ECONNRESET|ETIMEDOUT|ENOTFOUND|429|502|503|504|fetch failed|network/i.test(
-          message
-        )
-      if (isTransient) {
-        throw error
-      }
+      if (isTransientNotionError(error)) throw error
       throw error
     }
   }

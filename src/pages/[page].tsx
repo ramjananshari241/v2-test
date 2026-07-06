@@ -12,6 +12,7 @@ import { formatPages } from '../lib/blog/format/page'
 import { withNavFooterStaticProps } from '../lib/blog/withNavFooterStaticProps'
 import { getAllBlocks } from '../lib/notion/getBlocks'
 import { getPages } from '../lib/notion/getBlogData'
+import { isTransientNotionError } from '../lib/notion/transientErrors'
 import { addSubTitle } from '../lib/util'
 import { buildNavPageSeo } from '@/src/lib/seo/lightSeo'
 import { TweetArticlePage } from '@/src/themes/tweet/TweetArticlePage'
@@ -26,26 +27,32 @@ import {
   SharedNavFooterStaticProps,
 } from '../types/blog'
 import { BlockResponse } from '../types/notion'
+import { onDemandStaticPaths } from '../lib/blog/postLimits'
 
 const specialPages = Object.values(CONFIG.DEFAULT_SPECIAL_PAGES)
 
 export const getStaticPaths = async () => {
-  const pages = await getPages()
-  const formattedPages = formatPages(pages)
-  
-  // 🟢 核心优化：只在构建阶段预先渲染前 20 篇文章
-  // 这样部署时间将缩短 90% 以上。剩下的文章会在用户访问时自动生成并缓存。
-  const paths = formattedPages
-    .slice(0, 20) 
-    .map((page) => ({
-      params: { page: page.slug },
-    }))
-    .filter((page) => !specialPages.includes(page.params?.page as string))
+  try {
+    const pages = await getPages()
+    const formattedPages = formatPages(pages)
 
-  return { 
-    paths, 
-    // 🟢 关键：blocking 模式会确保未预生成的页面在初次访问时自动同步生成
-    fallback: 'blocking' 
+    const paths = formattedPages
+      .slice(0, 20)
+      .map((page) => ({
+        params: { page: page.slug },
+      }))
+      .filter((page) => !specialPages.includes(page.params?.page as string))
+
+    return {
+      paths,
+      fallback: 'blocking' as const,
+    }
+  } catch (error) {
+    if (isTransientNotionError(error)) {
+      console.warn('[page] getStaticPaths Notion limit, using on-demand paths')
+      return onDemandStaticPaths
+    }
+    throw error
   }
 }
 
@@ -92,12 +99,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       }
     } catch (error) {
       console.error(`[page/${slug}] render error:`, error)
-      const message = error instanceof Error ? error.message : String(error)
-      const isTransient =
-        /ECONNRESET|ETIMEDOUT|ENOTFOUND|429|502|503|504|fetch failed|network/i.test(
-          message
-        )
-      if (isTransient) throw error
+      if (isTransientNotionError(error)) throw error
       // 正文块格式化失败时降级为空内容，避免整页 500（自定义页如 announcement 仍可打开）
       return {
         props: JSON.parse(

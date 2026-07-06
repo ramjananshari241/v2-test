@@ -45,6 +45,7 @@ import {
   onDemandStaticPaths,
 } from '../../lib/blog/postLimits'
 import { getPostBySlug, getPosts } from '../../lib/notion/getBlogData'
+import { isTransientNotionError } from '../../lib/notion/transientErrors'
 import { addSubTitle } from '../../lib/util'
 import { buildPostPageSeo } from '@/src/lib/seo/lightSeo'
 import { NextPageWithLayout, Page, PartialPost, Post, SharedNavFooterStaticProps } from '../../types/blog'
@@ -54,12 +55,20 @@ export const getStaticPaths = async () => {
   if (!BLOG_STATIC_POST_PATHS_MAX || BLOG_STATIC_POST_PATHS_MAX <= 0) {
     return onDemandStaticPaths
   }
-  const postsRaw = await getPosts(ApiScope.Archive)
-  const formattedPosts = await formatPosts(postsRaw, FORMAT_POST_LIST_OPTIONS)
-  const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
-    params: { post: post.slug },
-  }))
-  return { paths, fallback: 'blocking' as const }
+  try {
+    const postsRaw = await getPosts(ApiScope.Archive)
+    const formattedPosts = await formatPosts(postsRaw, FORMAT_POST_LIST_OPTIONS)
+    const paths = buildStaticPostPaths(formattedPosts).map((post) => ({
+      params: { post: post.slug },
+    }))
+    return { paths, fallback: 'blocking' as const }
+  } catch (error) {
+    if (isTransientNotionError(error)) {
+      console.warn('[post] getStaticPaths Notion limit, using on-demand paths')
+      return onDemandStaticPaths
+    }
+    throw error
+  }
 }
 
 export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
@@ -156,12 +165,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       }
     } catch (error) {
       console.error('Post page render error:', error)
-      const message = error instanceof Error ? error.message : String(error)
-      const isTransient =
-        /ECONNRESET|ETIMEDOUT|ENOTFOUND|429|502|503|504|fetch failed|network/i.test(
-          message
-        )
-      if (isTransient) throw error
+      if (isTransientNotionError(error)) throw error
       // 非网络类错误降级，避免单篇数据异常导致全站文章页 500
       return {
         props: JSON.parse(
