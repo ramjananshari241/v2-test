@@ -7263,7 +7263,7 @@ const [mounted, setMounted] = useState(false);
                {!editingSimplePage ? (
                <div style={{marginTop:'4px', marginBottom:'0', paddingTop:'16px', borderTop:'1px solid #333'}}>
                  <label style={{display:'block', fontSize:'11px', color:'#fbbf24', marginBottom:'6px', fontWeight:'bold'}}>🔒 文章访问密码</label>
-                 <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>留空则文章公开；填写后，读者点击文章卡片需输入密码才能查看正文。</p>
+                 <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>填写后，读者点击文章卡片需输入密码才能查看正文。</p>
                  <input
                    className="glow-input"
                    type="password"

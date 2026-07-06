@@ -124,9 +124,6 @@ const Navbar = ({
               )}
             </div>
             <div className="z-50 flex items-center justify-end h-full gap-2 sm:gap-3">
-              {isHome ? (
-                <ProPlusCreateButton compact={isMobile || isTablet} />
-              ) : null}
               <button
                 onMouseEnter={handleMouseEnter}
                 onClick={handleMenuClick}
@@ -146,7 +143,11 @@ const Navbar = ({
                 {items.map((item) => (
                   <NavItem key={item.id} item={item} />
                 ))}
+                {isHome ? <ProPlusCreateButton /> : null}
               </nav>
+              {isHome && (isMobile || isTablet) ? (
+                <ProPlusCreateButton compact />
+              ) : null}
             </div>
           </div>
           <div

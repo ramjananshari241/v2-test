@@ -34,7 +34,6 @@ export function TweetHeader({ siteName }: TweetHeaderProps) {
           {siteName}
         </Link>
         <nav className="tweet-header__nav">
-          {isHome ? <ProPlusCreateButton compact /> : null}
           <Link href={`/${ABOUT}`} className="tweet-header__nav-about">
             关于
           </Link>
@@ -57,6 +56,7 @@ export function TweetHeader({ siteName }: TweetHeaderProps) {
               )}
             </button>
           ) : null}
+          {isHome ? <ProPlusCreateButton compact /> : null}
         </nav>
       </div>
     </header>
