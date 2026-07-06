@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
 import { PartialPost } from '@/src/types/blog'
 
 type TweetPostFooterProps = {
@@ -31,12 +31,13 @@ export function TweetPostFooter({
   return (
     <footer className="tweet-post-footer">
       {previousPost ? (
-        <Link
+        <PostNavLink
           href={`/post/${previousPost.slug}`}
+          navKey={previousPost.slug}
           className="tweet-post-footer__action tweet-post-footer__action--prev"
         >
           ← 上一篇
-        </Link>
+        </PostNavLink>
       ) : (
         <span className="tweet-post-footer__spacer" />
       )}
@@ -50,12 +51,13 @@ export function TweetPostFooter({
       </button>
 
       {nextPost ? (
-        <Link
+        <PostNavLink
           href={`/post/${nextPost.slug}`}
+          navKey={nextPost.slug}
           className="tweet-post-footer__action tweet-post-footer__action--next"
         >
           下一篇 →
-        </Link>
+        </PostNavLink>
       ) : (
         <span className="tweet-post-footer__spacer" />
       )}

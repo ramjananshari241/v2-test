@@ -1,16 +1,17 @@
+import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
 import { classNames } from '@/src/lib/util'
 import { Post } from '@/src/types/blog'
-import Link from 'next/link'
 import { PostCategory, PostImage, PostTime } from './CardInfo'
 
 export const ListCardPlain = ({ post }: { post: Post }) => {
   const { title, slug, cover, date, category } = post
 
   return (
-    <Link
+    <PostNavLink
       className="flex flex-row items-center w-full select-none group"
       href="/post/[slug]"
       as={`/post/${slug}`}
+      navKey={slug}
     >
       <div className="h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-2xl md:h-[8.25rem] md:w-[8.25rem]">
         <div
@@ -30,7 +31,7 @@ export const ListCardPlain = ({ post }: { post: Post }) => {
         </p>
         <PostTime date={date.created} />
       </div>
-    </Link>
+    </PostNavLink>
   )
 }
 
@@ -45,10 +46,11 @@ export const ListCardWide = ({ post }: { post: Post }) => {
         "list-none before:mb-8 before:block before:h-[1px] before:flex-shrink-0 before:flex-grow-0 before:select-none before:bg-neutral-200 before:text-transparent before:content-[''] dark:before:bg-neutral-700"
       )}
     >
-      <Link
+      <PostNavLink
         className="flex flex-row items-center"
         href="/post/[slug]"
         as={`/post/${slug}`}
+        navKey={slug}
       >
         <div className="aspect-square h-[6.5rem] shrink-0 overflow-hidden rounded-2xl md:aspect-video md:h-[9.25rem] lg:h-[10.375rem]">
           <div
@@ -68,7 +70,7 @@ export const ListCardWide = ({ post }: { post: Post }) => {
           </p>
           <PostTime date={date.created} />
         </div>
-      </Link>
+      </PostNavLink>
     </li>
   )
 }

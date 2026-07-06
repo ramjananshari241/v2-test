@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { useState } from 'react'
+import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
 import { ProfileWidget } from '../widget/ProfileWidget'
 import { StatsWidget } from '../widget/StatsWidget'
 import CONFIG from '@/blog.config'
@@ -59,7 +60,7 @@ export const TouchgalLayout = ({
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
             {displayPosts.map((post) => (
-              <Link key={post.id} href={`/post/${post.slug}`} className="group flex flex-col h-full">
+              <PostNavLink key={post.id} href={`/post/${post.slug}`} navKey={post.slug} className="group flex flex-col h-full">
                 <div className="relative flex flex-col h-full overflow-hidden rounded-[1.5rem] bg-white dark:bg-[#111] border border-neutral-100 dark:border-neutral-800 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:-translate-y-1.5">
                   
                   {/* 封面图 */}
@@ -97,7 +98,7 @@ export const TouchgalLayout = ({
                     </div>
                   </div>
                 </div>
-              </Link>
+              </PostNavLink>
             ))}
           </div>
 

@@ -1,8 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import { classNames } from '@/src/lib/util'
 import { Post } from '@/src/types/blog'
-import Link from 'next/link'
 import React from 'react'
+import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
 import { PostCategory, PostImage, PostTime } from './CardInfo'
 
 type GridCardProps = {
@@ -33,7 +33,7 @@ const GridCard = ({ post, size }: GridCardProps) => {
 
   return (
     <React.StrictMode>
-      <Link href={{ pathname: '/post/[slug]', query: { slug: slug } }}>
+      <PostNavLink href={{ pathname: '/post/[slug]', query: { slug: slug } }} navKey={slug}>
         <div
           className={classNames(
             'group relative flex transform-gpu cursor-pointer select-none overflow-hidden rounded-[2.5rem]',
@@ -68,7 +68,7 @@ const GridCard = ({ post, size }: GridCardProps) => {
             </div>
           </div>
         </div>
-      </Link>
+      </PostNavLink>
     </React.StrictMode>
   )
 }

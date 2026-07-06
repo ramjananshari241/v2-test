@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetFeedMediaMap } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { Post } from '@/src/types/blog'
@@ -43,7 +43,7 @@ export function TweetPostCard({
           dateTime={post.date?.created}
           slug={post.slug}
         />
-        <Link href={postHref} className="tweet-post-card__article">
+        <PostNavLink href={postHref} navKey={post.slug} className="tweet-post-card__article">
           <div className="tweet-post-card__body">
             <h2 className="tweet-post-card__title">{post.title}</h2>
 
@@ -71,11 +71,11 @@ export function TweetPostCard({
               </div>
             ) : null}
           </div>
-        </Link>
+        </PostNavLink>
         <div className="tweet-post-card__footer">
-          <Link href={postHref} className="tweet-post-card__read-more">
+          <PostNavLink href={postHref} navKey={post.slug} className="tweet-post-card__read-more">
             阅读全文→
-          </Link>
+          </PostNavLink>
         </div>
       </div>
     </article>

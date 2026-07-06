@@ -149,3 +149,91 @@ pre code>span::before {
 .tk-extra-text {
   display: none;
 }
+
+/* Standard / Tweet：文章卡片导航卡住时的页内提示弹窗 */
+.post-nav-stall-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.post-nav-stall-panel {
+  width: min(22rem, 100%);
+  border-radius: 1.125rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #202024;
+  padding: 1.5rem 1.375rem 1.25rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  color: #eee;
+}
+
+.post-nav-stall-title {
+  margin: 0 0 0.625rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.post-nav-stall-desc {
+  margin: 0 0 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  color: #aaa;
+}
+
+.post-nav-stall-actions {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.post-nav-stall-btn-primary,
+.post-nav-stall-btn-secondary {
+  flex: 1;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.6875rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.post-nav-stall-btn-secondary {
+  border: 1px solid #444;
+  background: #2a2a2e;
+  color: #ccc;
+}
+
+.post-nav-stall-btn-secondary:hover {
+  border-color: #666;
+  color: #fff;
+}
+
+.post-nav-stall-btn-primary {
+  border: 1px solid transparent;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.post-nav-stall-btn-primary:hover {
+  background: #2563eb;
+}
+
+html.tweet-theme .post-nav-stall-panel {
+  background: var(--tweet-card-bg, #202024);
+  border-color: var(--tweet-gray6, rgba(255, 255, 255, 0.12));
+}
+
+html.tweet-theme .post-nav-stall-title {
+  color: var(--tweet-gray12, #fff);
+}
+
+html.tweet-theme .post-nav-stall-desc {
+  color: var(--tweet-muted, #aaa);
+}

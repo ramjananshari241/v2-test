@@ -1,5 +1,5 @@
+import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
 import { classNames } from '@/src/lib/util'
-import Link from 'next/link'
 import { PartialPost } from '../../types/blog'
 import { PostImage } from '../card/CardInfo'
 
@@ -22,8 +22,9 @@ const Navigation = ({
           label: 'Prev',
         }
   return (
-    <Link
+    <PostNavLink
       href={href}
+      navKey={slug}
       className={classNames(
         'group relative flex h-28 w-full flex-col justify-end bg-neutral-50 px-4 py-3 dark:bg-neutral-900 sm:h-32',
         navigation === 'next' ? 'items-end' : 'items-start'
@@ -49,7 +50,7 @@ const Navigation = ({
           className="z-0 overflow-hidden transition-all duration-500 ease-in-out opacity-100 transform-gpu group-hover:rotate-0 group-hover:scale-105 group-hover:opacity-90 group-hover:active:scale-105 mobile-hover:group-hover:scale-105"
         />
       </div>
-    </Link>
+    </PostNavLink>
   )
 }
 

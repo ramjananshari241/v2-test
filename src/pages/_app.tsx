@@ -27,6 +27,7 @@ import {
 } from '@/src/components/theme/ActiveThemeProvider'
 import { LightSeoMeta } from '@/src/components/seo/LightSeoMeta'
 import { isTweetDarkTheme, isTweetLightTheme, isTweetTheme, isTweetThemeVariantLocked } from '@/src/themes/tweet/tweetTheme'
+import { PostNavStallProvider } from '@/src/components/navigation/PostNavStallGuard'
 import { TweetLoadingProgress } from '@/src/themes/tweet/TweetLoadingProgress'
 import type { PageSeoFlat } from '@/src/lib/seo/lightSeo'
 import { NextPageWithLayout } from '../types/blog'
@@ -96,6 +97,9 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
     : undefined
   const tweetDarkDefault =
     activeTheme === 'tweet' || isTweetDarkTheme(activeTheme)
+
+  const stallGuardEnabled =
+    !isAdminRoute && activeTheme !== 'gallery'
 
   return (
     <>
@@ -231,7 +235,9 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
       />
       {isTweetTheme(activeTheme) && !isAdminRoute ? <TweetLoadingProgress /> : null}
       <GoogleAnalytics trackPageViews />
-      {getLayout(<Component {...effectivePageProps} />)}
+      <PostNavStallProvider enabled={stallGuardEnabled}>
+        {getLayout(<Component {...effectivePageProps} />)}
+      </PostNavStallProvider>
       <Analytics />
     </ThemeProvider>
     </>
