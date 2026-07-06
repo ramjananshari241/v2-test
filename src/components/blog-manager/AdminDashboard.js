@@ -721,6 +721,50 @@ const GlobalStyle = () => (
     .admin-toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-12px); z-index: 10002; padding: 12px 22px; border-radius: 12px; background: #202024; border: 1px solid rgba(173,255,47,0.45); color: #eee; font-size: 14px; font-weight: 600; box-shadow: 0 12px 36px rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity 0.26s ease, transform 0.26s ease; white-space: nowrap; }
     .admin-toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
     .admin-toast.is-closing { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+    .admin-shell { box-sizing: border-box; }
+    .editor-form-panel { box-sizing: border-box; max-width: 100%; overflow-x: hidden; }
+    .editor-step-grid { display: grid; gap: 20px; align-items: start; }
+    .editor-step-grid--dual { grid-template-columns: 1fr 1fr; }
+    .editor-step-grid--single { grid-template-columns: 1fr; }
+    .editor-date-field { min-width: 0; }
+    .editor-date-field input[type="date"] { width: 100%; min-width: 0; -webkit-appearance: none; appearance: none; }
+    .block-add-toolbar { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; flex-wrap: wrap; }
+    .category-picker-wrap { position: relative; margin-bottom: 10px; min-width: 0; }
+    .category-picker-trigger { display: flex; align-items: stretch; min-width: 0; }
+    .category-picker-selected { flex: 1; min-width: 0; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #18181c; border: 1px solid #333; border-right: none; border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    .category-picker-chip { display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-width: 0; flex: 1; background: rgba(173,255,47,0.14); border: 1px solid rgba(173,255,47,0.45); color: greenyellow; padding: 5px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+    .category-picker-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .category-picker-dropdown-btn { width: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #18181c; border: 1px solid #333; border-left: 1px solid #444; border-top-right-radius: 10px; border-bottom-right-radius: 10px; color: #aaa; cursor: pointer; transition: 0.2s; }
+    .category-picker-dropdown-btn.is-open { background: rgba(173,255,47,0.12); color: greenyellow; }
+    .editor-cat-create-row { display: flex; gap: 8px; align-items: center; }
+    .acc-btn-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; flex: 1; min-width: 0; font-weight: bold; }
+    .acc-btn-chevron { flex-shrink: 0; display: flex; align-items: center; margin-left: 8px; }
+    @media (max-width: 768px) {
+      .admin-shell { padding-left: 12px; padding-right: 12px; }
+      .editor-form-panel { padding: 16px !important; border-radius: 14px !important; }
+      .editor-step-grid--dual { grid-template-columns: 1fr; gap: 16px; }
+      .acc-btn { padding: 12px 14px; align-items: flex-start; gap: 8px; }
+      .acc-btn-title { font-size: 14px; line-height: 1.4; }
+      .acc-content { padding: 0 4px; }
+      .acc-content.open { padding-bottom: 16px; }
+      .category-picker-selected { flex-wrap: wrap; padding: 8px 10px; gap: 6px; }
+      .category-picker-chip { flex: 1 1 100%; }
+      .category-edit-btn, .category-perm-del { width: 34px; height: 34px; margin-left: 0; }
+      .category-picker-dropdown-btn { width: 40px; min-height: 44px; }
+      .editor-cat-create-row { flex-wrap: wrap; }
+      .editor-cat-create-row .glow-input { flex: 1 1 100%; min-width: 0; }
+      .block-add-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+      .block-add-toolbar .neo-btn { width: 100%; padding: 0.7em 0.6em; font-size: 13px; }
+      .neo-btn:hover { transform: none; box-shadow: none; }
+      .fab-scroll { right: 14px; bottom: 100px; gap: 8px; }
+      .fab-btn { width: 40px; height: 40px; }
+      .gallery-only-tag, .gallery-tweet-tag { font-size: 9px; padding: 1px 5px; }
+      .admin-toast { max-width: calc(100vw - 24px); white-space: normal; text-align: center; }
+    }
+    @media (max-width: 400px) {
+      .block-add-toolbar { grid-template-columns: 1fr; }
+      .block-add-toolbar .neo-btn { padding: 0.75em 1em; }
+    }
   `}} />
 );
 
@@ -770,8 +814,11 @@ const AdminToast = ({ message, visible, closing }) => {
 const StepAccordion = ({ step, title, isOpen, onToggle, children }) => (
   <div>
     <div className="acc-btn" onClick={onToggle}>
-      <div style={{fontWeight:'bold'}}><span style={{color:'greenyellow', marginRight:'10px'}}>Step {step}</span>{title}</div>
-      <div style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition:'0.3s'}}><Icons.ChevronDown /></div>
+      <div className="acc-btn-title">
+        <span style={{color:'greenyellow'}}>Step {step}</span>
+        <span>{title}</span>
+      </div>
+      <div className="acc-btn-chevron" style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition:'0.3s'}}><Icons.ChevronDown /></div>
     </div>
     <div className={`acc-content ${isOpen ? 'open' : ''}`}>
       <div className="acc-content-inner">{children}</div>
@@ -1073,46 +1120,19 @@ const CategoryPicker = ({
     canManageCategory && typeof onRenameCategory === 'function';
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', marginBottom: '10px' }}>
-      <div ref={triggerRef} style={{ display: 'flex', alignItems: 'stretch' }}>
+    <div ref={wrapRef} className="category-picker-wrap">
+      <div ref={triggerRef} className="category-picker-trigger">
         {hasSelection ? (
           <div
+            className="category-picker-selected"
             onClick={() => { if (!isRenaming) { setOpen(true); setShowAll(true); } }}
             title={isRenaming ? '编辑分类名称' : '点击浏览全部分类，或点 × 清除'}
             style={{
-              flex: 1,
               minHeight: '50px',
-              boxSizing: 'border-box',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              background: '#18181c',
-              border: '1px solid #333',
-              borderRight: 'none',
-              borderTopLeftRadius: '10px',
-              borderBottomLeftRadius: '10px',
               cursor: isRenaming ? 'default' : 'pointer',
             }}
           >
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px',
-                width: '100%',
-                minWidth: 0,
-                flex: 1,
-                background: 'rgba(173,255,47,0.14)',
-                border: '1px solid rgba(173,255,47,0.45)',
-                color: 'greenyellow',
-                padding: '5px 10px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 600,
-              }}
-            >
+            <span className="category-picker-chip">
               {isRenaming ? (
                 <input
                   ref={renameInputRef}
@@ -1139,7 +1159,7 @@ const CategoryPicker = ({
                   }}
                 />
               ) : (
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                <span className="category-picker-chip-label">
                   {value}
                 </span>
               )}
@@ -1261,23 +1281,9 @@ const CategoryPicker = ({
         )}
         <button
           type="button"
+          className={`category-picker-dropdown-btn${open ? ' is-open' : ''}`}
           onClick={toggleDropdown}
           title={open ? '收起分类列表' : '展开全部分类'}
-          style={{
-            width: '44px',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: open ? 'rgba(173,255,47,0.12)' : '#18181c',
-            border: '1px solid #333',
-            borderLeft: '1px solid #444',
-            borderTopRightRadius: '10px',
-            borderBottomRightRadius: '10px',
-            color: open ? 'greenyellow' : '#aaa',
-            cursor: 'pointer',
-            transition: '0.2s',
-          }}
         >
           <span style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'flex' }}>
             <Icons.ChevronDown />
@@ -3725,7 +3731,7 @@ const BlockBuilder = ({
           </div>
         </div>
       )}
-      <div style={{display:'flex', gap:'15px', marginBottom:'25px', justifyContent:'center', flexWrap:'wrap'}}>
+      <div className="block-add-toolbar">
           <div className="neo-btn" onClick={()=>addBlock('h1')}>正文标题</div>
           <div className="neo-btn" onClick={()=>addBlock('text')}>📝 内容块</div>
           <div className="neo-btn" onClick={()=>addBlock('image')}>🖼️ 图片块</div>
@@ -6598,7 +6604,7 @@ const [mounted, setMounted] = useState(false);
         onRemove={removeJob}
         onForceComplete={forceCompleteJob}
       />
-      <div style={{ maxWidth: 900, margin: '0 auto', opacity: adminLocked ? 0.45 : 1, pointerEvents: adminLocked ? 'none' : 'auto', transition: 'opacity 0.25s ease' }}>
+      <div className="admin-shell" style={{ maxWidth: 900, margin: '0 auto', opacity: adminLocked ? 0.45 : 1, pointerEvents: adminLocked ? 'none' : 'auto', transition: 'opacity 0.25s ease' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
              {(view === 'list' || view === 'recycle') && <SearchInput value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />}
@@ -7240,7 +7246,7 @@ const [mounted, setMounted] = useState(false);
           </div>
         ) : (
           /* 这里是之前的表单编辑代码... */
-          <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
+          <div className="editor-form-panel" style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <StepAccordion step={1} title="基础信息" isOpen={expandedStep === 1} onToggle={()=>setExpandedStep(expandedStep===1?0:1)}>
                {!editingSimplePage ? (
                  <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '10px', border: '1px solid #3a3a42', background: '#1a1a1e' }}>
@@ -7279,7 +7285,7 @@ const [mounted, setMounted] = useState(false);
                ) : null}
             </StepAccordion>
             <StepAccordion step={2} title={editingSimplePage ? '发布时间' : '分类与时间'} isOpen={expandedStep === 2} onToggle={()=>setExpandedStep(expandedStep===2?0:2)}>
-               <div style={{display:'grid', gridTemplateColumns: editingSimplePage ? '1fr' : '1fr 1fr', gap:'20px', alignItems:'start'}}>
+               <div className={`editor-step-grid ${editingSimplePage ? 'editor-step-grid--single' : 'editor-step-grid--dual'}`}>
                  {!editingSimplePage ? (
                  <div>
                    <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>分类 <span style={{color: '#ff4d4f'}}>*</span></label>
@@ -7291,7 +7297,7 @@ const [mounted, setMounted] = useState(false);
                      onRenameCategory={renameCategory}
                    />
                    {showCatInput ? (
-                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                     <div className="editor-cat-create-row">
                        <input autoFocus className="glow-input" style={{ flex: 1, padding: '8px 10px', fontSize: '13px' }} value={catDraft}
                          onChange={e=>setCatDraft(e.target.value)}
                          onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); addCategoryFromDraft(); } else if(e.key==='Escape'){ setShowCatInput(false); setCatDraft(''); } }}
@@ -7304,7 +7310,7 @@ const [mounted, setMounted] = useState(false);
                    )}
                  </div>
                  ) : null}
-                 <div><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>发布日期 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
+                 <div className="editor-date-field"><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>发布日期 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} /></div>
                </div>
             </StepAccordion>
 {!editingSimplePage ? (
