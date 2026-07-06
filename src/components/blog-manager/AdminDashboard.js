@@ -1170,20 +1170,6 @@ const CategoryPicker = ({
                 </span>
               ) : null}
             </span>
-            {canPermanentlyDelete ? (
-              <button
-                type="button"
-                className="category-perm-del"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRequestDelete(value);
-                }}
-                title="永久删除此分类（相关文章将归入「默认」）"
-                aria-label={`永久删除分类 ${value}`}
-              >
-                <Icons.Trash />
-              </button>
-            ) : null}
             {canRename ? (
               isRenaming ? (
                 <button
@@ -1205,6 +1191,20 @@ const CategoryPicker = ({
                   <Icons.Edit />
                 </button>
               )
+            ) : null}
+            {canPermanentlyDelete ? (
+              <button
+                type="button"
+                className="category-perm-del"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestDelete(value);
+                }}
+                title="永久删除此分类（相关文章将归入「默认」）"
+                aria-label={`永久删除分类 ${value}`}
+              >
+                <Icons.Trash />
+              </button>
             ) : null}
           </div>
         ) : (
@@ -6326,7 +6326,7 @@ const [mounted, setMounted] = useState(false);
      if (searchQuery) list = list.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
      if (selectedFolder) {
        if (selectedFolder === FALLBACK_CATEGORY) {
-         list = list.filter((p) => !p.category || p.category === FALLBACK_CATEGORY);
+         list = list.filter((p) => p.category === FALLBACK_CATEGORY);
        } else {
          list = list.filter((p) => p.category === selectedFolder);
        }
@@ -6346,6 +6346,14 @@ const [mounted, setMounted] = useState(false);
     }
     return list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
   })();
+  const recycleAllSelected =
+    recyclePosts.length > 0 &&
+    recyclePosts.every((p) => selectedPostIds.includes(p.id));
+  const toggleRecycleSelectAll = () => {
+    const allIds = recyclePosts.map((p) => p.id);
+    if (!allIds.length) return;
+    setSelectedPostIds(recycleAllSelected ? [] : allIds);
+  };
   const recycleCount = posts.filter((p) => p.type === 'Piece').length;
   const publishedPostCount = posts.filter(
     (p) =>
@@ -6954,6 +6962,16 @@ const [mounted, setMounted] = useState(false);
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {listSelectMode && recyclePosts.length > 0 ? (
+                  <button
+                    type="button"
+                    className={`admin-list-select-btn${recycleAllSelected ? ' is-active' : ''}`}
+                    onClick={toggleRecycleSelectAll}
+                    disabled={loading}
+                  >
+                    {recycleAllSelected ? '取消全选' : '全选'}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className={`admin-list-select-btn${listSelectMode ? ' is-active' : ''}${listSelectMode && selectedPostIds.length > 0 ? ' is-delete' : ''}`}
