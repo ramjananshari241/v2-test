@@ -522,32 +522,36 @@ html.tweet-theme ul {
   margin-top: 1.125rem;
   margin-bottom: 0.25rem;
   padding: 0 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.375rem;
+  font-size: 0.75rem;
+  line-height: 1.35rem;
   color: var(--tweet-gray12);
   text-align: left;
   width: 100%;
   box-sizing: border-box;
 }
 
-.profile-bio-link {
+html.tweet-theme .tweet-profile-card__bio .profile-bio-link,
+html.tweet-theme .tweet-profile-mobile__bio .profile-bio-link {
   color: #2563eb;
-  font-weight: 600;
+  font-weight: 400;
   text-decoration: underline;
   text-underline-offset: 2px;
   word-break: break-all;
   transition: color 0.15s ease;
 }
 
-.profile-bio-link:hover {
+html.tweet-theme .tweet-profile-card__bio .profile-bio-link:hover,
+html.tweet-theme .tweet-profile-mobile__bio .profile-bio-link:hover {
   color: #1d4ed8;
 }
 
-html.tweet-theme.tweet-theme--dark .profile-bio-link {
+html.tweet-theme.tweet-theme--dark .tweet-profile-card__bio .profile-bio-link,
+html.tweet-theme.tweet-theme--dark .tweet-profile-mobile__bio .profile-bio-link {
   color: #60a5fa;
 }
 
-html.tweet-theme.tweet-theme--dark .profile-bio-link:hover {
+html.tweet-theme.tweet-theme--dark .tweet-profile-card__bio .profile-bio-link:hover,
+html.tweet-theme.tweet-theme--dark .tweet-profile-mobile__bio .profile-bio-link:hover {
   color: #93c5fd;
 }
 
@@ -655,8 +659,8 @@ html.tweet-theme.tweet-theme--dark .profile-bio-link:hover {
 
 .tweet-profile-mobile__bio {
   margin-top: 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: 0.75rem;
+  line-height: 1.3rem;
   color: var(--tweet-gray12);
 }
 

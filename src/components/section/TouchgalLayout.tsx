@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
+import ContainerLayout from '@/src/components/post/ContainerLayout'
 import { ProfileWidget } from '../widget/ProfileWidget'
 import { StatsWidget } from '../widget/StatsWidget'
 import { resolveGalleryListCoverSrc } from '@/src/lib/gallery/postCover'
@@ -35,8 +36,7 @@ export const TouchgalLayout = ({
   }
 
   return (
-    <div className="mx-auto block max-w-7xl px-4 md:px-8 lg:px-12">
-      
+    <ContainerLayout>
       {/* 1. 顶部双栏 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10 pt-6">
         <div className="flex flex-col h-full"><ProfileWidget data={widgets?.profile} /></div>
@@ -160,6 +160,6 @@ export const TouchgalLayout = ({
           )}
         </>
       )}
-    </div>
+    </ContainerLayout>
   )
 }
