@@ -2,6 +2,8 @@ import CONFIG from '@/blog.config'
 import { getAllCategories, initialCategory } from '@/src/lib/blog/format/category'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { getAllTags, initialTag } from '@/src/lib/blog/format/tag'
+import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews'
+import { shouldLoadGalleryFeedCovers } from '@/src/lib/gallery/shouldLoadGalleryFeedCovers'
 import { getPostsAndPieces } from '@/src/lib/notion/getBlogData'
 import { createTagCategoryMap } from '@/src/lib/util'
 import { Post } from '@/src/types/blog'
@@ -59,13 +61,27 @@ export function filterArchivePosts(
   })
 }
 
-export async function buildArchivePageProps(currentPage: number) {
+export async function buildArchivePageProps(
+  currentPage: number,
+  activeTheme?: string | null
+) {
   const sortedPosts = await loadSortedArchivePosts()
   const tags = getAllTags(sortedPosts)
   const categories = getAllCategories(sortedPosts)
   const { tagCategoryMapById, categoryTagMapById } =
     createTagCategoryMap(sortedPosts)
   const pageCount = Math.max(1, Math.ceil(sortedPosts.length / PER_COUNT))
+
+  let galleryFeedCovers: Record<string, string> | null = null
+  if (shouldLoadGalleryFeedCovers(activeTheme) && sortedPosts.length > 0) {
+    try {
+      galleryFeedCovers = await loadGalleryFeedCovers(
+        sortedPosts.map((p) => p.slug)
+      )
+    } catch (err) {
+      console.error('[archive] galleryFeedCovers load failed:', err)
+    }
+  }
 
   return {
     items: sliceArchivePage(sortedPosts, currentPage),
@@ -75,6 +91,7 @@ export async function buildArchivePageProps(currentPage: number) {
     tagCategoryMapById,
     categoryTagMapById,
     totalCount: sortedPosts.length,
+    galleryFeedCovers,
   }
 }
 

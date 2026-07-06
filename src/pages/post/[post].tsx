@@ -1,10 +1,10 @@
 import CONFIG from '@/blog.config'
 import { GetStaticProps, GetStaticPropsContext, NextPage } from 'next'
-import { BlockRender } from '../../components/blocks/BlockRender'
 import { BlogLayoutPure } from '../../components/layout/BlogLayout'
 import ContentLayout from '../../components/layout/ContentLayout'
 import PostFooter from '../../components/post/PostFooter'
-import PostHeader from '../../components/post/PostHeader'
+import { StandardPostContent } from '@/src/themes/standard/StandardPostContent'
+import { StandardPostHeader } from '@/src/themes/standard/StandardPostHeader'
 import { ArticlePasswordGate } from '../../components/post/ArticlePasswordGate'
 import PostMessage from '../../components/post/PostMessage'
 import PostNavigation from '../../components/post/PostNavigation'
@@ -246,10 +246,13 @@ const PostPage: NextPage<{
 
         return (
           <>
-            <PostHeader post={post} blocks={resolvedBlocks} />
+            <StandardPostHeader post={post} blocks={resolvedBlocks} />
             <ContentLayout>
               <PostMessage post={post} />
-              <BlockRender blocks={resolvedBlocks} />
+              <StandardPostContent
+                postSlug={post.slug}
+                blocks={resolvedBlocks}
+              />
               <PostFooter post={post} />
               <PostNavigation navigation={navigation} />
               {CONFIG.ENABLE_COMMENT && <CommentSection />}

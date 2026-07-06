@@ -15,6 +15,7 @@ import { ApiScope } from '../types/notion'
 import { buildHomePageSeo } from '../lib/seo/lightSeo'
 import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews'
+import { shouldLoadGalleryFeedCovers } from '@/src/lib/gallery/shouldLoadGalleryFeedCovers'
 import { loadTweetFeedMedia } from '../lib/tweet/loadTweetFeedMedia'
 import { themeFromEnv } from '@/src/themes/getActiveTheme'
 import { getThemeHomeComponent } from '../themes/registry'
@@ -84,7 +85,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
         }
       }
       let galleryFeedCovers = null
-      if (activeTheme === 'gallery') {
+      if (shouldLoadGalleryFeedCovers(activeTheme)) {
         try {
           galleryFeedCovers = await loadGalleryFeedCovers(
             filteredPosts.map((p) => p.slug)

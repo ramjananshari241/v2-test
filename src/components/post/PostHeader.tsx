@@ -8,9 +8,11 @@ import { PostImage } from '../card/CardInfo'
 import ContentLayout, { CoverLayout } from '../layout/ContentLayout'
 import { Share } from './Share'
 
-const PostHeader: NextPage<{ post: Post; blocks: BlockDataType[] }> = ({
-  post,
-}) => {
+const PostHeader: NextPage<{
+  post: Post
+  blocks: BlockDataType[]
+  showHeroCover?: boolean
+}> = ({ post, showHeroCover = true }) => {
   const { title, excerpt, date, cover, category, options } = post
 
   return (
@@ -72,22 +74,24 @@ const PostHeader: NextPage<{ post: Post; blocks: BlockDataType[] }> = ({
           <Share />
         </div>
       </ContentLayout>
-      <CoverLayout>
-        <div
-          id="cover"
-          className="relative w-full h-full md:rounded-3xl"
-          data-aos="fade-up"
-          data-aos-duration="500"
-        >
-          <PostImage
-            cover={cover}
-            alt={title}
-            className={
-              'z-0 overflow-hidden transition-all duration-500 ease-in-out md:rounded-3xl'
-            }
-          />
-        </div>
-      </CoverLayout>
+      {showHeroCover ? (
+        <CoverLayout>
+          <div
+            id="cover"
+            className="relative w-full h-full md:rounded-3xl"
+            data-aos="fade-up"
+            data-aos-duration="500"
+          >
+            <PostImage
+              cover={cover}
+              alt={title}
+              className={
+                'z-0 overflow-hidden transition-all duration-500 ease-in-out md:rounded-3xl'
+              }
+            />
+          </div>
+        </CoverLayout>
+      ) : null}
     </header>
   )
 }

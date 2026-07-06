@@ -33,6 +33,8 @@ type GalleryImageGridProps = {
   postSlug: string
   pageSize?: number
   GridLoader?: ComponentType<GalleryGridLoaderProps>
+  gridClassName?: string
+  loadMoreClassName?: string
 }
 
 type GalleryPageResult = {
@@ -45,6 +47,8 @@ export function GalleryImageGrid({
   postSlug,
   pageSize = GALLERY_POST_PAGE_SIZE,
   GridLoader = GalleryGridLoader,
+  gridClassName = galleryMediaGridClass,
+  loadMoreClassName = 'gallery-load-more-btn min-w-[140px] rounded-md bg-neutral-900 px-10 py-3 font-gallery text-[15px] font-semibold text-white transition-all duration-200 hover:bg-neutral-800 disabled:opacity-60',
 }: GalleryImageGridProps) {
   const [images, setImages] = useState<GalleryApiImage[]>([])
   const [total, setTotal] = useState(0)
@@ -177,7 +181,7 @@ export function GalleryImageGrid({
 
       <div
         ref={gridRef}
-        className={galleryMediaGridClass}
+        className={gridClassName}
       >
         {images.map((img, index) => (
           <GalleryGridImage
@@ -202,7 +206,7 @@ export function GalleryImageGrid({
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="gallery-load-more-btn min-w-[140px] rounded-md bg-neutral-900 px-10 py-3 font-gallery text-[15px] font-semibold text-white transition-all duration-200 hover:bg-neutral-800 disabled:opacity-60"
+            className={loadMoreClassName}
           >
             {loadingMore ? '加载中…' : '显示更多'}
           </button>

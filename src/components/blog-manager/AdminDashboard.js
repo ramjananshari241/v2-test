@@ -781,7 +781,7 @@ const GalleryOnlyTag = () => (
 );
 
 const GalleryTweetTag = () => (
-  <span className="gallery-tweet-tag">(gallery、tweet主题专用)</span>
+  <span className="gallery-tweet-tag">(Standard / Tweet 等主题可用)</span>
 );
 
 const ViewModeButton = ({ label, active, onClick }) => (

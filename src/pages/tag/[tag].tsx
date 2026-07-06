@@ -14,6 +14,7 @@ import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { applyThemePageLayout, usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
 import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews'
+import { shouldLoadGalleryFeedCovers } from '@/src/lib/gallery/shouldLoadGalleryFeedCovers'
 import { loadTweetFeedMedia } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
 import { getAllTags } from '@/src/lib/blog/format/tag'
@@ -51,8 +52,9 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     )
     const tag = postsByTag[0].tags.find((t) => t.id === tagId)
 
+    const activeTheme = sharedPageStaticProps.props.activeTheme
     const galleryFeedCovers =
-      sharedPageStaticProps.props.activeTheme === 'gallery'
+      shouldLoadGalleryFeedCovers(activeTheme) && postsByTag.length > 0
         ? await loadGalleryFeedCovers(postsByTag.map((p) => p.slug))
         : null
 
@@ -133,7 +135,13 @@ const TagPage: NextPage<{
   }
 
   return (
-    <SubCollection item={tag} posts={posts} subTitle={subTitle} type={'tag'} />
+    <SubCollection
+      item={tag}
+      posts={posts}
+      subTitle={subTitle}
+      type={'tag'}
+      galleryFeedCovers={galleryFeedCovers}
+    />
   )
 }
 

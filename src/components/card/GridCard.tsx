@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { classNames } from '@/src/lib/util'
+import { resolveListPostCover } from '@/src/lib/gallery/resolveListPostCover'
 import { Post } from '@/src/types/blog'
 import React from 'react'
 import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
@@ -8,6 +9,7 @@ import { PostCategory, PostImage, PostTime } from './CardInfo'
 type GridCardProps = {
   post: Post
   size: 'small' | 'medium' | 'large'
+  galleryCoverSrc?: string | null
 }
 
 const SIZE = {
@@ -28,8 +30,9 @@ const SIZE = {
   },
 }
 
-const GridCard = ({ post, size }: GridCardProps) => {
+const GridCard = ({ post, size, galleryCoverSrc }: GridCardProps) => {
   const { title, slug, cover, date, category } = post
+  const displayCover = resolveListPostCover(post, galleryCoverSrc)
 
   return (
     <React.StrictMode>
@@ -44,7 +47,7 @@ const GridCard = ({ post, size }: GridCardProps) => {
         >
           <header className={classNames('relative overflow-hidden shrink-0', SIZE[size].image)}>
             <PostImage
-              cover={cover}
+              cover={displayCover}
               alt={title}
               className={'w-full h-full object-cover opacity-100 transition-all duration-700 group-hover:scale-110'}
             />

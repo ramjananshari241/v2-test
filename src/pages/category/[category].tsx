@@ -14,6 +14,7 @@ import { pickTweetShellWidgets } from '@/src/themes/tweet/tweetShellWidgets'
 import { usesStandaloneThemeLayout } from '@/src/themes/themeLayout'
 import { loadHomeWidgets } from '@/src/lib/blog/loadHomeWidgets'
 import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews'
+import { shouldLoadGalleryFeedCovers } from '@/src/lib/gallery/shouldLoadGalleryFeedCovers'
 import { loadTweetFeedMedia } from '@/src/lib/tweet/loadTweetFeedMedia'
 import { getAllCategories } from '@/src/lib/blog/format/category'
 import { formatPosts, FORMAT_POST_LIST_OPTIONS } from '@/src/lib/blog/format/post'
@@ -64,13 +65,13 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
 
     let categoryBannerImage: string | null = null
     let galleryFeedCovers: Record<string, string> | null = null
-    if (
-      sharedPageStaticProps.props.activeTheme === 'gallery' &&
-      postsByCategory.length > 0
-    ) {
+    const activeTheme = sharedPageStaticProps.props.activeTheme
+    if (shouldLoadGalleryFeedCovers(activeTheme) && postsByCategory.length > 0) {
       galleryFeedCovers = await loadGalleryFeedCovers(
         postsByCategory.map((p) => p.slug)
       )
+    }
+    if (activeTheme === 'gallery' && postsByCategory.length > 0 && galleryFeedCovers) {
       const latestPost = getLatestPostByDate(postsByCategory)
       if (latestPost) {
         const galleryThumb = galleryFeedCovers[latestPost.slug]
@@ -184,6 +185,7 @@ const CategoryPage: NextPage<{
       posts={posts}
       subTitle={subTitle}
       type={'category'}
+      galleryFeedCovers={galleryFeedCovers}
     />
   )
 }

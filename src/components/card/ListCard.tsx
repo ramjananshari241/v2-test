@@ -1,10 +1,18 @@
 import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
+import { resolveListPostCover } from '@/src/lib/gallery/resolveListPostCover'
 import { classNames } from '@/src/lib/util'
 import { Post } from '@/src/types/blog'
 import { PostCategory, PostImage, PostTime } from './CardInfo'
 
-export const ListCardPlain = ({ post }: { post: Post }) => {
+export const ListCardPlain = ({
+  post,
+  galleryCoverSrc,
+}: {
+  post: Post
+  galleryCoverSrc?: string | null
+}) => {
   const { title, slug, cover, date, category } = post
+  const displayCover = resolveListPostCover(post, galleryCoverSrc)
 
   return (
     <PostNavLink
@@ -18,7 +26,7 @@ export const ListCardPlain = ({ post }: { post: Post }) => {
           className={`relative h-full w-full rotate-0 transform overflow-hidden rounded-2xl filter transition duration-500 ease-in-out group-hover:brightness-90`}
         >
           <PostImage
-            cover={cover}
+            cover={displayCover}
             alt={title}
             className="overflow-hidden transition-all duration-500 ease-in-out opacity-100 transform-gpu rounded-2xl group-hover:rotate-0 group-hover:opacity-90 group-hover:active:scale-105 mobile-hover:group-hover:scale-105"
           />
@@ -35,8 +43,15 @@ export const ListCardPlain = ({ post }: { post: Post }) => {
   )
 }
 
-export const ListCardWide = ({ post }: { post: Post }) => {
+export const ListCardWide = ({
+  post,
+  galleryCoverSrc,
+}: {
+  post: Post
+  galleryCoverSrc?: string | null
+}) => {
   const { title, slug, cover, date, category } = post
+  const displayCover = resolveListPostCover(post, galleryCoverSrc)
 
   return (
     <li
@@ -57,7 +72,7 @@ export const ListCardWide = ({ post }: { post: Post }) => {
             className={`relative h-full w-full rotate-0 transform overflow-hidden rounded-2xl filter transition duration-500 ease-in-out group-hover:brightness-90`}
           >
             <PostImage
-              cover={cover}
+              cover={displayCover}
               alt={title}
               className="overflow-hidden transition-all duration-500 ease-in-out border opacity-100 transform-gpu rounded-2xl border-neutral-100 group-hover:rotate-0 group-hover:opacity-90 group-hover:active:scale-105 dark:border-neutral-900 mobile-hover:group-hover:scale-105"
             />

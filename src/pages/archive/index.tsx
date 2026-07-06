@@ -38,7 +38,7 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     addSubTitle(sharedPageStaticProps.props, slug)
     const pages = sharedPageStaticProps.props.navPages
     const page = pages.find((page) => page.slug === slug) ?? null
-    const archiveData = await buildArchivePageProps(1)
+    const archiveData = await buildArchivePageProps(1, sharedPageStaticProps.props.activeTheme)
 
     return {
       props: {
@@ -63,6 +63,7 @@ const Archive: NextPage<{
   currentPage: number
   totalCount?: number
   activeTheme?: string
+  galleryFeedCovers?: Record<string, string> | null
 }> = ({
   page,
   items,
@@ -74,6 +75,7 @@ const Archive: NextPage<{
   currentPage,
   totalCount,
   activeTheme,
+  galleryFeedCovers,
 }) => {
   const router = useRouter()
   const [pageCountAfterFilter, setPageCountAfterFilter] = useState(pageCount)
@@ -186,7 +188,10 @@ const Archive: NextPage<{
         {filterLoading ? (
           <p className="my-8 text-center text-neutral-500">加载中…</p>
         ) : itemsAfterFilter.length > 0 ? (
-          <ArchiveCollection items={itemsAfterFilter} />
+          <ArchiveCollection
+            items={itemsAfterFilter}
+            galleryFeedCovers={galleryFeedCovers}
+          />
         ) : (
           <Empty />
         )}

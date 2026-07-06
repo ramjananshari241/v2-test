@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { PostNavLink } from '@/src/components/navigation/PostNavStallGuard'
 import { ProfileWidget } from '../widget/ProfileWidget'
 import { StatsWidget } from '../widget/StatsWidget'
+import { resolveGalleryListCoverSrc } from '@/src/lib/gallery/postCover'
+import { PostImage } from '../card/CardInfo'
 import CONFIG from '@/blog.config'
 import { ThemeHomeProps } from '@/src/themes/types'
 
@@ -10,6 +12,7 @@ export const TouchgalLayout = ({
   posts,
   widgets,
   vendingEnabled = true,
+  galleryFeedCovers,
 }: ThemeHomeProps) => {
   const allPosts = posts && posts.length > 0 ? posts : []
   const { ARCHIVE } = CONFIG.DEFAULT_SPECIAL_PAGES
@@ -59,14 +62,28 @@ export const TouchgalLayout = ({
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
-            {displayPosts.map((post) => (
+            {displayPosts.map((post) => {
+              const listCoverSrc = resolveGalleryListCoverSrc(
+                post,
+                galleryFeedCovers?.[post.slug]
+              )
+              const hasCover = !!listCoverSrc
+
+              return (
               <PostNavLink key={post.id} href={`/post/${post.slug}`} navKey={post.slug} className="group flex flex-col h-full">
                 <div className="relative flex flex-col h-full overflow-hidden rounded-[1.5rem] bg-white dark:bg-[#111] border border-neutral-100 dark:border-neutral-800 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:-translate-y-1.5">
                   
                   {/* 封面图 */}
                   <div className="aspect-[16/10] relative overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-                    {post.cover?.light?.src ? (
-                      <img src={post.cover.light.src} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    {hasCover ? (
+                      <PostImage
+                        cover={{
+                          light: { ...post.cover.light, src: listCoverSrc },
+                          dark: { ...post.cover.dark, src: listCoverSrc },
+                        }}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-neutral-300 font-black text-4xl">P</div>
                     )}
@@ -99,7 +116,8 @@ export const TouchgalLayout = ({
                   </div>
                 </div>
               </PostNavLink>
-            ))}
+              )
+            })}
           </div>
 
           {/* 🟢 4. 翻页功能区 (插入在指定位置) */}

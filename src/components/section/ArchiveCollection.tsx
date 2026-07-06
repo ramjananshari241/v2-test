@@ -1,7 +1,13 @@
 import { Post } from '@/src/types/blog'
 import { ListCardWide } from '../card/ListCard'
 
-export const ArchiveCollection = ({ items }: { items: Post[] }) => {
+export const ArchiveCollection = ({
+  items,
+  galleryFeedCovers,
+}: {
+  items: Post[]
+  galleryFeedCovers?: Record<string, string> | null
+}) => {
   let currentYear: number | null = null
   return (
     <ul className="my-8">
@@ -14,11 +20,21 @@ export const ArchiveCollection = ({ items }: { items: Post[] }) => {
               <p className="mt-8 mb-4 block text-[28px] font-semibold">
                 {year} 年
               </p>
-              <ListCardWide key={item.id} post={item} />
+              <ListCardWide
+                key={item.id}
+                post={item}
+                galleryCoverSrc={galleryFeedCovers?.[item.slug]}
+              />
             </div>
           )
         } else {
-          return <ListCardWide key={item.id} post={item} />
+          return (
+            <ListCardWide
+              key={item.id}
+              post={item}
+              galleryCoverSrc={galleryFeedCovers?.[item.slug]}
+            />
+          )
         }
       })}
     </ul>

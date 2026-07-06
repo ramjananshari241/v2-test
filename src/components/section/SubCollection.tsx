@@ -15,11 +15,13 @@ export const SubCollection = ({
   posts,
   subTitle,
   type,
+  galleryFeedCovers,
 }: {
   item: Tag | Category
   posts: Post[]
   subTitle: Title
   type: 'tag' | 'category'
+  galleryFeedCovers?: Record<string, string> | null
 }) => {
   const { name, color: tagColor, count, id } = item
   const { text, slug, color } = subTitle
@@ -64,7 +66,7 @@ export const SubCollection = ({
         subComponent={CountComponent}
         colorTitile
       />
-      <PostGrid posts={posts} narrow />
+      <PostGrid posts={posts} narrow galleryFeedCovers={galleryFeedCovers} />
       <div className="pb-2 md:pb-8">
         <TimelineButton query={query} color={item.color} />
       </div>

@@ -6,7 +6,13 @@ import ContainerLayout from '../post/ContainerLayout'
 import PostList from '../PostList'
 import { TimelineButton } from './TimelineButton'
 
-export const MorePostsCollection = ({ posts }: { posts: Post[] }) => {
+export const MorePostsCollection = ({
+  posts,
+  galleryFeedCovers,
+}: {
+  posts: Post[]
+  galleryFeedCovers?: Record<string, string> | null
+}) => {
   const { LARGE, MEDIUM, SMALL, MORE } = CONFIG.HOME_POSTS_COUNT
 
   const startIndex = LARGE + MEDIUM + SMALL
@@ -25,7 +31,7 @@ export const MorePostsCollection = ({ posts }: { posts: Post[] }) => {
             <Empty />
           ) : (
             <>
-              <PostList posts={postsToDisplay}></PostList>
+              <PostList posts={postsToDisplay} galleryFeedCovers={galleryFeedCovers}></PostList>
               <TimelineButton />
             </>
           )}
