@@ -170,3 +170,63 @@ export async function deleteTagFromNotion(
 
   return { updatedPosts: pages.length, removedFromSchema }
 }
+
+export async function renameCategoryFromNotion(
+  notion: Client,
+  databaseId: string,
+  oldName: string,
+  newName: string
+) {
+  const trimmedOld = (oldName || '').trim()
+  const trimmedNew = (newName || '').trim()
+  if (!trimmedOld || !trimmedNew) throw new Error('分类名不能为空')
+  if (trimmedOld === trimmedNew) return { updatedPosts: 0, renamedFromSchema: false }
+
+  const db = await notion.databases.retrieve({ database_id: databaseId })
+  const categoryKey = resolveCategoryPropertyKey(db.properties as NotionProps)
+  if (!categoryKey) throw new Error('未找到 Notion 分类字段（category / Category）')
+
+  const prop = db.properties[categoryKey]
+  const options =
+    prop?.type === 'select' ? prop.select?.options || [] : []
+  if (options.some((o) => o.name === trimmedNew && o.name !== trimmedOld)) {
+    throw new Error(`分类「${trimmedNew}」已存在`)
+  }
+
+  const pages = await queryPagesWithFilter(notion, databaseId, {
+    property: categoryKey,
+    select: { equals: trimmedOld },
+  })
+
+  for (const page of pages) {
+    await notion.pages.update({
+      page_id: page.id,
+      properties: {
+        [categoryKey]: { select: { name: trimmedNew } },
+      },
+    })
+  }
+
+  const oldOption = options.find((o) => o.name === trimmedOld)
+  let renamedFromSchema = false
+  if (oldOption) {
+    const nextOptions = options.map((o) =>
+      o.name === trimmedOld
+        ? { id: o.id, name: trimmedNew, color: o.color || 'default' }
+        : { id: o.id, name: o.name, color: o.color || 'default' }
+    )
+    await notion.databases.update({
+      database_id: databaseId,
+      properties: {
+        [categoryKey]: {
+          select: {
+            options: nextOptions,
+          },
+        },
+      },
+    })
+    renamedFromSchema = true
+  }
+
+  return { updatedPosts: pages.length, renamedFromSchema }
+}

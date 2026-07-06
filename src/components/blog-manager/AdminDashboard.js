@@ -50,19 +50,13 @@ import {
   isEditorBlockLocked,
   normalizeLoadedEditorBlocks,
 } from '@/src/lib/admin/editorBlockLock';
-import {
-  parseSmartPostBySelection,
-  inferRulesFromExample,
-  findExistingOption,
-} from '@/src/lib/blog/smartPostParse';
 import { generateAdminPostSlug } from '@/src/lib/blog/generateAdminPostSlug';
-import {
-  getAllSmartParseTemplates,
-  addSmartParseTemplate,
-  deleteSmartParseTemplate,
-  SMART_PARSE_TEMPLATE_AUTO,
-  BUILTIN_STANDARD_TEMPLATE_ID,
-} from '@/src/lib/blog/smartParseTemplates';
+
+/** 后台分类下拉中隐藏且不可删改的系统保留分类 */
+const PROTECTED_CATEGORIES = new Set(['网站信息', '系统组件', '站长通知']);
+
+const isProtectedCategory = (name) =>
+  PROTECTED_CATEGORIES.has((name || '').trim());
 
 async function triggerContentRevalidation(payload = {}) {
   try {
@@ -479,6 +473,12 @@ const GlobalStyle = () => (
     .tag-suggest-del { position: absolute; top: -6px; right: -6px; background: #ff4d4f; color: #fff; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; cursor: pointer; z-index: 1; border: 1px solid #303030; }
     .category-perm-del { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 6px; border-radius: 6px; border: 1px solid rgba(255,77,79,0.45); background: rgba(255,77,79,0.12); color: #ff7875; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
     .category-perm-del:hover { background: rgba(255,77,79,0.28); color: #fff; }
+    .category-edit-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 6px; border-radius: 6px; border: 1px solid rgba(125,211,252,0.45); background: rgba(125,211,252,0.12); color: #7dd3fc; cursor: pointer; flex-shrink: 0; transition: 0.2s; font-size: 11px; font-weight: 800; padding: 0; }
+    .category-edit-btn:hover { background: rgba(125,211,252,0.28); color: #fff; }
+    .category-dropdown-row { display: flex; align-items: stretch; border-bottom: 1px solid #3a3a3f; }
+    .category-dropdown-pick { flex: 1; display: block; text-align: left; padding: 10px 14px; border: none; background: transparent; color: #eee; font-size: 13px; cursor: pointer; }
+    .category-dropdown-del { width: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: none; border-left: 1px solid #3a3a3f; background: transparent; color: #ff7875; cursor: pointer; transition: 0.2s; }
+    .category-dropdown-del:hover { background: rgba(255,77,79,0.15); color: #ff4d4f; }
     .loader-overlay { position: fixed; inset: 0; background: rgba(20, 20, 23, 0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); flex-direction: column; padding: 24px; box-sizing: border-box; }
     .loader-text { margin-top: 20px; font-family: monospace; color: #888; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
     .loader-phase { margin-top: 28px; font-size: 16px; font-weight: 600; color: #fff; text-align: center; letter-spacing: 0.5px; max-width: 520px; line-height: 1.45; }
@@ -911,22 +911,35 @@ const AdminPublishCalendar = ({ month, publishedDates, selectedDate, onMonthChan
 };
 
 /** 分类搜索 + 可滚动下拉列表（fixed 定位，避免被 accordion overflow 裁剪） */
-const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) => {
+const CategoryPicker = ({
+  value,
+  categories,
+  onChange,
+  onRequestDelete,
+  onRenameCategory,
+}) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [menuRect, setMenuRect] = useState(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState('');
   const wrapRef = useRef(null);
   const triggerRef = useRef(null);
   const inputRef = useRef(null);
+  const renameInputRef = useRef(null);
 
   const hasSelection = !!(value && value.trim());
 
   useEffect(() => {
     if (!hasSelection) return;
-    // 选中分类后清空搜索框文字（仅在“搜索态”使用）
     setQuery('');
   }, [hasSelection]);
+
+  useEffect(() => {
+    setIsRenaming(false);
+    setRenameDraft('');
+  }, [value]);
 
   const updateMenuRect = useCallback(() => {
     const el = triggerRef.current;
@@ -964,8 +977,8 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
   }, [open]);
 
   const allCategories = useMemo(() => {
-    const list = [...(categories || [])];
-    if (value && !list.includes(value)) list.unshift(value);
+    const list = [...(categories || [])].filter((c) => !isProtectedCategory(c));
+    if (value && !list.includes(value) && !isProtectedCategory(value)) list.unshift(value);
     return list.sort((a, b) => a.localeCompare(b, 'zh-CN'));
   }, [categories, value]);
 
@@ -979,7 +992,7 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
 
   const findExistingCategory = (text) => {
     const trimmed = (text || '').trim();
-    if (!trimmed) return null;
+    if (!trimmed || isProtectedCategory(trimmed)) return null;
     if (allCategories.includes(trimmed)) return trimmed;
     const lower = trimmed.toLowerCase();
     return allCategories.find((c) => c.toLowerCase() === lower) || null;
@@ -987,23 +1000,44 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
 
   const commitCategory = (text) => {
     const trimmed = (text || '').trim();
-    if (!trimmed) return;
+    if (!trimmed || isProtectedCategory(trimmed)) return;
     pickCategory(findExistingCategory(trimmed) || trimmed);
   };
 
   const pickCategory = (cat) => {
+    if (isProtectedCategory(cat)) return;
     onChange(cat);
     setQuery('');
     setOpen(false);
     setShowAll(false);
+    setIsRenaming(false);
   };
 
-  const clearSelection = () => {
+  const clearSelection = (e) => {
+    if (e) e.stopPropagation();
     onChange('');
     setQuery('');
-    setOpen(true);
-    setShowAll(true);
-    requestAnimationFrame(() => inputRef.current?.focus());
+    setOpen(false);
+    setShowAll(false);
+    setIsRenaming(false);
+  };
+
+  const startRename = (e) => {
+    e.stopPropagation();
+    setIsRenaming(true);
+    setRenameDraft(value);
+    setOpen(false);
+    requestAnimationFrame(() => renameInputRef.current?.focus());
+  };
+
+  const saveRename = (e) => {
+    if (e) e.stopPropagation();
+    const next = (renameDraft || '').trim();
+    if (!next || isProtectedCategory(next)) return;
+    if (typeof onRenameCategory === 'function') {
+      onRenameCategory(value, next);
+    }
+    setIsRenaming(false);
   };
 
   const toggleDropdown = () => {
@@ -1013,18 +1047,24 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
     });
   };
 
-  const canPermanentlyDelete =
+  const canManageCategory =
     hasSelection &&
-    typeof onPermanentlyDelete === 'function' &&
-    (categories || []).includes(value);
+    (categories || []).includes(value) &&
+    !isProtectedCategory(value);
+
+  const canPermanentlyDelete =
+    canManageCategory && typeof onRequestDelete === 'function';
+
+  const canRename =
+    canManageCategory && typeof onRenameCategory === 'function';
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', marginBottom: '10px' }}>
       <div ref={triggerRef} style={{ display: 'flex', alignItems: 'stretch' }}>
         {hasSelection ? (
           <div
-            onClick={() => { setOpen(true); setShowAll(true); }}
-            title="点击浏览全部分类，或点 × 重新搜索"
+            onClick={() => { if (!isRenaming) { setOpen(true); setShowAll(true); } }}
+            title={isRenaming ? '编辑分类名称' : '点击浏览全部分类，或点 × 清除'}
             style={{
               flex: 1,
               minHeight: '50px',
@@ -1038,7 +1078,7 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
               borderRight: 'none',
               borderTopLeftRadius: '10px',
               borderBottomLeftRadius: '10px',
-              cursor: 'pointer',
+              cursor: isRenaming ? 'default' : 'pointer',
             }}
           >
             <span
@@ -1047,6 +1087,7 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
                 alignItems: 'center',
                 gap: '7px',
                 maxWidth: '100%',
+                flex: 1,
                 background: 'rgba(173,255,47,0.14)',
                 border: '1px solid rgba(173,255,47,0.45)',
                 color: 'greenyellow',
@@ -1056,29 +1097,58 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
                 fontWeight: 600,
               }}
             >
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {value}
-              </span>
-              <span
-                onClick={(e) => { e.stopPropagation(); clearSelection(); }}
-                title="清除分类，重新搜索"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '50%',
-                  background: 'rgba(173,255,47,0.25)',
-                  color: '#eaffd0',
-                  fontSize: '12px',
-                  lineHeight: 1,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-              >
-                ×
-              </span>
+              {isRenaming ? (
+                <input
+                  ref={renameInputRef}
+                  className="glow-input"
+                  value={renameDraft}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => setRenameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      saveRename(e);
+                    } else if (e.key === 'Escape') {
+                      e.stopPropagation();
+                      setIsRenaming(false);
+                      setRenameDraft(value);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    marginBottom: 0,
+                    padding: '4px 8px',
+                    fontSize: '13px',
+                    minWidth: 0,
+                  }}
+                />
+              ) : (
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {value}
+                </span>
+              )}
+              {!isRenaming ? (
+                <span
+                  onClick={clearSelection}
+                  title="清除分类"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    background: 'rgba(173,255,47,0.25)',
+                    color: '#eaffd0',
+                    fontSize: '12px',
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  ×
+                </span>
+              ) : null}
             </span>
             {canPermanentlyDelete ? (
               <button
@@ -1086,13 +1156,35 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
                 className="category-perm-del"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onPermanentlyDelete(value);
+                  onRequestDelete(value);
                 }}
                 title="永久删除此分类（所有文章将移除该分类）"
                 aria-label={`永久删除分类 ${value}`}
               >
                 <Icons.Trash />
               </button>
+            ) : null}
+            {canRename ? (
+              isRenaming ? (
+                <button
+                  type="button"
+                  className="category-edit-btn"
+                  onClick={saveRename}
+                  title="保存分类名称"
+                >
+                  保存
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="category-edit-btn"
+                  onClick={startRename}
+                  title="编辑分类名称"
+                  aria-label={`编辑分类 ${value}`}
+                >
+                  <Icons.Edit />
+                </button>
+              )
             ) : null}
           </div>
         ) : (
@@ -1191,33 +1283,44 @@ const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) =>
           {listCategories.length > 0 ? (
             listCategories.map((cat) => {
               const active = cat === value;
+              const showRowDelete =
+                typeof onRequestDelete === 'function' && !isProtectedCategory(cat);
               return (
-                <button
-                  key={cat}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => pickCategory(cat)}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '10px 14px',
-                    border: 'none',
-                    borderBottom: '1px solid #3a3a3f',
-                    background: active ? 'rgba(173,255,47,0.12)' : 'transparent',
-                    color: active ? 'greenyellow' : '#eee',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  {cat}
-                </button>
+                <div key={cat} className="category-dropdown-row">
+                  <button
+                    type="button"
+                    className="category-dropdown-pick"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickCategory(cat)}
+                    style={{
+                      background: active ? 'rgba(173,255,47,0.12)' : 'transparent',
+                      color: active ? 'greenyellow' : '#eee',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {cat}
+                  </button>
+                  {showRowDelete ? (
+                    <button
+                      type="button"
+                      className="category-dropdown-del"
+                      title={`永久删除分类「${cat}」`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpen(false);
+                        onRequestDelete(cat);
+                      }}
+                    >
+                      <Icons.Trash />
+                    </button>
+                  ) : null}
+                </div>
               );
             })
           ) : query.trim() ? (
@@ -1466,6 +1569,55 @@ const PublishQueuePanel = ({ jobs, onRetry, onRemove, onForceComplete }) => {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+/** 分类/标签永久删除确认弹窗 */
+const TaxonomyConfirmModal = ({ open, closing, categoryName, onConfirm, onCancel }) => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (open && !closing) {
+      setVisible(false);
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    if (!open || closing) setVisible(false);
+  }, [open, closing]);
+
+  if (!open && !closing) return null;
+
+  return (
+    <div
+      className={`cover-modal-backdrop ${visible && !closing ? 'is-visible' : ''} ${closing ? 'is-closing' : ''}`}
+      onClick={onCancel}
+      role="presentation"
+    >
+      <div
+        className="cover-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="taxonomy-confirm-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="cover-modal-icon" aria-hidden>🗂️</div>
+        <h3 id="taxonomy-confirm-title" className="cover-modal-title">永久删除分类？</h3>
+        <p className="cover-modal-desc">
+          确定要永久删除分类<strong style={{ color: '#ddd' }}>「{categoryName}」</strong>吗？
+          所有使用该分类的文章将移除该分类，且无法撤销。
+        </p>
+        <div className="cover-modal-actions">
+          <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onCancel}>
+            取消
+          </button>
+          <button type="button" className="cover-modal-btn cover-modal-btn-primary" onClick={onConfirm} style={{ background: '#ff7875', color: '#fff' }}>
+            确认删除
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -3994,11 +4146,6 @@ const [mounted, setMounted] = useState(false);
   const headerActionsMenuRef = useRef(null);
   const adminToastTimerRef = useRef(null);
   const [adminToast, setAdminToast] = useState({ message: '', visible: false, closing: false });
-  const [smartParseText, setSmartParseText] = useState('');
-  const [smartParsePreview, setSmartParsePreview] = useState(null);
-  const [smartParseUsedTemplate, setSmartParseUsedTemplate] = useState('');
-  const [smartParseTemplates, setSmartParseTemplates] = useState([]);
-  const [smartParseTemplateId, setSmartParseTemplateId] = useState(SMART_PARSE_TEMPLATE_AUTO);
   const [tagDraft, setTagDraft] = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
   const [catDraft, setCatDraft] = useState('');
@@ -4037,6 +4184,10 @@ const [mounted, setMounted] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [publishConfirmClosing, setPublishConfirmClosing] = useState(false);
   const publishConfirmTimerRef = useRef(null);
+  const [taxonomyConfirmOpen, setTaxonomyConfirmOpen] = useState(false);
+  const [taxonomyConfirmClosing, setTaxonomyConfirmClosing] = useState(false);
+  const [taxonomyConfirmName, setTaxonomyConfirmName] = useState('');
+  const taxonomyConfirmTimerRef = useRef(null);
   const [fullRedeployConfirmOpen, setFullRedeployConfirmOpen] = useState(false);
   const [fullRedeployConfirmClosing, setFullRedeployConfirmClosing] = useState(false);
   const fullRedeployConfirmTimerRef = useRef(null);
@@ -4207,6 +4358,22 @@ const [mounted, setMounted] = useState(false);
       setPublishConfirmOpen(false);
       setPublishConfirmClosing(false);
     }, 240);
+  };
+
+  const closeTaxonomyConfirmModal = () => {
+    if (taxonomyConfirmTimerRef.current) clearTimeout(taxonomyConfirmTimerRef.current);
+    setTaxonomyConfirmClosing(true);
+    taxonomyConfirmTimerRef.current = setTimeout(() => {
+      setTaxonomyConfirmOpen(false);
+      setTaxonomyConfirmClosing(false);
+      setTaxonomyConfirmName('');
+    }, 240);
+  };
+
+  const confirmTaxonomyDelete = () => {
+    const name = taxonomyConfirmName;
+    closeTaxonomyConfirmModal();
+    setTimeout(() => permanentlyDeleteCategory(name), 260);
   };
 
   const closeFullRedeployConfirmModal = () => {
@@ -4467,10 +4634,6 @@ const [mounted, setMounted] = useState(false);
     if (!themeMenuOpen) return;
     void loadThemeSwitchQuota();
   }, [themeMenuOpen]);
-  useEffect(() => {
-    if (!mounted) return;
-    setSmartParseTemplates(getAllSmartParseTemplates());
-  }, [mounted]);
   useEffect(() => {
     const tick = () => {
       const left = Math.ceil((blogRefreshCooldownUntilRef.current - Date.now()) / 1000);
@@ -4753,7 +4916,6 @@ const [mounted, setMounted] = useState(false);
       const post = await fetchPostById(p.id);
       if (post) {
         setForm(post);
-        resetSmartParseState();
         const ebRaw = (Array.isArray(post.editorBlocks) && post.editorBlocks.length)
           ? normalizeLoadedEditorBlocks(post.editorBlocks)
           : normalizeLoadedEditorBlocks(parseContentToBlocks(post.content));
@@ -4800,7 +4962,6 @@ const [mounted, setMounted] = useState(false);
       return [];
     });
     setForm({ title: '', slug: generateAdminPostSlug(), excerpt:'', content:'', category:'', tags:'', cover:'', status:'Published', type: 'Post', date: new Date().toISOString().split('T')[0], download: '', download_size: '', download_count: '', article_password: '' });
-    resetSmartParseState();
     setCurrentId(null);
     editingSlugRef.current = null;
     editingCategoryRef.current = null;
@@ -5351,7 +5512,6 @@ const [mounted, setMounted] = useState(false);
     editingTagsRef.current = null;
     setCurrentId(null);
     setForm({ title: '', slug: '', excerpt: '', content: '', category: '', tags: '', cover: '', status: 'Published', type: 'Post', date: '', download: '', download_size: '', download_count: '', article_password: '' });
-    resetSmartParseState();
     setView('list');
   };
 
@@ -6187,7 +6347,7 @@ const [mounted, setMounted] = useState(false);
   const removeTag = (name) => { setForm({ ...form, tags: selectedTags.filter(t => t !== name).join(',') }); };
   const setCategory = (name) => {
     const n = (name || '').trim();
-    if (!n) return;
+    if (!n || isProtectedCategory(n)) return;
     setForm({ ...form, category: n });
     setOptions(o => ({
       ...o,
@@ -6196,7 +6356,7 @@ const [mounted, setMounted] = useState(false);
   };
   const addCategoryFromDraft = () => {
     const n = catDraft.trim();
-    if (n) setCategory(n);
+    if (n && !isProtectedCategory(n)) setCategory(n);
     setCatDraft('');
     setShowCatInput(false);
   };
@@ -6224,7 +6384,7 @@ const [mounted, setMounted] = useState(false);
 
   const permanentlyDeleteCategory = (name) => {
     const n = (name || '').trim();
-    if (!n) return;
+    if (!n || isProtectedCategory(n)) return;
     setOptions((o) => ({
       ...o,
       categories: o.categories.filter((c) => c !== n),
@@ -6235,8 +6395,62 @@ const [mounted, setMounted] = useState(false);
     setPosts((prev) =>
       prev.map((p) => (p.category === n ? { ...p, category: '' } : p))
     );
+    if (selectedFolder === n) setSelectedFolder(null);
     showAdminToast(`已删除分类「${n}」`, 2000);
     runTaxonomyDelete('category', n);
+  };
+
+  const requestDeleteCategory = (name) => {
+    const n = (name || '').trim();
+    if (!n || isProtectedCategory(n)) return;
+    setTaxonomyConfirmName(n);
+    setTaxonomyConfirmClosing(false);
+    setTaxonomyConfirmOpen(true);
+  };
+
+  const runTaxonomyRename = (oldName, newName) => {
+    fetch('/api/admin/taxonomy', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'category', oldName, newName }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.success) {
+          showAdminToast(d.error || '重命名失败', 2000);
+          fetchPosts({ silent: true });
+        }
+      })
+      .catch(() => {
+        showAdminToast('重命名失败，请稍后重试', 2000);
+        fetchPosts({ silent: true });
+      });
+  };
+
+  const renameCategory = (oldName, newName) => {
+    const from = (oldName || '').trim();
+    const to = (newName || '').trim();
+    if (!from || !to || from === to) return;
+    if (isProtectedCategory(from) || isProtectedCategory(to)) return;
+    if (options.categories.some((c) => c === to && c !== from)) {
+      showAdminToast(`分类「${to}」已存在`, 2000);
+      return;
+    }
+    setOptions((o) => ({
+      ...o,
+      categories: [...new Set(o.categories.map((c) => (c === from ? to : c)))].sort((a, b) =>
+        a.localeCompare(b, 'zh-CN')
+      ),
+    }));
+    if ((form.category || '').trim() === from) {
+      setForm((f) => ({ ...f, category: to }));
+    }
+    if (selectedFolder === from) setSelectedFolder(to);
+    setPosts((prev) =>
+      prev.map((p) => (p.category === from ? { ...p, category: to } : p))
+    );
+    showAdminToast(`分类已重命名为「${to}」`, 2000);
+    runTaxonomyRename(from, to);
   };
 
   const permanentlyDeleteTag = (name) => {
@@ -6265,132 +6479,6 @@ const [mounted, setMounted] = useState(false);
     runTaxonomyDelete('tag', n);
   };
 
-  const resetSmartParseState = () => {
-    setSmartParseText('');
-    setSmartParsePreview(null);
-    setSmartParseUsedTemplate('');
-  };
-
-  const refreshSmartParseTemplates = () => {
-    const all = getAllSmartParseTemplates();
-    setSmartParseTemplates(all);
-    return all;
-  };
-
-  const runSmartParse = (textOverride) => {
-    const input = (textOverride ?? smartParseText).trim();
-    if (!input) return;
-
-    const templates = smartParseTemplates.length
-      ? smartParseTemplates
-      : refreshSmartParseTemplates();
-    const outcome = parseSmartPostBySelection(
-      input,
-      templates,
-      smartParseTemplateId
-    );
-    const parsed = outcome.result;
-
-    setSmartParsePreview(parsed);
-    setSmartParseUsedTemplate(outcome.templateName);
-
-    const formUpdates = {};
-    if (parsed.title) formUpdates.title = parsed.title;
-    if (parsed.downloadSize) formUpdates.download_size = parsed.downloadSize;
-    if (parsed.downloadCount) formUpdates.download_count = parsed.downloadCount;
-
-    if (parsed.category) {
-      const cat =
-        findExistingOption(parsed.category, options.categories) ||
-        parsed.category.trim();
-      formUpdates.category = cat;
-      if (cat && !options.categories.includes(cat)) {
-        setOptions((o) => ({
-          ...o,
-          categories: [...o.categories, cat].sort((a, b) =>
-            a.localeCompare(b, 'zh-CN')
-          ),
-        }));
-      }
-    }
-
-    if (parsed.tags?.length) {
-      const current = (form.tags || '')
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-      const merged = [...current];
-      const newTagNames = [];
-
-      parsed.tags.forEach((tag) => {
-        const raw = (tag || '').trim();
-        if (!raw) return;
-        const existing = findExistingOption(raw, options.tags);
-        const name = existing || raw;
-        const dup = merged.some((m) => m.toLowerCase() === name.toLowerCase());
-        if (!dup) merged.push(name);
-        if (!existing && !options.tags.some((o) => o.toLowerCase() === name.toLowerCase())) {
-          newTagNames.push(name);
-        }
-      });
-
-      formUpdates.tags = merged.join(',');
-      if (newTagNames.length) {
-        setOptions((o) => ({
-          ...o,
-          tags: [...o.tags, ...newTagNames].sort((a, b) =>
-            a.localeCompare(b, 'zh-CN')
-          ),
-        }));
-      }
-    }
-
-    if (Object.keys(formUpdates).length > 0) {
-      setForm((f) => ({ ...f, ...formUpdates }));
-    }
-  };
-
-  const handleSmartParsePaste = (e) => {
-    const pasted = e.clipboardData.getData('text').trim();
-    if (!pasted) return;
-    e.preventDefault();
-    setSmartParseText(pasted);
-    runSmartParse(pasted);
-  };
-
-  const saveSmartParseAsTemplate = () => {
-    const example = smartParseText.trim();
-    if (!example) {
-      showAdminToast('请先粘贴或输入示例标题串');
-      return;
-    }
-    const defaultName =
-      example.length > 36 ? `${example.slice(0, 36)}…` : example;
-    const name = prompt('模板名称（便于在下拉框中识别）', defaultName);
-    if (!name || !name.trim()) return;
-    const rules = inferRulesFromExample(example);
-    const tpl = addSmartParseTemplate(name.trim(), example, rules);
-    refreshSmartParseTemplates();
-    setSmartParseTemplateId(tpl.id);
-    showAdminToast(`已保存模板「${tpl.name}」`);
-  };
-
-  const removeSelectedSmartParseTemplate = () => {
-    if (
-      smartParseTemplateId === SMART_PARSE_TEMPLATE_AUTO ||
-      smartParseTemplateId === BUILTIN_STANDARD_TEMPLATE_ID
-    ) {
-      showAdminToast('内置模板与自动匹配不可删除');
-      return;
-    }
-    const tpl = smartParseTemplates.find((t) => t.id === smartParseTemplateId);
-    if (!tpl) return;
-    if (!confirm(`确定删除模板「${tpl.name}」？`)) return;
-    deleteSmartParseTemplate(smartParseTemplateId);
-    refreshSmartParseTemplates();
-    setSmartParseTemplateId(SMART_PARSE_TEMPLATE_AUTO);
-    showAdminToast('模板已删除');
-  };
   const handlePublishDateSelect = (key) => {
     if (key == null) {
       setSelectedPublishDate(null);
@@ -6426,6 +6514,13 @@ const [mounted, setMounted] = useState(false);
         isUpdate={!!currentId}
         onConfirm={proceedPublishAfterConfirm}
         onCancel={closePublishConfirmModal}
+      />
+      <TaxonomyConfirmModal
+        open={taxonomyConfirmOpen}
+        closing={taxonomyConfirmClosing}
+        categoryName={taxonomyConfirmName}
+        onConfirm={confirmTaxonomyDelete}
+        onCancel={closeTaxonomyConfirmModal}
       />
       <ThemeSwitchDoneModal
         open={themeDoneModalOpen}
@@ -7061,105 +7156,24 @@ const [mounted, setMounted] = useState(false);
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <StepAccordion step={1} title="基础信息" isOpen={expandedStep === 1} onToggle={()=>setExpandedStep(expandedStep===1?0:1)}>
                {!editingSimplePage ? (
-                 <div style={{ marginBottom: '18px', padding: '14px', borderRadius: '10px', border: '1px solid #3a3a42', background: '#1a1a1e' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
-                     <label style={{ fontSize: '12px', color: '#ccc', fontWeight: 'bold' }}>智能识别</label>
-                     <button
-                       type="button"
-                       onClick={runSmartParse}
-                       disabled={!smartParseText.trim()}
-                       style={{
-                         padding: '6px 14px',
-                         borderRadius: '8px',
-                         border: 'none',
-                         background: smartParseText.trim() ? 'greenyellow' : '#333',
-                         color: smartParseText.trim() ? '#000' : '#666',
-                         fontSize: '12px',
-                         fontWeight: 'bold',
-                         cursor: smartParseText.trim() ? 'pointer' : 'not-allowed',
-                       }}
-                     >
-                       识别并填入
-                     </button>
-                   </div>
-                   <p style={{ fontSize: '11px', color: '#777', margin: '0 0 10px', lineHeight: 1.55 }}>
-                     粘贴整行标题串将自动识别并填入标题、分类、标签、资源数量与大小；也可手动编辑后点「识别并填入」。分类与标签会直接写入对应栏位，有误可自行修改。
-                   </p>
-                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
-                     <label style={{ fontSize: '11px', color: '#888' }}>识别模板</label>
-                     <select
-                       className="glow-input"
-                       value={smartParseTemplateId}
-                       onChange={(e) => setSmartParseTemplateId(e.target.value)}
-                       style={{ flex: '1 1 200px', minWidth: '180px', fontSize: '12px', padding: '6px 10px' }}
-                     >
-                       <option value={SMART_PARSE_TEMPLATE_AUTO}>自动匹配（推荐）</option>
-                       {smartParseTemplates.map((tpl) => (
-                         <option key={tpl.id} value={tpl.id}>
-                           {tpl.builtIn ? '★ ' : ''}{tpl.name}
-                         </option>
-                       ))}
-                     </select>
-                     <button
-                       type="button"
-                       onClick={saveSmartParseAsTemplate}
-                       style={{
-                         padding: '6px 12px',
-                         borderRadius: '8px',
-                         border: '1px solid #555',
-                         background: '#2a2a2e',
-                         color: '#ccc',
-                         fontSize: '11px',
-                         cursor: 'pointer',
-                       }}
-                     >
-                       存为模板
-                     </button>
-                     <button
-                       type="button"
-                       onClick={removeSelectedSmartParseTemplate}
-                       style={{
-                         padding: '6px 12px',
-                         borderRadius: '8px',
-                         border: '1px solid #555',
-                         background: 'transparent',
-                         color: '#888',
-                         fontSize: '11px',
-                         cursor: 'pointer',
-                       }}
-                     >
-                       删除所选
-                     </button>
-                   </div>
-                   <p style={{ fontSize: '10px', color: '#666', margin: '0 0 10px', lineHeight: 1.5 }}>
-                     添加模板：在下方输入框粘贴一条符合该站点格式的示例标题，点「存为模板」并命名。之后选该模板或「自动匹配」即可复用规则。
-                   </p>
-                   <textarea
-                     className="glow-input"
-                     value={smartParseText}
-                     onChange={(e) => setSmartParseText(e.target.value)}
-                     onPaste={handleSmartParsePaste}
-                     placeholder="粘贴到此处，将智能填入分类及标签信息，请注意手动调整"
-                     style={{ minHeight: '72px', fontSize: '13px', lineHeight: 1.5 }}
+                 <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '10px', border: '1px solid #3a3a42', background: '#1a1a1e' }}>
+                   <BlockCoverHint
+                     coverSettings={coverSettings}
+                     coverStatusText={coverStatusText}
+                     showManualCoverInput={showManualCoverInput}
+                     onToggleDefaultCover={handleToggleDefaultCover}
+                     onToggleManualInput={() => setShowManualCoverInput((v) => !v)}
+                     onManualUrlChange={(url) =>
+                       setCoverSettings((prev) => ({ ...prev, manualUrl: url }))
+                     }
+                     onApplyManualUrl={handleApplyManualCoverUrl}
                    />
-                   {smartParsePreview && (
-                     <div style={{ marginTop: '10px', fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
-                       识别结果：
-                       {smartParsePreview.title ? <span> 标题「{smartParsePreview.title}」</span> : null}
-                       {smartParsePreview.category ? <span> · 分类「{smartParsePreview.category}」</span> : null}
-                       {smartParsePreview.tags?.length ? <span> · 标签「{smartParsePreview.tags.join('、')}」</span> : null}
-                       {smartParsePreview.downloadCount ? <span> · 数量 {smartParsePreview.downloadCount}</span> : null}
-                       {smartParsePreview.downloadSize ? <span> · 大小 {smartParsePreview.downloadSize}</span> : null}
-                       {smartParseUsedTemplate ? <span style={{ color: '#666' }}> · 模板「{smartParseUsedTemplate}」</span> : null}
-                       <span style={{ color: '#555' }}> （{smartParsePreview.confidence === 'high' ? '格式匹配度高' : smartParsePreview.confidence === 'medium' ? '部分匹配' : '请核对'}）</span>
-                     </div>
-                   )}
                  </div>
                ) : null}
                <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>标题 <span style={{color: '#ff4d4f'}}>*</span></label><input className="glow-input" value={form.title} onChange={e=>setForm({...form, title:e.target.value})} placeholder="输入标题" /></div>
                <div style={{marginBottom:'15px'}}><label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>摘要</label><input className="glow-input" value={form.excerpt} onChange={e=>setForm({...form, excerpt:e.target.value})} placeholder="输入摘要" /></div>
                {!editingSimplePage ? (
-               <div style={{marginTop:'4px', marginBottom:'18px', paddingTop:'16px', borderTop:'1px solid #333'}}>
+               <div style={{marginTop:'4px', marginBottom:'0', paddingTop:'16px', borderTop:'1px solid #333'}}>
                  <label style={{display:'block', fontSize:'11px', color:'#fbbf24', marginBottom:'6px', fontWeight:'bold'}}>🔒 文章访问密码</label>
                  <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>留空则文章公开；填写后，读者点击文章卡片需输入密码才能查看正文。</p>
                  <input
@@ -7176,23 +7190,6 @@ const [mounted, setMounted] = useState(false);
                  ) : null}
                </div>
                ) : null}
-               {!editingSimplePage ? (
-               <div style={{marginTop:'4px', paddingTop:'16px', borderTop:'1px solid #333'}}>
-                 <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载链接 <GalleryOnlyTag /></label>
-                 <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>Gallery 主题下载弹窗中展示的链接内容，留空则显示「暂无下载」。</p>
-                 <input className="glow-input" value={form.download || ''} onChange={e=>setForm({...form, download:e.target.value})} placeholder="例如：https://xxx.xxpan.com" style={{fontSize:'13px'}} />
-                 <div style={{marginTop:'12px'}}>
-                   <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载信息（数量） <GalleryOnlyTag /></label>
-                   <input className="glow-input" value={form.download_count || ''} onChange={e=>setForm({...form, download_count:e.target.value})} placeholder="例如：82P、50P+2v" style={{fontSize:'13px'}} />
-                   <p style={{fontSize:'11px', color:'#777', margin:'6px 0 0', lineHeight:1.5}}>填写后显示在首页卡片封面右下角，留空则不显示。</p>
-                 </div>
-                 <div style={{marginTop:'12px'}}>
-                   <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>资源包大小 <GalleryOnlyTag /></label>
-                   <input className="glow-input" value={form.download_size || ''} onChange={e=>setForm({...form, download_size:e.target.value})} placeholder="例如：639 MB、1.2 GB" style={{fontSize:'13px'}} />
-                   <p style={{fontSize:'11px', color:'#777', margin:'6px 0 0', lineHeight:1.5}}>填写后显示在下载页标题栏右侧，留空则不显示。</p>
-               </div>
-               </div>
-               ) : null}
             </StepAccordion>
             <StepAccordion step={2} title={editingSimplePage ? '发布时间' : '分类与时间'} isOpen={expandedStep === 2} onToggle={()=>setExpandedStep(expandedStep===2?0:2)}>
                <div style={{display:'grid', gridTemplateColumns: editingSimplePage ? '1fr' : '1fr 1fr', gap:'20px', alignItems:'start'}}>
@@ -7203,7 +7200,8 @@ const [mounted, setMounted] = useState(false);
                      value={form.category || ''}
                      categories={options.categories}
                      onChange={setCategory}
-                     onPermanentlyDelete={permanentlyDeleteCategory}
+                     onRequestDelete={requestDeleteCategory}
+                     onRenameCategory={renameCategory}
                    />
                    {showCatInput ? (
                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -7291,17 +7289,26 @@ const [mounted, setMounted] = useState(false);
             </StepAccordion>
             ) : null}
 
-            <BlockCoverHint
-              coverSettings={coverSettings}
-              coverStatusText={coverStatusText}
-              showManualCoverInput={showManualCoverInput}
-              onToggleDefaultCover={handleToggleDefaultCover}
-              onToggleManualInput={() => setShowManualCoverInput((v) => !v)}
-              onManualUrlChange={(url) =>
-                setCoverSettings((prev) => ({ ...prev, manualUrl: url }))
-              }
-              onApplyManualUrl={handleApplyManualCoverUrl}
-            />
+            {!editingSimplePage ? (
+            <StepAccordion step={5} title="下载信息（Gallery主题专用）" isOpen={expandedStep === 5} onToggle={()=>setExpandedStep(expandedStep===5?0:5)}>
+               <div>
+                 <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载链接 <GalleryOnlyTag /></label>
+                 <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>Gallery 主题下载弹窗中展示的链接内容，留空则显示「暂无下载」。</p>
+                 <input className="glow-input" value={form.download || ''} onChange={e=>setForm({...form, download:e.target.value})} placeholder="例如：https://xxx.xxpan.com" style={{fontSize:'13px'}} />
+                 <div style={{marginTop:'12px'}}>
+                   <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载信息（数量） <GalleryOnlyTag /></label>
+                   <input className="glow-input" value={form.download_count || ''} onChange={e=>setForm({...form, download_count:e.target.value})} placeholder="例如：82P、50P+2v" style={{fontSize:'13px'}} />
+                   <p style={{fontSize:'11px', color:'#777', margin:'6px 0 0', lineHeight:1.5}}>填写后显示在首页卡片封面右下角，留空则不显示。</p>
+                 </div>
+                 <div style={{marginTop:'12px'}}>
+                   <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>资源包大小 <GalleryOnlyTag /></label>
+                   <input className="glow-input" value={form.download_size || ''} onChange={e=>setForm({...form, download_size:e.target.value})} placeholder="例如：639 MB、1.2 GB" style={{fontSize:'13px'}} />
+                   <p style={{fontSize:'11px', color:'#777', margin:'6px 0 0', lineHeight:1.5}}>填写后显示在下载页标题栏右侧，留空则不显示。</p>
+                 </div>
+               </div>
+            </StepAccordion>
+            ) : null}
+
             <BlockBuilder
               blocks={editorBlocks}
               setBlocks={setEditorBlocks}
