@@ -456,10 +456,10 @@ html.tweet-theme--dark .proplus-create-btn:hover,
   color: #fff;
 }
 
-/* Tweet 系列：略小于 Standard，但不过小 */
+/* Tweet 系列：与 Standard 同档尺寸，适配顶栏 */
 html.tweet-theme .proplus-create-btn {
-  padding: 6px 11px;
-  font-size: 11.5px;
+  padding: 8px 12px;
+  font-size: 12.5px;
   line-height: 1.15;
   border-radius: 6px;
 }
@@ -481,8 +481,8 @@ html.tweet-theme--light .proplus-create-btn {
   }
 
   html.tweet-theme .proplus-create-btn {
-    padding: 7px 12px;
-    font-size: 12px;
+    padding: 9px 13px;
+    font-size: 13px;
   }
 }
 

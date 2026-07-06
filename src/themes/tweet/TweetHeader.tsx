@@ -53,7 +53,7 @@ export function TweetHeader({ siteName }: TweetHeaderProps) {
               )}
             </button>
           ) : null}
-          <ProPlusCreateButton compact />
+          <ProPlusCreateButton />
         </nav>
       </div>
     </header>
