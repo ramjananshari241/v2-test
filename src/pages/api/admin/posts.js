@@ -1,7 +1,9 @@
 import { Client } from '@notionhq/client';
 import { readPinnedFromNotionProperties } from '@/src/lib/blog/pinnedPosts';
 import { readFavouritedFromNotionProperties } from '@/src/lib/blog/favouritePosts';
-import { readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties } from '@/src/lib/notion/readProperty';
+import { readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties, readCoverFromPageProperties, readPageCoverUrl } from '@/src/lib/notion/readProperty';
+import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews';
+import { resolveAdminListCoverSrc } from '@/src/lib/admin/resolveAdminListCover';
 
 export default async function handler(req, res) {
   const notion = new Client({ auth: process.env.NOTION_KEY || process.env.NOTION_TOKEN });
@@ -42,6 +44,11 @@ export default async function handler(req, res) {
       const tagNames = tagList.map(t => t.name);
       tagNames.forEach(t => tags.add(t));
 
+      const notionCover =
+        readCoverFromPageProperties(p) ||
+        readPageCoverUrl(page.cover) ||
+        '';
+
       return {
         id: page.id,
         title: p.title?.title?.[0]?.plain_text || p.Page?.title?.[0]?.plain_text || '无标题',
@@ -52,7 +59,8 @@ export default async function handler(req, res) {
         status: p.status?.status?.name || p.status?.select?.name || 'Published',
         type: p.type?.select?.name || p.Type?.select?.name || 'Post',
         date: p.date?.date?.start || p.Date?.date?.start || '',
-        cover: p.cover?.url || p.cover?.file?.url || p.cover?.external?.url || '',
+        notionCover,
+        cover: '',
         pinned: readPinnedFromNotionProperties(p),
         favourited: readFavouritedFromNotionProperties(p),
         download: (p.download?.type === 'rich_text'
@@ -62,6 +70,27 @@ export default async function handler(req, res) {
         download_count: readDownloadCountFromPageProperties(p),
       };
     });
+
+    const listSlugs = posts
+      .filter((post) => post.slug && post.type !== 'Page')
+      .map((post) => post.slug);
+
+    let galleryFeedCovers = {};
+    if (listSlugs.length > 0) {
+      try {
+        galleryFeedCovers = await loadGalleryFeedCovers(listSlugs);
+      } catch (galleryErr) {
+        console.error('Admin posts galleryFeedCovers load failed:', galleryErr);
+      }
+    }
+
+    for (const post of posts) {
+      post.cover = resolveAdminListCoverSrc(
+        post.notionCover,
+        galleryFeedCovers[post.slug]
+      );
+      delete post.notionCover;
+    }
 
     const pinnedFirst = [...posts].sort((a, b) => {
       const ap = a.pinned ? 1 : 0;

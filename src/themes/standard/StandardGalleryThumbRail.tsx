@@ -25,8 +25,8 @@ export function StandardGalleryThumbRail() {
   if (total <= 0) return null
 
   return (
-    <section className="standard-gallery-preview" aria-label="预览图库">
-      <h2 className="standard-gallery-preview__title">预览图库</h2>
+    <section className="standard-gallery-preview" aria-label="预览">
+      <h2 className="standard-gallery-preview__title">预览</h2>
       <div
         ref={railRef}
         className="standard-gallery-preview__rail"
