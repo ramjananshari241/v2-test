@@ -1,5 +1,6 @@
 import { NextPage } from 'next'
 import Link from 'next/link'
+import React from 'react'
 import { colorMap } from '../../lib/colors'
 import { classNames, formatDate } from '../../lib/util'
 import { BlockDataType, Post } from '../../types/blog'
@@ -12,7 +13,8 @@ const PostHeader: NextPage<{
   post: Post
   blocks: BlockDataType[]
   showHeroCover?: boolean
-}> = ({ post, showHeroCover = true }) => {
+  heroSlot?: React.ReactNode
+}> = ({ post, showHeroCover = true, heroSlot }) => {
   const { title, excerpt, date, cover, category, options } = post
 
   return (
@@ -76,20 +78,22 @@ const PostHeader: NextPage<{
       </ContentLayout>
       {showHeroCover ? (
         <CoverLayout>
-          <div
-            id="cover"
-            className="relative w-full h-full md:rounded-3xl"
-            data-aos="fade-up"
-            data-aos-duration="500"
-          >
-            <PostImage
-              cover={cover}
-              alt={title}
-              className={
-                'z-0 overflow-hidden transition-all duration-500 ease-in-out md:rounded-3xl'
-              }
-            />
-          </div>
+          {heroSlot ?? (
+            <div
+              id="cover"
+              className="relative w-full h-full md:rounded-3xl"
+              data-aos="fade-up"
+              data-aos-duration="500"
+            >
+              <PostImage
+                cover={cover}
+                alt={title}
+                className={
+                  'z-0 overflow-hidden transition-all duration-500 ease-in-out md:rounded-3xl'
+                }
+              />
+            </div>
+          )}
         </CoverLayout>
       ) : null}
     </header>

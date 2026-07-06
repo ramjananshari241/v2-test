@@ -5,6 +5,7 @@ import ContentLayout from '../../components/layout/ContentLayout'
 import PostFooter from '../../components/post/PostFooter'
 import { StandardPostContent } from '@/src/themes/standard/StandardPostContent'
 import { StandardPostHeader } from '@/src/themes/standard/StandardPostHeader'
+import { StandardGalleryPreviewProvider } from '@/src/themes/standard/StandardGalleryPreviewContext'
 import { ArticlePasswordGate } from '../../components/post/ArticlePasswordGate'
 import PostMessage from '../../components/post/PostMessage'
 import PostNavigation from '../../components/post/PostNavigation'
@@ -245,7 +246,7 @@ const PostPage: NextPage<{
         }
 
         return (
-          <>
+          <StandardGalleryPreviewProvider postSlug={post.slug}>
             <StandardPostHeader post={post} blocks={resolvedBlocks} />
             <ContentLayout>
               <PostMessage post={post} />
@@ -257,7 +258,7 @@ const PostPage: NextPage<{
               <PostNavigation navigation={navigation} />
               {CONFIG.ENABLE_COMMENT && <CommentSection />}
             </ContentLayout>
-          </>
+          </StandardGalleryPreviewProvider>
         )
       }}
     </ArticlePasswordGate>
