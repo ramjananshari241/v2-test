@@ -55,8 +55,17 @@ import { generateAdminPostSlug } from '@/src/lib/blog/generateAdminPostSlug';
 /** 后台分类下拉中隐藏且不可删改的系统保留分类 */
 const PROTECTED_CATEGORIES = new Set(['网站信息', '系统组件', '站长通知']);
 
+/** 删除分类后文章自动归入的兜底分类（下拉可见但不可手动选择） */
+const FALLBACK_CATEGORY = '默认';
+
 const isProtectedCategory = (name) =>
   PROTECTED_CATEGORIES.has((name || '').trim());
+
+const isFallbackCategory = (name) =>
+  (name || '').trim() === FALLBACK_CATEGORY;
+
+const isSystemReservedCategory = (name) =>
+  isProtectedCategory(name) || isFallbackCategory(name);
 
 async function triggerContentRevalidation(payload = {}) {
   try {
@@ -978,8 +987,13 @@ const CategoryPicker = ({
 
   const allCategories = useMemo(() => {
     const list = [...(categories || [])].filter((c) => !isProtectedCategory(c));
+    if (!list.includes(FALLBACK_CATEGORY)) list.push(FALLBACK_CATEGORY);
     if (value && !list.includes(value) && !isProtectedCategory(value)) list.unshift(value);
-    return list.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    return list.sort((a, b) => {
+      if (a === FALLBACK_CATEGORY) return -1;
+      if (b === FALLBACK_CATEGORY) return 1;
+      return a.localeCompare(b, 'zh-CN');
+    });
   }, [categories, value]);
 
   const filteredCategories = useMemo(() => {
@@ -992,7 +1006,7 @@ const CategoryPicker = ({
 
   const findExistingCategory = (text) => {
     const trimmed = (text || '').trim();
-    if (!trimmed || isProtectedCategory(trimmed)) return null;
+    if (!trimmed || isSystemReservedCategory(trimmed)) return null;
     if (allCategories.includes(trimmed)) return trimmed;
     const lower = trimmed.toLowerCase();
     return allCategories.find((c) => c.toLowerCase() === lower) || null;
@@ -1000,12 +1014,12 @@ const CategoryPicker = ({
 
   const commitCategory = (text) => {
     const trimmed = (text || '').trim();
-    if (!trimmed || isProtectedCategory(trimmed)) return;
+    if (!trimmed || isSystemReservedCategory(trimmed)) return;
     pickCategory(findExistingCategory(trimmed) || trimmed);
   };
 
   const pickCategory = (cat) => {
-    if (isProtectedCategory(cat)) return;
+    if (isSystemReservedCategory(cat)) return;
     onChange(cat);
     setQuery('');
     setOpen(false);
@@ -1033,7 +1047,7 @@ const CategoryPicker = ({
   const saveRename = (e) => {
     if (e) e.stopPropagation();
     const next = (renameDraft || '').trim();
-    if (!next || isProtectedCategory(next)) return;
+    if (!next || isSystemReservedCategory(next)) return;
     if (typeof onRenameCategory === 'function') {
       onRenameCategory(value, next);
     }
@@ -1050,7 +1064,7 @@ const CategoryPicker = ({
   const canManageCategory =
     hasSelection &&
     (categories || []).includes(value) &&
-    !isProtectedCategory(value);
+    !isSystemReservedCategory(value);
 
   const canPermanentlyDelete =
     canManageCategory && typeof onRequestDelete === 'function';
@@ -1085,8 +1099,10 @@ const CategoryPicker = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '7px',
-                maxWidth: '100%',
+                justifyContent: 'space-between',
+                gap: '10px',
+                width: '100%',
+                minWidth: 0,
                 flex: 1,
                 background: 'rgba(173,255,47,0.14)',
                 border: '1px solid rgba(173,255,47,0.45)',
@@ -1123,13 +1139,16 @@ const CategoryPicker = ({
                   }}
                 />
               ) : (
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                   {value}
                 </span>
               )}
               {!isRenaming ? (
                 <span
-                  onClick={clearSelection}
+                  role="button"
+                  tabIndex={0}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onClick={(e) => { e.stopPropagation(); clearSelection(e); }}
                   title="清除分类"
                   style={{
                     display: 'inline-flex',
@@ -1144,6 +1163,7 @@ const CategoryPicker = ({
                     lineHeight: 1,
                     cursor: 'pointer',
                     flexShrink: 0,
+                    marginLeft: 'auto',
                   }}
                 >
                   ×
@@ -1158,7 +1178,7 @@ const CategoryPicker = ({
                   e.stopPropagation();
                   onRequestDelete(value);
                 }}
-                title="永久删除此分类（所有文章将移除该分类）"
+                title="永久删除此分类（相关文章将归入「默认」）"
                 aria-label={`永久删除分类 ${value}`}
               >
                 <Icons.Trash />
@@ -1283,19 +1303,24 @@ const CategoryPicker = ({
           {listCategories.length > 0 ? (
             listCategories.map((cat) => {
               const active = cat === value;
+              const reserved = isSystemReservedCategory(cat);
               const showRowDelete =
-                typeof onRequestDelete === 'function' && !isProtectedCategory(cat);
+                typeof onRequestDelete === 'function' && !reserved;
               return (
                 <div key={cat} className="category-dropdown-row">
                   <button
                     type="button"
                     className="category-dropdown-pick"
+                    disabled={isFallbackCategory(cat)}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => pickCategory(cat)}
                     style={{
                       background: active ? 'rgba(173,255,47,0.12)' : 'transparent',
-                      color: active ? 'greenyellow' : '#eee',
+                      color: active ? 'greenyellow' : (isFallbackCategory(cat) ? '#666' : '#eee'),
+                      cursor: isFallbackCategory(cat) ? 'not-allowed' : 'pointer',
+                      opacity: isFallbackCategory(cat) ? 0.75 : 1,
                     }}
+                    title={isFallbackCategory(cat) ? '系统保留分类，不可手动选择' : undefined}
                     onMouseEnter={(e) => {
                       if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
                     }}
@@ -1303,7 +1328,7 @@ const CategoryPicker = ({
                       if (!active) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    {cat}
+                    {cat}{isFallbackCategory(cat) ? '（不可选）' : ''}
                   </button>
                   {showRowDelete ? (
                     <button
@@ -1608,7 +1633,9 @@ const TaxonomyConfirmModal = ({ open, closing, categoryName, onConfirm, onCancel
         <h3 id="taxonomy-confirm-title" className="cover-modal-title">永久删除分类？</h3>
         <p className="cover-modal-desc">
           确定要永久删除分类<strong style={{ color: '#ddd' }}>「{categoryName}」</strong>吗？
-          所有使用该分类的文章将移除该分类，且无法撤销。
+          原使用该分类的文章将自动归入<strong style={{ color: '#ddd' }}>「默认」</strong>分类，且无法撤销。
+          <br /><br />
+          如需重新为这些文章指定分类，请前往列表视图的<strong style={{ color: '#ddd' }}>分类文件夹</strong>，打开<strong style={{ color: '#ddd' }}>「默认」</strong>文件夹查看并编辑。
         </p>
         <div className="cover-modal-actions">
           <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onCancel}>
@@ -6298,7 +6325,11 @@ const [mounted, setMounted] = useState(false);
 
      if (searchQuery) list = list.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
      if (selectedFolder) {
-       list = list.filter(p => p.category === selectedFolder);
+       if (selectedFolder === FALLBACK_CATEGORY) {
+         list = list.filter((p) => !p.category || p.category === FALLBACK_CATEGORY);
+       } else {
+         list = list.filter((p) => p.category === selectedFolder);
+       }
      }
      if (selectedPublishDate && activeTab === 'Post') {
        list = list.filter(p => toDateKey(p.date) === selectedPublishDate);
@@ -6341,13 +6372,28 @@ const [mounted, setMounted] = useState(false);
       });
     return s;
   })();
+  const categoryFolderList = (() => {
+    const set = new Set(
+      (options.categories || []).filter((c) => !isProtectedCategory(c))
+    );
+    set.add(FALLBACK_CATEGORY);
+    return [...set].sort((a, b) => {
+      if (a === FALLBACK_CATEGORY) return -1;
+      if (b === FALLBACK_CATEGORY) return 1;
+      return a.localeCompare(b, 'zh-CN');
+    });
+  })();
   const displayTags = (options.tags && options.tags.length > 0) ? (showAllTags ? options.tags : options.tags.slice(0, 12)) : [];
   const selectedTags = (form.tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const addTag = (name) => { const n = (name || '').trim(); if (!n || selectedTags.includes(n)) return; setForm({ ...form, tags: [...selectedTags, n].join(',') }); };
   const removeTag = (name) => { setForm({ ...form, tags: selectedTags.filter(t => t !== name).join(',') }); };
   const setCategory = (name) => {
     const n = (name || '').trim();
-    if (!n || isProtectedCategory(n)) return;
+    if (!n) {
+      setForm((f) => ({ ...f, category: '' }));
+      return;
+    }
+    if (isSystemReservedCategory(n)) return;
     setForm({ ...form, category: n });
     setOptions(o => ({
       ...o,
@@ -6356,7 +6402,7 @@ const [mounted, setMounted] = useState(false);
   };
   const addCategoryFromDraft = () => {
     const n = catDraft.trim();
-    if (n && !isProtectedCategory(n)) setCategory(n);
+    if (n && !isSystemReservedCategory(n)) setCategory(n);
     setCatDraft('');
     setShowCatInput(false);
   };
@@ -6384,25 +6430,27 @@ const [mounted, setMounted] = useState(false);
 
   const permanentlyDeleteCategory = (name) => {
     const n = (name || '').trim();
-    if (!n || isProtectedCategory(n)) return;
+    if (!n || isSystemReservedCategory(n)) return;
     setOptions((o) => ({
       ...o,
-      categories: o.categories.filter((c) => c !== n),
+      categories: [...new Set([...o.categories.filter((c) => c !== n), FALLBACK_CATEGORY])].sort((a, b) =>
+        a.localeCompare(b, 'zh-CN')
+      ),
     }));
     if ((form.category || '').trim() === n) {
-      setForm((f) => ({ ...f, category: '' }));
+      setForm((f) => ({ ...f, category: FALLBACK_CATEGORY }));
     }
     setPosts((prev) =>
-      prev.map((p) => (p.category === n ? { ...p, category: '' } : p))
+      prev.map((p) => (p.category === n ? { ...p, category: FALLBACK_CATEGORY } : p))
     );
-    if (selectedFolder === n) setSelectedFolder(null);
-    showAdminToast(`已删除分类「${n}」`, 2000);
+    if (selectedFolder === n) setSelectedFolder(FALLBACK_CATEGORY);
+    showAdminToast(`已删除分类「${n}」，相关文章已归入「${FALLBACK_CATEGORY}」`, 2000);
     runTaxonomyDelete('category', n);
   };
 
   const requestDeleteCategory = (name) => {
     const n = (name || '').trim();
-    if (!n || isProtectedCategory(n)) return;
+    if (!n || isSystemReservedCategory(n)) return;
     setTaxonomyConfirmName(n);
     setTaxonomyConfirmClosing(false);
     setTaxonomyConfirmOpen(true);
@@ -6431,7 +6479,7 @@ const [mounted, setMounted] = useState(false);
     const from = (oldName || '').trim();
     const to = (newName || '').trim();
     if (!from || !to || from === to) return;
-    if (isProtectedCategory(from) || isProtectedCategory(to)) return;
+    if (isSystemReservedCategory(from) || isSystemReservedCategory(to)) return;
     if (options.categories.some((c) => c === to && c !== from)) {
       showAdminToast(`分类「${to}」已存在`, 2000);
       return;
@@ -6821,9 +6869,30 @@ const [mounted, setMounted] = useState(false);
                   <div style={{ color: 'greenyellow', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
                 </div>
               )}
-              {viewMode === 'folder' && (activeTab === 'Post' || activeTab === 'Favourites') && options.categories.map(cat => (
-                <div key={cat} onClick={() => { setSelectedFolder(cat); handleNavClick(1); }} style={{ padding: '15px', background: '#424242', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #555', cursor: 'pointer' }} className="btn-ia">
+              {viewMode === 'folder' && (activeTab === 'Post' || activeTab === 'Favourites') && categoryFolderList.map(cat => (
+                <div
+                  key={cat}
+                  onClick={() => {
+                    setSelectedFolder(cat);
+                    setNavIdx(1);
+                    setViewMode('covered');
+                  }}
+                  style={{
+                    padding: '15px',
+                    background: cat === FALLBACK_CATEGORY ? '#3a3a42' : '#424242',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    border: cat === selectedFolder ? '1px solid greenyellow' : (cat === FALLBACK_CATEGORY ? '1px solid #666' : '1px solid #555'),
+                    cursor: 'pointer',
+                  }}
+                  className="btn-ia"
+                >
                   <Icons.FolderIcon />{cat}
+                  {cat === FALLBACK_CATEGORY ? (
+                    <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#888' }}>兜底</span>
+                  ) : null}
                 </div>
               ))}
               {viewMode !== 'folder' && filtered.map((p, index) => {
@@ -7290,7 +7359,7 @@ const [mounted, setMounted] = useState(false);
             ) : null}
 
             {!editingSimplePage ? (
-            <StepAccordion step={5} title="下载信息（Gallery主题专用）" isOpen={expandedStep === 5} onToggle={()=>setExpandedStep(expandedStep===5?0:5)}>
+            <StepAccordion step={5} title={<>下载信息 <GalleryOnlyTag /></>} isOpen={expandedStep === 5} onToggle={()=>setExpandedStep(expandedStep===5?0:5)}>
                <div>
                  <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'6px'}}>下载链接 <GalleryOnlyTag /></label>
                  <p style={{fontSize:'11px', color:'#777', margin:'0 0 8px', lineHeight:1.5}}>Gallery 主题下载弹窗中展示的链接内容，留空则显示「暂无下载」。</p>

@@ -1,5 +1,7 @@
 import { Client } from '@notionhq/client'
 
+export const FALLBACK_CATEGORY = '默认'
+
 type NotionProps = Record<string, { type?: string; select?: { options?: { id: string; name: string; color?: string }[] }; multi_select?: { options?: { id: string; name: string; color?: string }[] } }>
 
 export function resolveCategoryPropertyKey(properties: NotionProps): string | null {
@@ -34,6 +36,37 @@ async function queryPagesWithFilter(
     cursor = response.next_cursor ?? undefined
   }
   return results
+}
+
+async function ensureSelectOption(
+  notion: Client,
+  databaseId: string,
+  propertyKey: string,
+  optionName: string
+) {
+  const db = await notion.databases.retrieve({ database_id: databaseId })
+  const prop = db.properties[propertyKey]
+  if (!prop || prop.type !== 'select') return false
+  const options = prop.select?.options || []
+  if (options.some((o) => o.name === optionName)) return true
+  await notion.databases.update({
+    database_id: databaseId,
+    properties: {
+      [propertyKey]: {
+        select: {
+          options: [
+            ...options.map((o) => ({
+              id: o.id,
+              name: o.name,
+              color: o.color || 'default',
+            })),
+            { name: optionName, color: 'gray' },
+          ],
+        },
+      },
+    },
+  })
+  return true
 }
 
 async function removeSelectSchemaOption(
@@ -111,11 +144,13 @@ export async function deleteCategoryFromNotion(
     select: { equals: trimmed },
   })
 
+  await ensureSelectOption(notion, databaseId, categoryKey, FALLBACK_CATEGORY)
+
   for (const page of pages) {
     await notion.pages.update({
       page_id: page.id,
       properties: {
-        [categoryKey]: { select: null },
+        [categoryKey]: { select: { name: FALLBACK_CATEGORY } },
       },
     })
   }
@@ -127,7 +162,7 @@ export async function deleteCategoryFromNotion(
     trimmed
   )
 
-  return { updatedPosts: pages.length, removedFromSchema }
+  return { updatedPosts: pages.length, removedFromSchema, fallbackCategory: FALLBACK_CATEGORY }
 }
 
 export async function deleteTagFromNotion(
