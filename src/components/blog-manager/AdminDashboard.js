@@ -474,6 +474,11 @@ const GlobalStyle = () => (
     .tag-chip { background: #333; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: #bbb; margin: 0 5px 5px 0; cursor: pointer; position: relative; }
     .tag-del { position: absolute; top: -5px; right: -5px; background: #ff4d4f; color: white; border-radius: 50%; width: 14px; height: 14px; display: none; align-items: center; justify-content: center; font-size: 10px; }
     .tag-chip:hover .tag-del { display: flex; }
+    .tag-suggest-chip { position: relative; cursor: pointer; background: #2a2a2e; border: 1px solid #444; color: #bbb; padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+    .tag-suggest-chip:hover { border-color: #666; color: #ddd; }
+    .tag-suggest-del { position: absolute; top: -6px; right: -6px; background: #ff4d4f; color: #fff; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; cursor: pointer; z-index: 1; border: 1px solid #303030; }
+    .category-perm-del { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 6px; border-radius: 6px; border: 1px solid rgba(255,77,79,0.45); background: rgba(255,77,79,0.12); color: #ff7875; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+    .category-perm-del:hover { background: rgba(255,77,79,0.28); color: #fff; }
     .loader-overlay { position: fixed; inset: 0; background: rgba(20, 20, 23, 0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); flex-direction: column; padding: 24px; box-sizing: border-box; }
     .loader-text { margin-top: 20px; font-family: monospace; color: #888; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
     .loader-phase { margin-top: 28px; font-size: 16px; font-weight: 600; color: #fff; text-align: center; letter-spacing: 0.5px; max-width: 520px; line-height: 1.45; }
@@ -906,7 +911,7 @@ const AdminPublishCalendar = ({ month, publishedDates, selectedDate, onMonthChan
 };
 
 /** 分类搜索 + 可滚动下拉列表（fixed 定位，避免被 accordion overflow 裁剪） */
-const CategoryPicker = ({ value, categories, onChange }) => {
+const CategoryPicker = ({ value, categories, onChange, onPermanentlyDelete }) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -1008,6 +1013,11 @@ const CategoryPicker = ({ value, categories, onChange }) => {
     });
   };
 
+  const canPermanentlyDelete =
+    hasSelection &&
+    typeof onPermanentlyDelete === 'function' &&
+    (categories || []).includes(value);
+
   return (
     <div ref={wrapRef} style={{ position: 'relative', marginBottom: '10px' }}>
       <div ref={triggerRef} style={{ display: 'flex', alignItems: 'stretch' }}>
@@ -1070,6 +1080,20 @@ const CategoryPicker = ({ value, categories, onChange }) => {
                 ×
               </span>
             </span>
+            {canPermanentlyDelete ? (
+              <button
+                type="button"
+                className="category-perm-del"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPermanentlyDelete(value);
+                }}
+                title="永久删除此分类（所有文章将移除该分类）"
+                aria-label={`永久删除分类 ${value}`}
+              >
+                <Icons.Trash />
+              </button>
+            ) : null}
           </div>
         ) : (
           <input
@@ -2660,7 +2684,7 @@ const BlockCoverHint = ({
   >
     <div style={{ flex: '1 1 280px', lineHeight: 1.55 }}>
       <div>
-        🖼️ <b style={{ color: 'greenyellow' }}>封面说明</b>：可在图库或正文图片块上点击「设为封面」手动指定；也可使用右侧按钮启用默认封面或填入图片直链。未手动设定时，优先使用图库首图，其次正文首图。
+        🖼️ <b style={{ color: 'greenyellow' }}>封面说明</b>：可手动将图库中的图片或正文图片块设定为封面，未手动设定封面则自动采取正文首图或图库首图作为封面。可手动添加外链作为封面或使用系统默认封面。
       </div>
       {coverStatusText ? (
         <div
@@ -6177,6 +6201,70 @@ const [mounted, setMounted] = useState(false);
     setShowCatInput(false);
   };
 
+  const runTaxonomyDelete = (type, name) => {
+    const n = (name || '').trim();
+    if (!n) return;
+    fetch('/api/admin/taxonomy', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, name: n }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.success) {
+          showAdminToast(d.error || '删除失败', 2000);
+          fetchPosts({ silent: true });
+        }
+      })
+      .catch(() => {
+        showAdminToast('删除失败，请稍后重试', 2000);
+        fetchPosts({ silent: true });
+      });
+  };
+
+  const permanentlyDeleteCategory = (name) => {
+    const n = (name || '').trim();
+    if (!n) return;
+    setOptions((o) => ({
+      ...o,
+      categories: o.categories.filter((c) => c !== n),
+    }));
+    if ((form.category || '').trim() === n) {
+      setForm((f) => ({ ...f, category: '' }));
+    }
+    setPosts((prev) =>
+      prev.map((p) => (p.category === n ? { ...p, category: '' } : p))
+    );
+    showAdminToast(`已删除分类「${n}」`, 2000);
+    runTaxonomyDelete('category', n);
+  };
+
+  const permanentlyDeleteTag = (name) => {
+    const n = (name || '').trim();
+    if (!n) return;
+    setOptions((o) => ({
+      ...o,
+      tags: o.tags.filter((t) => t !== n),
+    }));
+    const currentTags = (form.tags || '').split(',').map((t) => t.trim()).filter(Boolean);
+    if (currentTags.includes(n)) {
+      setForm((f) => ({
+        ...f,
+        tags: currentTags.filter((t) => t !== n).join(','),
+      }));
+    }
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (!p.tags) return p;
+        const tags = p.tags.split(',').map((t) => t.trim()).filter(Boolean);
+        if (!tags.includes(n)) return p;
+        return { ...p, tags: tags.filter((t) => t !== n).join(',') };
+      })
+    );
+    showAdminToast(`已删除标签「${n}」`, 2000);
+    runTaxonomyDelete('tag', n);
+  };
+
   const resetSmartParseState = () => {
     setSmartParseText('');
     setSmartParsePreview(null);
@@ -7115,6 +7203,7 @@ const [mounted, setMounted] = useState(false);
                      value={form.category || ''}
                      categories={options.categories}
                      onChange={setCategory}
+                     onPermanentlyDelete={permanentlyDeleteCategory}
                    />
                    {showCatInput ? (
                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -7159,7 +7248,23 @@ const [mounted, setMounted] = useState(false);
                      <div style={{fontSize:'11px', color:'#777', marginBottom:'6px'}}>点击已有标签快速添加：</div>
                      <div style={{display:'flex', flexWrap:'wrap', gap:'6px', alignItems:'center'}}>
                        {displayTags.filter(t=>!selectedTags.includes(t)).map(t => (
-                         <span key={t} onClick={()=>addTag(t)} style={{cursor:'pointer', background:'#2a2a2e', border:'1px solid #444', color:'#bbb', padding:'4px 10px', borderRadius:'6px', fontSize:'12px'}}>{t}</span>
+                         <span
+                           key={t}
+                           className="tag-suggest-chip"
+                           onClick={()=>addTag(t)}
+                         >
+                           {t}
+                           <span
+                             className="tag-suggest-del"
+                             title="永久删除此标签"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               permanentlyDeleteTag(t);
+                             }}
+                           >
+                             ×
+                           </span>
+                         </span>
                        ))}
                        {options.tags.length > 12 && <span onClick={()=>setShowAllTags(!showAllTags)} style={{fontSize:'12px', color:'greenyellow', cursor:'pointer', fontWeight:'bold'}}>{showAllTags ? '收起' : '更多...'}</span>}
                      </div>

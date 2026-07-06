@@ -70,7 +70,7 @@ export const ProfileWidget = ({ data }: { data: any }) => {
                   <div className="relative z-10 flex items-center justify-center">
                     <LinkIcon icon="FaCrown" />
                     {/* ✨ 修改点：添加 hidden md:inline 类。在手机端隐藏文字 */}
-                    <span className="hidden md:inline leading-none">资源介绍</span>
+                    <span className="hidden md:inline leading-none">关于本站</span>
                   </div>
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:animate-shimmer z-0 pointer-events-none"></div>
                 </Link>
