@@ -16,7 +16,7 @@ export function ProPlusCreateButton({
       rel="noopener noreferrer"
       className={`proplus-create-btn${compact ? ' proplus-create-btn--compact' : ''}${className ? ` ${className}` : ''}`}
     >
-      在 PRO+ 上创作
+      在PRO+上创作
     </a>
   )
 }

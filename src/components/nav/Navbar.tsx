@@ -143,9 +143,9 @@ const Navbar = ({
                 {items.map((item) => (
                   <NavItem key={item.id} item={item} />
                 ))}
-                {isHome ? <ProPlusCreateButton /> : null}
+                <ProPlusCreateButton />
               </nav>
-              {isHome && (isMobile || isTablet) ? (
+              {isMobile || isTablet ? (
                 <ProPlusCreateButton compact />
               ) : null}
             </div>

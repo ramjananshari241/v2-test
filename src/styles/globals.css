@@ -372,13 +372,13 @@ html.tweet-theme .post-nav-stall-desc {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 11px 22px;
+  padding: 8px 12px;
   border-radius: 7px;
   border: 1px solid rgb(61, 106, 255);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 2px;
-  line-height: 1;
+  letter-spacing: 0;
+  line-height: 1.15;
   background: transparent;
   color: rgb(61, 106, 255);
   text-decoration: none;
@@ -422,27 +422,34 @@ html.tweet-theme .post-nav-stall-desc {
 }
 
 .proplus-create-btn--compact {
-  padding: 9px 16px;
-  font-size: 12px;
-  letter-spacing: 1.5px;
+  padding: 7px 10px;
+  font-size: 11px;
   border-radius: 6px;
 }
 
-html.dark .proplus-create-btn,
-html.tweet-theme--dark .proplus-create-btn {
+/* 浅色顶栏（Gallery 等）：始终蓝字，避免 dark 模式误染白字 */
+.proplus-create-btn--on-light,
+html.gallery-theme .proplus-create-btn {
+  color: rgb(61, 106, 255);
+}
+
+html.dark:not(.gallery-theme) .proplus-create-btn:not(.proplus-create-btn--on-light),
+html.tweet-theme--dark .proplus-create-btn:not(.proplus-create-btn--on-light) {
   color: #fff;
 }
 
-html.dark .proplus-create-btn:hover,
+html.dark:not(.gallery-theme) .proplus-create-btn:hover,
 html.tweet-theme--dark .proplus-create-btn:hover,
+.proplus-create-btn--on-light:hover,
+html.gallery-theme .proplus-create-btn:hover,
 .proplus-create-btn:hover {
   color: #fff;
 }
 
 @media (min-width: 768px) {
   .proplus-create-btn {
-    padding: 12px 24px;
-    font-size: 14px;
+    padding: 9px 14px;
+    font-size: 13px;
   }
 }
 
