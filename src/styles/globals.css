@@ -352,83 +352,97 @@ html.tweet-theme .post-nav-stall-desc {
   }
 }
 
-/* PRO+ 平台创作入口（首页右上角） */
+/* PRO+ 平台创作入口（首页右上角，Uiverse mrhyddenn 风格） */
+@keyframes proplus-sh02 {
+  from {
+    opacity: 0;
+    left: 0%;
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    left: 100%;
+  }
+}
+
 .proplus-create-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.38rem 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0;
-  color: #fff;
+  padding: 11px 22px;
+  border-radius: 7px;
+  border: 1px solid rgb(61, 106, 255);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  line-height: 1;
+  background: transparent;
+  color: rgb(61, 106, 255);
   text-decoration: none;
   white-space: nowrap;
-  background: linear-gradient(135deg, #4f9cf9 0%, #3b82f6 45%, #2563eb 100%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.08),
-    0 4px 12px rgba(37, 99, 235, 0.24);
-  transition:
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.2s ease,
-    filter 0.2s ease;
   overflow: hidden;
+  box-shadow: 0 0 0 0 transparent;
+  transition: all 0.2s ease-in;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .proplus-create-btn::before {
   content: '';
+  display: block;
+  width: 0;
+  height: 86%;
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 35%,
-    rgba(255, 255, 255, 0.22) 50%,
-    transparent 65%
-  );
-  transform: translateX(-120%);
-  transition: transform 0.5s ease;
+  top: 7%;
+  left: 0%;
+  opacity: 0;
+  background: #fff;
+  box-shadow: 0 0 50px 30px #fff;
+  transform: skewX(-20deg);
   pointer-events: none;
 }
 
 .proplus-create-btn:hover {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-  box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.1),
-    0 8px 20px rgba(37, 99, 235, 0.34);
+  background: rgb(61, 106, 255);
+  color: #fff;
+  box-shadow: 0 0 30px 5px rgba(0, 142, 236, 0.815);
+  transition: all 0.2s ease-out;
 }
 
 .proplus-create-btn:hover::before {
-  transform: translateX(120%);
+  animation: proplus-sh02 0.5s 0s linear;
 }
 
 .proplus-create-btn:active {
-  transform: translateY(0);
-  filter: brightness(0.98);
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow 0.2s ease-in;
 }
 
 .proplus-create-btn--compact {
-  padding: 0.34rem 0.45rem;
-  font-size: 0.625rem;
-  border-radius: 0.4375rem;
+  padding: 9px 16px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  border-radius: 6px;
 }
 
-html.tweet-theme .proplus-create-btn {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.12),
-    0 4px 14px rgba(37, 99, 235, 0.28);
+html.dark .proplus-create-btn,
+html.tweet-theme--dark .proplus-create-btn {
+  color: #fff;
+}
+
+html.dark .proplus-create-btn:hover,
+html.tweet-theme--dark .proplus-create-btn:hover,
+.proplus-create-btn:hover {
+  color: #fff;
 }
 
 @media (min-width: 768px) {
   .proplus-create-btn {
-    padding: 0.4rem 0.55rem;
-    font-size: 0.75rem;
-    border-radius: 0.5625rem;
+    padding: 12px 24px;
+    font-size: 14px;
   }
 }
 
