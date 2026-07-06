@@ -13,12 +13,13 @@ import { filterSwitch } from './filter'
 import { databaseId, notion } from './notion'
 import {
   isTransientNotionError,
+  notionRetryCount,
   notionRetryDelayMs,
 } from './transientErrors'
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 6): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = notionRetryCount()): Promise<T> {
   let lastErr: unknown
   for (let i = 0; i < retries; i++) {
     try {

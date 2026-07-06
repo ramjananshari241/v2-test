@@ -23,15 +23,23 @@ export function isTransientNotionError(error: unknown): boolean {
   )
 }
 
-/** 读取 Notion Retry-After，否则指数退避 */
+/** 读取 Notion Retry-After，否则指数退避（构建期上限更低，避免部署卡住数分钟） */
 export function notionRetryDelayMs(error: unknown, attempt: number): number {
+  const isBuild = process.env.NEXT_PHASE === 'phase-production-build'
+  const retryAfterCap = isBuild ? 2_500 : 12_000
+  const backoffCap = isBuild ? 3_000 : 12_000
+
   const err = error as NotionLikeError
   const raw = err?.headers?.get?.('retry-after')
   const sec = raw ? parseInt(String(raw), 10) : NaN
   if (Number.isFinite(sec) && sec > 0) {
-    return Math.min(sec * 1000, 60_000)
+    return Math.min(sec * 1000, retryAfterCap)
   }
-  return Math.min(500 * Math.pow(2, attempt), 15_000)
+  return Math.min(400 * Math.pow(2, attempt), backoffCap)
+}
+
+export function notionRetryCount(): number {
+  return process.env.NEXT_PHASE === 'phase-production-build' ? 3 : 5
 }
 
 /**
