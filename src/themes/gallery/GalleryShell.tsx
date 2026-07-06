@@ -112,7 +112,7 @@ export const GalleryShell = ({
               {headerTitle === undefined ? siteName : headerTitle}
             </h1>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 sm:right-5 lg:right-8">
-              <ProPlusCreateButton compact className="proplus-create-btn--on-light" />
+              <ProPlusCreateButton className="proplus-create-btn--gallery" />
             </div>
           </header>
         ) : null}
