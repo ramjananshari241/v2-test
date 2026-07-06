@@ -10,6 +10,7 @@ import { Page, Title } from '../../types/blog'
 import { NavIcon } from './NavIcon'
 import { NavItem } from './NavItem'
 import { NavMenuIcon } from './NavMenuIcon'
+import { ProPlusCreateButton } from './ProPlusCreateButton'
 
 const Navbar = ({
   items,
@@ -122,7 +123,10 @@ const Navbar = ({
                 </Link>
               )}
             </div>
-            <div className="z-50 flex items-center justify-end h-full">
+            <div className="z-50 flex items-center justify-end h-full gap-2 sm:gap-3">
+              {isHome ? (
+                <ProPlusCreateButton compact={isMobile || isTablet} />
+              ) : null}
               <button
                 onMouseEnter={handleMouseEnter}
                 onClick={handleMenuClick}
@@ -135,7 +139,7 @@ const Navbar = ({
               </button>
               <nav
                 className={classNames(
-                  'h-12 items-center justify-end space-x-4 py-2',
+                  'h-12 items-center justify-end gap-3 py-2',
                   isMobile || isTablet ? 'hidden' : 'flex'
                 )}
               >

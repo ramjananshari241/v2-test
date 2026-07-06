@@ -7,6 +7,7 @@ import { GALLERY_LOGO_SRC } from './galleryConstants'
 import { GalleryFontLinks } from './GalleryFontLinks'
 import { galleryShellClass } from './galleryFonts'
 import { GALLERY_HEADER_HEIGHT, GallerySidebar } from './GallerySidebar'
+import { ProPlusCreateButton } from '@/src/components/nav/ProPlusCreateButton'
 
 const GALLERY_LOGO_BUST = 'v=5'
 
@@ -28,6 +29,7 @@ export const GalleryShell = ({
   const siteName = siteTitle?.text || 'PRO BLOG'
   const showHeader = headerTitle !== false
   const router = useRouter()
+  const isHome = router.pathname === '/'
   const [menuOpen, setMenuOpen] = useState(false)
 
   // 导航后自动收起移动端抽屉
@@ -110,6 +112,11 @@ export const GalleryShell = ({
             <h1 className="truncate font-gallery text-[17px] font-semibold tracking-tight text-neutral-900 sm:text-[19px]">
               {headerTitle === undefined ? siteName : headerTitle}
             </h1>
+            {isHome ? (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 sm:right-5 lg:right-8">
+                <ProPlusCreateButton compact />
+              </div>
+            ) : null}
           </header>
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col bg-white">{children}</div>

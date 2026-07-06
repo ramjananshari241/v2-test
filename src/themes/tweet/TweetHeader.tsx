@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import CONFIG from '@/blog.config'
+import { ProPlusCreateButton } from '@/src/components/nav/ProPlusCreateButton'
 import { useActiveTheme } from '@/src/components/theme/ActiveThemeProvider'
 import { isTweetThemeVariantLocked } from '@/src/themes/tweet/tweetTheme'
 
@@ -14,6 +16,8 @@ type TweetHeaderProps = {
 }
 
 export function TweetHeader({ siteName }: TweetHeaderProps) {
+  const router = useRouter()
+  const isHome = router.pathname === '/'
   const activeTheme = useActiveTheme()
   const themeToggleLocked = isTweetThemeVariantLocked(activeTheme)
   const { resolvedTheme, setTheme } = useTheme()
@@ -30,6 +34,7 @@ export function TweetHeader({ siteName }: TweetHeaderProps) {
           {siteName}
         </Link>
         <nav className="tweet-header__nav">
+          {isHome ? <ProPlusCreateButton compact /> : null}
           <Link href={`/${ABOUT}`} className="tweet-header__nav-about">
             关于
           </Link>

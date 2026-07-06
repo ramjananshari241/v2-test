@@ -545,7 +545,6 @@ const GlobalStyle = () => (
     .nav-item { position: relative; z-index: 2; padding: 8px 16px; cursor: pointer; color: #888; transition: color 0.3s; display: flex; align-items: center; justify-content: center; width: 40px; }
     .nav-item.active { color: #000; font-weight: bold; }
     .gallery-only-tag { display: inline; color: #1a1500; font-weight: 600; background: linear-gradient(180deg, #ffe566 0%, #ffd400 100%); padding: 1px 7px; border-radius: 4px; font-size: 10px; letter-spacing: 0.3px; box-shadow: 0 0 0 1px rgba(255, 200, 0, 0.35); vertical-align: baseline; }
-    .gallery-tweet-tag { display: inline; color: #0a1400; font-weight: 600; background: linear-gradient(180deg, #d4ff6a 0%, #adff2f 100%); padding: 1px 7px; border-radius: 4px; font-size: 10px; letter-spacing: 0.3px; box-shadow: 0 0 0 1px rgba(173, 255, 47, 0.45); vertical-align: baseline; }
     .block-card-wrap { display: grid; grid-template-columns: 1fr 40px; column-gap: 4px; margin-bottom: 0; align-items: stretch; }
     .block-card { background: #2a2a2e; border: 1px solid #333; border-radius: 10px; padding: 15px 15px 15px 55px; margin-bottom: 0; position: relative; transition: border 0.2s; min-width: 0; }
     .block-card-wrap:hover .block-card { border-color: greenyellow; }
@@ -758,7 +757,7 @@ const GlobalStyle = () => (
       .neo-btn:hover { transform: none; box-shadow: none; }
       .fab-scroll { right: 14px; bottom: 100px; gap: 8px; }
       .fab-btn { width: 40px; height: 40px; }
-      .gallery-only-tag, .gallery-tweet-tag { font-size: 9px; padding: 1px 5px; }
+      .gallery-only-tag { font-size: 9px; padding: 1px 5px; }
       .admin-toast { max-width: calc(100vw - 24px); white-space: normal; text-align: center; }
     }
     @media (max-width: 400px) {
@@ -778,10 +777,6 @@ const SearchInput = ({ value, onChange }) => (
 
 const GalleryOnlyTag = () => (
   <span className="gallery-only-tag">(Gallery主题专用)</span>
-);
-
-const GalleryTweetTag = () => (
-  <span className="gallery-tweet-tag">(Standard / Tweet 等主题可用)</span>
 );
 
 const ViewModeButton = ({ label, active, onClick }) => (
@@ -7366,7 +7361,7 @@ const [mounted, setMounted] = useState(false);
 ) : null}
 
             {!editingSimplePage ? (
-            <StepAccordion step={4} title={<>图库 <GalleryTweetTag /></>} isOpen={expandedStep === 4} onToggle={()=>setExpandedStep(expandedStep===4?0:4)}>
+            <StepAccordion step={4} title="图库" isOpen={expandedStep === 4} onToggle={()=>setExpandedStep(expandedStep===4?0:4)}>
               <GalleryManager
                 postSlug={form.slug}
                 postTitle={form.title}
