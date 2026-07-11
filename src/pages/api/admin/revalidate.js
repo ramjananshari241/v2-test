@@ -14,6 +14,16 @@ import {
   revalidateMany,
   resolveRevalidateOrigin,
 } from '@/src/lib/blog/contentRevalidation'
+import {
+  claimDueRevalidateJobs,
+  countPendingRevalidateJobs,
+  enqueueRevalidatePaths,
+  getDefaultRevalidateQueueDelayMs,
+  isRevalidateQueueConfigured,
+  markRevalidateJobDone,
+  markRevalidateJobFailed,
+  resetStaleRevalidateJobs,
+} from '@/src/lib/blog/revalidateQueue'
 
 export const config = {
   maxDuration: 300,
@@ -22,6 +32,81 @@ export const config = {
 /** 手动「刷新BLOG」最小间隔（服务端兜底，防多标签/脚本连点） */
 const MANUAL_SHELL_REVALIDATE_MIN_MS = 45_000
 let lastManualShellRevalidateAt = 0
+
+function isMissingRevalidateQueueTable(error) {
+  const code = String(error?.code || '')
+  const message = String(error?.message || error || '')
+  return code === '42P01' || /blog_revalidate_queue/i.test(message)
+}
+
+async function drainRevalidateQueue(res, limit = 25) {
+  if (!isRevalidateQueueConfigured()) {
+    return {
+      success: false,
+      configured: false,
+      drained: 0,
+      failed: 0,
+      pending: 0,
+      results: [],
+      error: 'Revalidate 队列未配置（需 Supabase + BLOG_SITE_ID）',
+    }
+  }
+
+  const staleReset = await resetStaleRevalidateJobs()
+  const jobs = await claimDueRevalidateJobs(limit)
+  if (jobs.length === 0) {
+    const pending = await countPendingRevalidateJobs()
+    return {
+      success: true,
+      configured: true,
+      drained: 0,
+      failed: 0,
+      pending,
+      staleReset,
+      results: [],
+    }
+  }
+
+  const paths = jobs.map((job) => job.path)
+  const results = await revalidateMany(res, paths, {
+    freshTheme: jobs.some((job) => job.fresh_theme),
+    clearCaches: jobs.some((job) => job.clear_caches),
+    warmPaths: jobs.some((job) => job.warm_paths),
+    origin: jobs.some((job) => job.warm_paths)
+      ? resolveRevalidateOrigin()
+      : undefined,
+    expectedTheme:
+      jobs.find((job) => job.expected_theme)?.expected_theme || null,
+    contentChange: jobs.some((job) => job.content_change),
+  })
+  const resultByPath = new Map(results.map((item) => [item.path, item]))
+
+  let failed = 0
+  for (const job of jobs) {
+    const result = resultByPath.get(job.path)
+    if (result?.ok) {
+      await markRevalidateJobDone(job.id)
+    } else {
+      failed += 1
+      await markRevalidateJobFailed(
+        job,
+        result?.error || 'revalidate failed'
+      )
+    }
+  }
+
+  const pending = await countPendingRevalidateJobs()
+  return {
+    success: failed === 0,
+    configured: true,
+    drained: jobs.length,
+    succeeded: jobs.length - failed,
+    failed,
+    pending,
+    staleReset,
+    results,
+  }
+}
 
 function resolveTagIds(tagsString) {
   return (tagsString || '')
@@ -37,6 +122,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (req.body?.action === 'drain') {
+      const result = await drainRevalidateQueue(res, req.body?.limit)
+      return res.status(result.configured === false ? 503 : 200).json(result)
+    }
+
     const {
       scope = 'post',
       slug,
@@ -53,6 +143,10 @@ export default async function handler(req, res) {
       expectedTheme = null,
       manualShell = false,
       contentChange = false,
+      queue = false,
+      queueDelayMs,
+      queuePriority = 0,
+      queueReason,
     } = req.body ?? {}
 
     if (scope === 'shell' && manualShell) {
@@ -148,6 +242,47 @@ export default async function handler(req, res) {
 
     if (clearCaches && scope !== 'batch') {
       clearContentBuildCaches()
+    }
+
+    if (queue) {
+      let queued = null
+      try {
+        queued = await enqueueRevalidatePaths(paths, {
+          scope,
+          reason: queueReason || scope,
+          priority: queuePriority,
+          delayMs:
+            queueDelayMs == null
+              ? getDefaultRevalidateQueueDelayMs()
+              : queueDelayMs,
+          freshTheme,
+          clearCaches,
+          warmPaths: false,
+          expectedTheme: expectedTheme || null,
+          contentChange: Boolean(contentChange),
+        })
+      } catch (queueError) {
+        if (!isMissingRevalidateQueueTable(queueError)) throw queueError
+        console.warn(
+          '[admin/revalidate] queue table missing; falling back to immediate revalidate'
+        )
+      }
+
+      if (queued?.configured) {
+        return res.status(200).json({
+          success: true,
+          queued: true,
+          total: queued.paths.length,
+          queuedCount: queued.queued,
+          paths: queued.paths,
+          scheduledAt: queued.scheduledAt,
+          drainAfterMs: queued.drainAfterMs,
+        })
+      }
+
+      console.warn(
+        '[admin/revalidate] queue requested but not configured; falling back to immediate revalidate'
+      )
     }
 
     if (warmPaths) {

@@ -67,6 +67,35 @@ const isFallbackCategory = (name) =>
 const isSystemReservedCategory = (name) =>
   isProtectedCategory(name) || isFallbackCategory(name);
 
+let queuedRevalidateDrainTimer = null;
+
+function scheduleQueuedRevalidateDrain(delayMs = 30_000) {
+  if (typeof window === 'undefined') return;
+  const safeDelay = Math.max(1000, Number(delayMs) || 30_000);
+  if (queuedRevalidateDrainTimer) {
+    clearTimeout(queuedRevalidateDrainTimer);
+  }
+  queuedRevalidateDrainTimer = window.setTimeout(async () => {
+    queuedRevalidateDrainTimer = null;
+    try {
+      const res = await fetch('/api/admin/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'drain', limit: 30 }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.pending > 0 || data?.drained >= 30) {
+        scheduleQueuedRevalidateDrain(12_000);
+      }
+      if (!res.ok || data?.success === false) {
+        console.warn('刷新队列处理未完成', data);
+      }
+    } catch (e) {
+      console.warn('刷新队列处理失败', e);
+    }
+  }, safeDelay);
+}
+
 async function triggerContentRevalidation(payload = {}) {
   try {
     const res = await fetch('/api/admin/revalidate', {
@@ -75,10 +104,14 @@ async function triggerContentRevalidation(payload = {}) {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
+    if (data?.queued) {
+      scheduleQueuedRevalidateDrain(data.drainAfterMs);
+    }
     return {
       ok: res.ok && data.success !== false,
       status: res.status,
       data,
+      queued: Boolean(data.queued),
       succeeded: typeof data.succeeded === 'number' ? data.succeeded : null,
       failed: typeof data.failed === 'number' ? data.failed : null,
       total: typeof data.total === 'number' ? data.total : null,
@@ -140,6 +173,14 @@ async function executeListMutationWithProgress({
 function showRevalidateFeedback(result, showAdminToastFn) {
   if (!result || !showAdminToastFn) return;
   const { ok, succeeded, failed, total } = result;
+  if (result.queued || result.data?.queued) {
+    const sec = Math.max(
+      1,
+      Math.ceil((result.data?.drainAfterMs || 30_000) / 1000)
+    );
+    showAdminToastFn(`前台刷新已排队，约 ${sec} 秒内自动生效`);
+    return;
+  }
   if (ok && (failed === 0 || failed === null)) {
     showAdminToastFn(
       total != null && succeeded != null
@@ -5292,7 +5333,15 @@ const [mounted, setMounted] = useState(false);
         if (!d.success) throw new Error(d.error || '保存失败');
         updateJob(job.id, { status: 'success', phase: '', progress: null });
         fetchPosts({ silent: true });
-        void triggerShellBlogRefresh().then((rev) =>
+        void triggerContentRevalidation({
+          scope: 'widget',
+          queue: true,
+          queueDelayMs: 30_000,
+          clearCaches: true,
+          freshTheme: true,
+          contentChange: true,
+          queueReason: 'widget-save',
+        }).then((rev) =>
           showRevalidateFeedback(rev, showAdminToast)
         );
         setTimeout(() => dismissJob(job.id), 6000);
@@ -5383,9 +5432,6 @@ const [mounted, setMounted] = useState(false);
 
       try {
         if (saveScope === 'post') {
-          void triggerShellBlogRefresh({ contentChange: true }).then((rev) =>
-            showRevalidateFeedback(rev, showAdminToast)
-          );
           void triggerContentRevalidation({
             scope: 'post',
             slug: saveSlug,
@@ -5394,41 +5440,62 @@ const [mounted, setMounted] = useState(false);
             previousCategory: payload.previousCategory || '',
             previousTags: payload.previousTags || '',
             previousSlug,
-          }).catch((e) => console.warn('文章内页增量刷新失败', e));
+            queue: true,
+            queueDelayMs: 30_000,
+            clearCaches: true,
+            contentChange: true,
+            queueReason: 'post-save',
+            queuePriority: 10,
+          })
+            .then((rev) => showRevalidateFeedback(rev, showAdminToast))
+            .catch((e) => console.warn('文章内页增量刷新失败', e));
         } else if (saveScope === 'page' && saveSlug === 'download') {
-          void runBatchedRevalidation({
-            listScope: 'download-instructions',
+          void triggerContentRevalidation({
+            scope: 'page',
+            slug: saveSlug,
+            previousSlug,
+            queue: true,
+            queueDelayMs: 30_000,
+            clearCaches: true,
             freshTheme: true,
             contentChange: true,
-            progressLabels: {
-              listing: '正在统计文章下载页…',
-              running: '正在更新下载说明与文章下载页…',
-              doneOk: '下载说明已同步到全部文章下载页',
-              donePartial: '部分文章下载页需稍后自动更新',
-              hintPartial: '个页面未能更新，可重新保存下载说明或点右上角刷新',
-              hintOk: '全部文章下载页已更新',
-            },
-          }).catch((e) => console.warn('下载说明增量刷新失败', e));
+            queueReason: 'download-page-save',
+            queuePriority: 20,
+          }).then((rev) => showRevalidateFeedback(rev, showAdminToast));
         } else if (saveScope === 'page') {
           const rev = await triggerContentRevalidation({
             scope: 'page',
             slug: saveSlug,
             previousSlug,
-            warmPaths: true,
+            queue: true,
+            queueDelayMs: 30_000,
+            clearCaches: true,
             contentChange: true,
+            queueReason: 'page-save',
+            queuePriority: 10,
           });
           showRevalidateFeedback(rev, showAdminToast);
         } else if (saveScope === 'gallery-ad') {
-          void runBatchedRevalidation({
-            listScope: 'gallery-ad',
+          void triggerContentRevalidation({
+            scope: 'gallery-ad',
+            queue: true,
+            queueDelayMs: 30_000,
+            clearCaches: true,
             freshTheme: true,
             contentChange: true,
-          }).catch((e) => console.warn('Gallery 广告增量刷新失败', e));
+            queueReason: 'gallery-ad-save',
+            queuePriority: 20,
+          }).then((rev) => showRevalidateFeedback(rev, showAdminToast));
         } else if (saveScope === 'widget') {
           const rev = await triggerContentRevalidation({
             scope: 'widget',
-            warmPaths: true,
+            queue: true,
+            queueDelayMs: 30_000,
+            clearCaches: true,
+            freshTheme: true,
             contentChange: true,
+            queueReason: 'widget-save',
+            queuePriority: 10,
           });
           showRevalidateFeedback(rev, showAdminToast);
         }
@@ -5958,7 +6025,18 @@ const [mounted, setMounted] = useState(false);
       if (!d.success) alert(d.error || '置顶操作失败');
       else {
         await fetchPosts();
-        const rev = await triggerShellBlogRefresh();
+        const rev = await triggerContentRevalidation({
+          scope: 'post',
+          slug: p.slug,
+          category: p.category || '',
+          tags: p.tags || '',
+          queue: true,
+          queueDelayMs: 30_000,
+          clearCaches: true,
+          contentChange: true,
+          queueReason: 'pin-toggle',
+          queuePriority: 10,
+        });
         showRevalidateFeedback(rev, showAdminToast);
       }
     } catch (err) {
@@ -6013,7 +6091,13 @@ const [mounted, setMounted] = useState(false);
       const rev = await runListMutation({
         phase: 'archive',
         itemCount: 1,
-        shellRefreshOptions: { contentChange: true },
+        shellRefreshOptions: {
+          contentChange: true,
+          queue: true,
+          queueDelayMs: 30_000,
+          queueReason: 'archive-post',
+          queuePriority: 10,
+        },
         mutateItems: async (report) => {
           report(0, '正在移入回收站…');
           const res = await fetch('/api/admin/post?id=' + p.id, {
@@ -6033,6 +6117,12 @@ const [mounted, setMounted] = useState(false);
             slug: p.slug,
             category: p.category || '',
             tags: p.tags || '',
+            queue: true,
+            queueDelayMs: 30_000,
+            clearCaches: true,
+            contentChange: true,
+            queueReason: 'archive-post-detail',
+            queuePriority: 10,
           }).catch((e) => console.warn('归档后页面刷新失败', e));
         },
       });
@@ -6048,7 +6138,13 @@ const [mounted, setMounted] = useState(false);
       const rev = await runListMutation({
         phase: 'restore',
         itemCount: 1,
-        shellRefreshOptions: { contentChange: true },
+        shellRefreshOptions: {
+          contentChange: true,
+          queue: true,
+          queueDelayMs: 30_000,
+          queueReason: 'restore-post',
+          queuePriority: 10,
+        },
         mutateItems: async (report) => {
           report(0, '正在恢复文章…');
           const res = await fetch('/api/admin/post?id=' + p.id, {
@@ -6068,6 +6164,12 @@ const [mounted, setMounted] = useState(false);
             slug: p.slug,
             category: p.category || '',
             tags: p.tags || '',
+            queue: true,
+            queueDelayMs: 30_000,
+            clearCaches: true,
+            contentChange: true,
+            queueReason: 'restore-post-detail',
+            queuePriority: 10,
           }).catch((e) => console.warn('恢复后页面刷新失败', e));
         },
       });
@@ -6084,6 +6186,13 @@ const [mounted, setMounted] = useState(false);
       const rev = await runListMutation({
         phase: 'delete',
         itemCount: 1,
+        shellRefreshOptions: {
+          contentChange: true,
+          queue: true,
+          queueDelayMs: 30_000,
+          queueReason: 'permanent-delete',
+          queuePriority: 10,
+        },
         mutateItems: async (report) => {
           report(0, '正在彻底删除…');
           const res = await fetch('/api/admin/post?id=' + p.id, { method: 'DELETE' });

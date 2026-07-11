@@ -23,7 +23,7 @@ export function TweetServiceCard({
       {showSectionTitle ? (
         <TweetSectionTitle
           emoji="🌟"
-          label="游客"
+          label="访客"
           desktopOnly={sectionTitleDesktopOnly}
         />
       ) : null}
