@@ -257,7 +257,7 @@ export default async function handler(req, res) {
               : queueDelayMs,
           freshTheme,
           clearCaches,
-          warmPaths: false,
+          warmPaths: Boolean(warmPaths),
           expectedTheme: expectedTheme || null,
           contentChange: Boolean(contentChange),
         })

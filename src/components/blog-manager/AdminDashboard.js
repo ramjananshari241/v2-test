@@ -5414,6 +5414,7 @@ const [mounted, setMounted] = useState(false);
       const saveType = payload.form.type || 'Post';
       const saveScope = resolveSaveRevalidateScope(saveType, saveSlug);
       const previousSlug = payload.previousSlug || '';
+      const isNewPost = !payload.currentId;
 
       // 4) 同步图库（排序 / 新建后补写 notion id）
       if (payload.willSyncGallery && galleryItemsForSave.length > 0) {
@@ -5441,8 +5442,9 @@ const [mounted, setMounted] = useState(false);
             previousTags: payload.previousTags || '',
             previousSlug,
             queue: true,
-            queueDelayMs: 30_000,
+            queueDelayMs: isNewPost ? 60_000 : 30_000,
             clearCaches: true,
+            warmPaths: isNewPost,
             contentChange: true,
             queueReason: 'post-save',
             queuePriority: 10,
