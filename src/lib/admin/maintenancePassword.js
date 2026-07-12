@@ -1,4 +1,4 @@
-const DEFAULT_MAINTENANCE_PASSWORD = '123456'
+const DEFAULT_MAINTENANCE_PASSWORD = '123456.'
 
 export function getAdminMaintenancePassword() {
   return (

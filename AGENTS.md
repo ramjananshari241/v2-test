@@ -125,8 +125,8 @@
 - 修改后台时要格外小心：`AdminDashboard.js` 很大，尽量做外科手术式局部修改；能抽到已有小模块的再抽，不要顺手大重构。
 - 后台 revalidate 客户端逻辑已从 `AdminDashboard.js` 抽到 `src/components/blog-manager/adminRevalidateClient.js`。后续调整刷新队列、手动刷新、批量刷新、主题切换刷新提示时，优先改这个文件，避免继续扩大 `AdminDashboard.js`。
 - 后台保存入队后，`adminRevalidateClient.js` 会安排多次轻量 `action: drain` 兜底消费，避免浏览器标签页节流、网络抖动或 Notion 索引延迟导致前台缓存没有及时刷新。
-- 后台“全量更新”按钮保留给管理员维护使用，但 `POST /api/admin/full-redeploy` 需要全量更新密码；默认密码在该 API 文件中暂定为 `123456`，可后续改为环境变量或更强的服务端配置。
-- 后台“爬虫管理”与“全量更新”共用维护密码锁；服务端密码工具位于 `src/lib/admin/maintenancePassword.js`，优先读取 `ADMIN_MAINTENANCE_PASSWORD`，兼容 `ADMIN_FULL_REDEPLOY_PASSWORD`，默认兜底为 `123456`。
+- 后台“全量更新”按钮保留给管理员维护使用，但 `POST /api/admin/full-redeploy` 需要全量更新密码；默认密码由 `src/lib/admin/maintenancePassword.js` 统一维护，当前兜底为 `123456.`，可后续改为环境变量或更强的服务端配置。
+- 后台“爬虫管理”与“全量更新”共用维护密码锁；服务端密码工具位于 `src/lib/admin/maintenancePassword.js`，优先读取 `ADMIN_MAINTENANCE_PASSWORD`，兼容 `ADMIN_FULL_REDEPLOY_PASSWORD`，默认兜底为 `123456.`。
 - 后台发布文章时，“尚未添加图片块”提示只在正文没有图片块且当前文章也没有图库图片时弹出；如果已存在图库，则视为已有封面候选，不再打断发布。
 - `/admin` 不加载全局 Chatwoot 客服脚本；在线客服仅面向前台访客。
 - 后台 Widget 中的 `gallery-ad` 当前作为“内页广告位”维护，数据会用于 Gallery、Tweet 与 Standard 系列文章内页底部 banner；保存后走 `gallery-ad` revalidate 范围刷新文章页。
