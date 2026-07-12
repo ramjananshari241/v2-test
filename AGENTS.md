@@ -99,6 +99,7 @@
   - `tweet-light` / `tweet_light` => `tweet-light`
   - `tweet-dark` / `tweet_dark` => `tweet-dark`
 - Gallery 与 Tweet 是独立壳层主题，不走默认 Navbar + Footer；判断逻辑在 `usesStandaloneThemeLayout`。
+- Tweet 主题视觉调整通常要同时检查 `tweet`、`tweet-light`、`tweet-dark` 三个变体；标签文字和右侧功能按钮颜色由 `src/styles/tweet-theme.css` 中的 `--tweet-tag-*` 与 `--tweet-service-text` 控制。
 - 主题读取优先 Supabase `blog_site_settings.theme_code`，再回退 Notion `theme-config`。这样可以避免 Notion filter 延迟导致 ISR 读取旧主题。
 - 后台保存 `theme-config` 时会双写 Notion 和 Supabase，并记录主题切换配额。
 - 主题切换配额位于 `src/lib/blog/themeSwitchQuota.ts`：24 小时窗口最多 4 次；未配置 Supabase 时通常降级不阻断。
@@ -125,7 +126,10 @@
 - 后台 revalidate 客户端逻辑已从 `AdminDashboard.js` 抽到 `src/components/blog-manager/adminRevalidateClient.js`。后续调整刷新队列、手动刷新、批量刷新、主题切换刷新提示时，优先改这个文件，避免继续扩大 `AdminDashboard.js`。
 - 后台保存入队后，`adminRevalidateClient.js` 会安排多次轻量 `action: drain` 兜底消费，避免浏览器标签页节流、网络抖动或 Notion 索引延迟导致前台缓存没有及时刷新。
 - 后台“全量更新”按钮保留给管理员维护使用，但 `POST /api/admin/full-redeploy` 需要全量更新密码；默认密码在该 API 文件中暂定为 `123456`，可后续改为环境变量或更强的服务端配置。
+- 后台“爬虫管理”与“全量更新”共用维护密码锁；服务端密码工具位于 `src/lib/admin/maintenancePassword.js`，优先读取 `ADMIN_MAINTENANCE_PASSWORD`，兼容 `ADMIN_FULL_REDEPLOY_PASSWORD`，默认兜底为 `123456`。
 - 后台发布文章时，“尚未添加图片块”提示只在正文没有图片块且当前文章也没有图库图片时弹出；如果已存在图库，则视为已有封面候选，不再打断发布。
+- `/admin` 不加载全局 Chatwoot 客服脚本；在线客服仅面向前台访客。
+- 后台 Widget 中的 `gallery-ad` 当前作为“内页广告位”维护，数据会用于 Gallery、Tweet 与 Standard 系列文章内页底部 banner；保存后走 `gallery-ad` revalidate 范围刷新文章页。
 
 ## Gallery、下载与统计
 

@@ -2,19 +2,7 @@ import {
   getFullRedeployStatus,
   triggerFullRedeploy,
 } from '@/src/lib/admin/fullRedeploy'
-
-const FULL_REDEPLOY_PASSWORD =
-  process.env.ADMIN_FULL_REDEPLOY_PASSWORD?.trim() || '123456'
-
-function readFullRedeployPassword(req) {
-  const bodyPassword =
-    typeof req.body?.password === 'string' ? req.body.password : ''
-  const headerPassword =
-    typeof req.headers['x-full-redeploy-password'] === 'string'
-      ? req.headers['x-full-redeploy-password']
-      : ''
-  return (bodyPassword || headerPassword).trim()
-}
+import { verifyAdminMaintenancePassword } from '@/src/lib/admin/maintenancePassword'
 
 export default async function handler(req, res) {
   try {
@@ -24,7 +12,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      if (readFullRedeployPassword(req) !== FULL_REDEPLOY_PASSWORD) {
+      if (!verifyAdminMaintenancePassword(req)) {
         return res.status(403).json({
           success: false,
           error: '全量更新密码错误',

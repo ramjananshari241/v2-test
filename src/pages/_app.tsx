@@ -104,8 +104,9 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
   return (
     <>
       {/* 2. 替换 Jivo 为 Chatwoot 增强版逻辑 */}
-      <Script id="chatwoot-setup" strategy="afterInteractive">
-        {`
+      {!isAdminRoute ? (
+        <Script id="chatwoot-setup" strategy="afterInteractive">
+          {`
           (function(d,t) {
             var BASE_URL = "https://chat.pro-pl.us";
             var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
@@ -201,7 +202,8 @@ function BlogAppShell({ Component, pageProps, router }: AppPropsWithLayout) {
             }
           })(document,"script");
         `}
-      </Script>
+        </Script>
+      ) : null}
 
      <ThemeProvider
       attribute="class"

@@ -1,4 +1,5 @@
 import { verifyAdminRequest } from '@/src/lib/admin/verifyAdminRequest'
+import { verifyAdminMaintenancePassword } from '@/src/lib/admin/maintenancePassword'
 import { isGalleryTenantConfigured } from '@/src/lib/gallery/blogSite'
 import {
   getCrawlerIngestAutoSettings,
@@ -62,6 +63,17 @@ async function buildPanelPayload(tab) {
   }
 }
 
+async function buildSummaryPayload() {
+  const summary = await getCrawlerQueueSummary()
+  const autoSettings = await getCrawlerIngestAutoSettings()
+  return {
+    success: true,
+    configured: isGalleryTenantConfigured(),
+    summary,
+    autoSettings,
+  }
+}
+
 export default async function handler(req, res) {
   if (!verifyAdminRequest(req)) {
     return res.status(401).json({ success: false, error: 'Unauthorized' })
@@ -69,6 +81,18 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
+      if (req.query.summary === '1') {
+        const payload = await buildSummaryPayload()
+        return res.status(200).json(payload)
+      }
+
+      if (!verifyAdminMaintenancePassword(req)) {
+        return res.status(403).json({
+          success: false,
+          error: '爬虫管理密码错误',
+        })
+      }
+
       const tab = typeof req.query.tab === 'string' ? req.query.tab : 'log'
       const payload = await buildPanelPayload(tab)
       return res.status(200).json(payload)
@@ -79,6 +103,13 @@ export default async function handler(req, res) {
         typeof req.body === 'string'
           ? JSON.parse(req.body || '{}')
           : req.body || {}
+
+      if (!verifyAdminMaintenancePassword(req, body)) {
+        return res.status(403).json({
+          success: false,
+          error: '爬虫管理密码错误',
+        })
+      }
 
       if (body.action === 'updateAutoSettings') {
         const enabled = Boolean(body.enabled)

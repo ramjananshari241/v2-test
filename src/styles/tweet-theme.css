@@ -21,7 +21,9 @@ html.tweet-theme {
   --tweet-gray11: #63635e;
   --tweet-gray12: #21201c;
   --tweet-muted: #7e7e7e;
-  --tweet-service-text: #a0a0a0;
+  --tweet-service-text: #5f6368;
+  --tweet-tag-text: #5f6368;
+  --tweet-tag-active: #202124;
   --tweet-card-bg: #ffffff;
   --tweet-header-height: 3rem;
   --tweet-sticky-top: var(--tweet-header-height);
@@ -43,7 +45,9 @@ html.tweet-theme.dark {
   --tweet-gray11: #b5b3ad;
   --tweet-gray12: #eeeeec;
   --tweet-muted: #7e7e7e;
-  --tweet-service-text: #a0a0a0;
+  --tweet-service-text: #d1d5db;
+  --tweet-tag-text: #d1d5db;
+  --tweet-tag-active: #f3f4f6;
   --tweet-card-bg: var(--tweet-gray4);
   color-scheme: dark;
 }
@@ -84,12 +88,12 @@ html.tweet-theme a {
 }
 
 html.tweet-theme a.tweet-tags__item {
-  color: #7e7e7e;
+  color: var(--tweet-tag-text);
 }
 
 html.tweet-theme a.tweet-tags__item:hover,
 html.tweet-theme a.tweet-tags__item[data-active='true'] {
-  color: #7e7e7e;
+  color: var(--tweet-tag-active);
 }
 
 html.tweet-theme ul {
@@ -423,7 +427,7 @@ html.tweet-theme ul {
   border-radius: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: #7e7e7e;
+  color: var(--tweet-tag-text);
   flex-shrink: 0;
   cursor: pointer;
   white-space: nowrap;
@@ -431,11 +435,11 @@ html.tweet-theme ul {
 
 .tweet-tags__item:hover {
   background-color: var(--tweet-gray4);
-  color: #7e7e7e;
+  color: var(--tweet-tag-active);
 }
 
 .tweet-tags__item[data-active='true'] {
-  color: #7e7e7e;
+  color: var(--tweet-tag-active);
   background-color: var(--tweet-gray4);
 }
 
@@ -1076,12 +1080,12 @@ html.tweet-theme.dark .tweet-post-card:hover .tweet-post-card__shell {
 }
 
 html.tweet-theme.dark:not(.tweet-theme--dark) .tweet-post-card__tag {
-  color: #b0b3b8;
+  color: var(--tweet-tag-text);
   background-color: #2f3336;
 }
 
 html.tweet-theme.dark:not(.tweet-theme--dark) .tweet-post-card__tag:hover {
-  color: #e7e9ea;
+  color: var(--tweet-tag-active);
   background-color: #3e4144;
 }
 
@@ -1425,13 +1429,13 @@ html.tweet-theme:not(.dark) .tweet-avatar__img {
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 400;
-  color: var(--tweet-muted);
+  color: var(--tweet-tag-text);
   background-color: var(--tweet-gray5);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .tweet-post-card__tag:hover {
-  color: var(--tweet-gray12);
+  color: var(--tweet-tag-active);
   background-color: var(--tweet-gray6);
 }
 
@@ -1815,8 +1819,8 @@ html.tweet-theme .tweet-gallery-section .gallery-load-more-btn:hover {
 /* —— Tweet 浅色变体（tweet-light）：贴近 X/Twitter 浅色界面 —— */
 html.tweet-theme.tweet-theme--light {
   --tweet-gray1: #ffffff;
-  --tweet-gray2: #ffffff;
-  --tweet-gray3: #f7f9f9;
+  --tweet-gray2: #f5f8fa;
+  --tweet-gray3: #ffffff;
   --tweet-gray4: #eff3f4;
   --tweet-gray5: #e6eaed;
   --tweet-gray6: #eff3f4;
@@ -1827,14 +1831,16 @@ html.tweet-theme.tweet-theme--light {
   --tweet-gray11: #536471;
   --tweet-gray12: #0f1419;
   --tweet-muted: #536471;
-  --tweet-service-text: #536471;
-  --tweet-card-bg: #f7f9f9;
+  --tweet-service-text: #0f1419;
+  --tweet-tag-text: #536471;
+  --tweet-tag-active: #0f1419;
+  --tweet-card-bg: #ffffff;
   color-scheme: light;
 }
 
 html.tweet-theme.tweet-theme--light body,
 html.tweet-theme.tweet-theme--light .tweet-root {
-  background-color: #ffffff;
+  background-color: #f5f8fa;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-header {
@@ -1850,17 +1856,17 @@ html.tweet-theme.tweet-theme--light .tweet-feed-header {
 }
 
 html.tweet-theme.tweet-theme--light .tweet-post-card__shell {
-  border: 1px solid #eff3f4;
-  box-shadow: none;
-  background-color: #f7f9f9;
+  border: 1px solid #dce3ea;
+  box-shadow: 0 1px 2px rgba(15, 20, 25, 0.04);
+  background-color: #ffffff;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-profile-card,
 html.tweet-theme.tweet-theme--light .tweet-profile-mobile,
 html.tweet-theme.tweet-theme--light .tweet-service__card {
-  border: 1px solid #eff3f4;
-  box-shadow: none;
-  background-color: #f7f9f9;
+  border: 1px solid #dce3ea;
+  box-shadow: 0 1px 2px rgba(15, 20, 25, 0.04);
+  background-color: #ffffff;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-post-card__author-badge {
@@ -1874,23 +1880,46 @@ html.tweet-theme.tweet-theme--light .tweet-profile-mobile--toggle:hover {
 }
 
 html.tweet-theme.tweet-theme--light .tweet-post-card:hover .tweet-post-card__shell {
-  border-color: #cfd9de;
-  box-shadow: 0 2px 8px rgba(15, 20, 25, 0.06);
-  background-color: #f0f3f4;
+  border-color: #c9d7e3;
+  box-shadow: 0 8px 24px rgba(15, 20, 25, 0.08);
+  background-color: #ffffff;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-search__box {
-  border: none;
+  border: 1px solid transparent;
   background-color: #eff3f4;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-search__box:focus {
+  border-color: #1d9bf0;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.12);
+}
+
+html.tweet-theme.tweet-theme--light .tweet-post-card__tag {
+  color: #1d4ed8;
+  background-color: rgba(29, 155, 240, 0.1);
+}
+
+html.tweet-theme.tweet-theme--light .tweet-post-card__tag:hover {
+  color: #0f1419;
+  background-color: rgba(29, 155, 240, 0.18);
 }
 
 html.tweet-theme.tweet-theme--light .tweet-tags__item:hover,
 html.tweet-theme.tweet-theme--light .tweet-tags__item[data-active='true'] {
-  background-color: #eff3f4;
+  color: #0f1419;
+  background-color: #e8f5fe;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-service__link:hover {
-  background-color: #f7f9f9;
+  color: #0f1419;
+  background-color: #e8f5fe;
+}
+
+html.tweet-theme.tweet-theme--light .tweet-service__link:hover .tweet-service__name,
+html.tweet-theme.tweet-theme--light .tweet-service__link:hover .tweet-service__icon {
+  color: #0f1419;
 }
 
 html.tweet-theme.tweet-theme--light .tweet-post-card__share-pop {
@@ -1927,7 +1956,9 @@ html.tweet-theme.tweet-theme--dark {
   --tweet-gray11: #b0b3b8;
   --tweet-gray12: #e7e9ea;
   --tweet-muted: #71767b;
-  --tweet-service-text: #71767b;
+  --tweet-service-text: #cfd9de;
+  --tweet-tag-text: #cfd9de;
+  --tweet-tag-active: #ffffff;
   --tweet-card-bg: #000000;
   color-scheme: dark;
 }
@@ -1979,12 +2010,12 @@ html.tweet-theme.tweet-theme--dark .tweet-search__box {
 }
 
 html.tweet-theme.tweet-theme--dark .tweet-post-card__tag {
-  color: #b0b3b8;
+  color: var(--tweet-tag-text);
   background-color: #202327;
 }
 
 html.tweet-theme.tweet-theme--dark .tweet-post-card__tag:hover {
-  color: #e7e9ea;
+  color: var(--tweet-tag-active);
   background-color: #2f3336;
 }
 

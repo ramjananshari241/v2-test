@@ -5,6 +5,7 @@ import ContentLayout from '../../components/layout/ContentLayout'
 import PostFooter from '../../components/post/PostFooter'
 import { StandardPostContent } from '@/src/themes/standard/StandardPostContent'
 import { StandardPostHeader } from '@/src/themes/standard/StandardPostHeader'
+import { StandardAdBanner } from '@/src/themes/standard/StandardAdBanner'
 import { StandardGalleryPreviewProvider } from '@/src/themes/standard/StandardGalleryPreviewContext'
 import { ArticlePasswordGate } from '../../components/post/ArticlePasswordGate'
 import PostMessage from '../../components/post/PostMessage'
@@ -129,8 +130,13 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
       const blocks = await getAllBlocks(postForPage.id)
       const formattedBlocks = await formatBlocks(blocks)
 
+      const isStandardSeriesTheme =
+        !activeTheme ||
+        activeTheme === 'anzifan' ||
+        activeTheme === 'standard' ||
+        activeTheme === 'touchgal'
       let galleryAdBanner = null
-      if (activeTheme === 'gallery' || isTweetTheme(activeTheme)) {
+      if (activeTheme === 'gallery' || isTweetTheme(activeTheme) || isStandardSeriesTheme) {
         clearGalleryAdBannerCache()
         galleryAdBanner = await loadGalleryAdBanner()
       }
@@ -258,6 +264,7 @@ const PostPage: NextPage<{
                 postSlug={post.slug}
                 blocks={resolvedBlocks}
               />
+              {galleryAdBanner ? <StandardAdBanner banner={galleryAdBanner} /> : null}
               <PostFooter post={post} />
               <PostNavigation navigation={navigation} />
               {CONFIG.ENABLE_COMMENT && <CommentSection />}

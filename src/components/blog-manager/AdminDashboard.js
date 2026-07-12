@@ -2310,6 +2310,108 @@ const FullRedeployConfirmModal = ({
   );
 };
 
+/** 爬虫管理维护密码弹窗 */
+const CrawlerIngestUnlockModal = ({
+  open,
+  closing,
+  busy,
+  passwordError,
+  onConfirm,
+  onCancel,
+}) => {
+  const [visible, setVisible] = useState(false);
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (open && !closing) {
+      setVisible(false);
+      setPassword('');
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    if (!open || closing) setVisible(false);
+  }, [open, closing]);
+
+  if (!open && !closing) return null;
+
+  const submit = () => {
+    if (busy) return;
+    onConfirm(password.trim());
+  };
+
+  return (
+    <div
+      className={`cover-modal-backdrop ${visible && !closing ? 'is-visible' : ''} ${closing ? 'is-closing' : ''}`}
+      onClick={onCancel}
+      role="presentation"
+    >
+      <div
+        className="cover-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="crawler-unlock-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="cover-modal-icon" aria-hidden>🔐</div>
+        <h3 id="crawler-unlock-modal-title" className="cover-modal-title">解锁爬虫管理</h3>
+        <p className="cover-modal-desc">
+          爬虫入库会批量写入 Notion 与图库，请输入维护密码后继续。
+        </p>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          disabled={busy}
+          placeholder="请输入维护密码"
+          autoComplete="off"
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            marginTop: '12px',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: `1px solid ${passwordError ? '#ff7875' : 'rgba(255,255,255,0.18)'}`,
+            background: '#151515',
+            color: '#f5f5f5',
+            outline: 'none',
+          }}
+        />
+        {passwordError ? (
+          <p style={{ margin: '8px 0 0', color: '#ff7875', fontSize: '12px' }}>
+            {passwordError}
+          </p>
+        ) : null}
+        <div className="cover-modal-actions">
+          <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onCancel} disabled={busy}>
+            取消
+          </button>
+          <button
+            type="button"
+            className="cover-modal-btn"
+            onClick={submit}
+            disabled={busy}
+            style={{
+              background: busy ? '#5a4a6e' : '#9a6dd7',
+              color: '#fff',
+              boxShadow: busy ? 'none' : '0 4px 14px rgba(154,109,215,0.35)',
+            }}
+          >
+            {busy ? '验证中…' : '解锁'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /** 主题切换完成提示（替代浏览器 alert） */
 const ThemeSwitchDoneModal = ({ open, closing, extraNote, onClose }) => {
   const [visible, setVisible] = useState(false);
@@ -3999,6 +4101,12 @@ const [mounted, setMounted] = useState(false);
   const [fullRedeployConfirmClosing, setFullRedeployConfirmClosing] = useState(false);
   const [fullRedeployPasswordError, setFullRedeployPasswordError] = useState('');
   const fullRedeployConfirmTimerRef = useRef(null);
+  const [crawlerIngestPassword, setCrawlerIngestPassword] = useState('');
+  const [crawlerIngestUnlockOpen, setCrawlerIngestUnlockOpen] = useState(false);
+  const [crawlerIngestUnlockClosing, setCrawlerIngestUnlockClosing] = useState(false);
+  const [crawlerIngestUnlockBusy, setCrawlerIngestUnlockBusy] = useState(false);
+  const [crawlerIngestUnlockError, setCrawlerIngestUnlockError] = useState('');
+  const crawlerIngestUnlockTimerRef = useRef(null);
   const [themeDoneModalOpen, setThemeDoneModalOpen] = useState(false);
   const [themeDoneModalClosing, setThemeDoneModalClosing] = useState(false);
   const [themeDoneModalNote, setThemeDoneModalNote] = useState('');
@@ -4191,6 +4299,16 @@ const [mounted, setMounted] = useState(false);
     fullRedeployConfirmTimerRef.current = setTimeout(() => {
       setFullRedeployConfirmOpen(false);
       setFullRedeployConfirmClosing(false);
+    }, 240);
+  };
+
+  const closeCrawlerIngestUnlockModal = () => {
+    if (crawlerIngestUnlockTimerRef.current) clearTimeout(crawlerIngestUnlockTimerRef.current);
+    setCrawlerIngestUnlockError('');
+    setCrawlerIngestUnlockClosing(true);
+    crawlerIngestUnlockTimerRef.current = setTimeout(() => {
+      setCrawlerIngestUnlockOpen(false);
+      setCrawlerIngestUnlockClosing(false);
     }, 240);
   };
 
@@ -4489,9 +4607,23 @@ const [mounted, setMounted] = useState(false);
     }
   };
 
+  const buildCrawlerIngestHeaders = (extra = {}, passwordOverride = crawlerIngestPassword) => ({
+    ...extra,
+    ...(passwordOverride
+      ? { 'x-admin-maintenance-password': passwordOverride }
+      : {}),
+  });
+
+  const handleCrawlerIngestAuthError = (message = '爬虫管理密码错误') => {
+    setCrawlerIngestPassword('');
+    setCrawlerIngestUnlockError(message);
+    setCrawlerIngestUnlockClosing(false);
+    setCrawlerIngestUnlockOpen(true);
+  };
+
   const fetchCrawlerIngestStatus = async () => {
     try {
-      const res = await fetch('/api/admin/crawler-ingest?tab=log');
+      const res = await fetch('/api/admin/crawler-ingest?summary=1');
       const data = await res.json();
       if (!res.ok || !data.success) return null;
       applyCrawlerIngestPayload(data);
@@ -4513,10 +4645,16 @@ const [mounted, setMounted] = useState(false);
     if (data.autoSettings) setCrawlerIngestAutoSettings(data.autoSettings);
   };
 
-  const fetchCrawlerIngestTab = async (tab = crawlerIngestTab) => {
+  const fetchCrawlerIngestTab = async (tab = crawlerIngestTab, passwordOverride = crawlerIngestPassword) => {
     try {
-      const res = await fetch(`/api/admin/crawler-ingest?tab=${encodeURIComponent(tab)}`);
+      const res = await fetch(`/api/admin/crawler-ingest?tab=${encodeURIComponent(tab)}`, {
+        headers: buildCrawlerIngestHeaders({}, passwordOverride),
+      });
       const data = await res.json();
+      if (res.status === 403) {
+        handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+        return null;
+      }
       if (!res.ok || !data.success) return null;
       applyCrawlerIngestPayload(data);
       return data;
@@ -4533,10 +4671,38 @@ const [mounted, setMounted] = useState(false);
   };
 
   const openCrawlerIngestView = async () => {
+    if (!crawlerIngestPassword) {
+      setCrawlerIngestUnlockError('');
+      setCrawlerIngestUnlockClosing(false);
+      setCrawlerIngestUnlockOpen(true);
+      return;
+    }
     setView('crawler-ingest');
     setCrawlerIngestTab('pending');
     setCrawlerIngestSelectedIds([]);
     await refreshCrawlerIngestPanel();
+  };
+
+  const confirmCrawlerIngestUnlock = async (password) => {
+    if (crawlerIngestUnlockBusy) return;
+    if (!password) {
+      setCrawlerIngestUnlockError('请输入维护密码');
+      return;
+    }
+
+    setCrawlerIngestUnlockBusy(true);
+    setCrawlerIngestUnlockError('');
+    try {
+      const data = await fetchCrawlerIngestTab('pending', password);
+      if (!data) return;
+      setCrawlerIngestPassword(password);
+      closeCrawlerIngestUnlockModal();
+      setView('crawler-ingest');
+      setCrawlerIngestTab('pending');
+      setCrawlerIngestSelectedIds([]);
+    } finally {
+      setCrawlerIngestUnlockBusy(false);
+    }
   };
 
   const leaveCrawlerIngestView = () => {
@@ -5404,10 +5570,14 @@ const [mounted, setMounted] = useState(false);
     try {
       const res = await fetch('/api/admin/crawler-ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildCrawlerIngestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action: 'retry', id: queueId, tab: crawlerIngestTab }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+        return;
+      }
       if (!res.ok || !data.success) throw new Error(data.error || '重试失败');
       applyCrawlerIngestPayload(data);
       showAdminToast('已重新加入待入库队列');
@@ -5422,10 +5592,14 @@ const [mounted, setMounted] = useState(false);
     try {
       const res = await fetch('/api/admin/crawler-ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildCrawlerIngestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action: 'retry', ids: crawlerIngestSelectedIds }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+        return;
+      }
       if (!res.ok || !data.success) throw new Error(data.error || '重试失败');
       applyCrawlerIngestPayload(data);
       setCrawlerIngestSelectedIds([]);
@@ -5439,10 +5613,14 @@ const [mounted, setMounted] = useState(false);
     try {
       const res = await fetch('/api/admin/crawler-ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildCrawlerIngestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action: 'reclaimStale', tab: 'processing' }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+        return;
+      }
       if (!res.ok || !data.success) throw new Error(data.error || '纠正失败');
       applyCrawlerIngestPayload(data);
       const n = data.staleFailed ?? 0;
@@ -5457,10 +5635,14 @@ const [mounted, setMounted] = useState(false);
     try {
       const res = await fetch('/api/admin/crawler-ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildCrawlerIngestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action: 'resetProcessing', ids: crawlerIngestSelectedIds }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+        return;
+      }
       if (!res.ok || !data.success) throw new Error(data.error || '重置失败');
       applyCrawlerIngestPayload(data);
       setCrawlerIngestSelectedIds([]);
@@ -5473,10 +5655,14 @@ const [mounted, setMounted] = useState(false);
   const handleSaveCrawlerAutoSettings = async ({ enabled, hour }) => {
     const res = await fetch('/api/admin/crawler-ingest', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildCrawlerIngestHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ action: 'updateAutoSettings', enabled, hour }),
     });
     const data = await res.json();
+    if (res.status === 403) {
+      handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+      return;
+    }
     if (!res.ok || !data.success) throw new Error(data.error || '保存失败');
     if (data.autoSettings) setCrawlerIngestAutoSettings(data.autoSettings);
     if (data.summary) setCrawlerIngestSummary(data.summary);
@@ -5497,7 +5683,7 @@ const [mounted, setMounted] = useState(false);
       '/api/admin/crawler-ingest',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildCrawlerIngestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           action: 'ingest',
           ids: [id],
@@ -5507,6 +5693,10 @@ const [mounted, setMounted] = useState(false);
       CRAWLER_INGEST_FETCH_TIMEOUT_MS
     );
     const data = await res.json();
+    if (res.status === 403) {
+      handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+      return { ok: false, error: data.error || '爬虫管理密码错误', data };
+    }
     if (!res.ok || !data.success) {
       return { ok: false, error: data.error || '爬虫入库失败', data };
     }
@@ -5679,10 +5869,14 @@ const [mounted, setMounted] = useState(false);
     try {
       const res = await fetch('/api/admin/crawler-ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildCrawlerIngestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action: 'delete', ids: crawlerIngestSelectedIds }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        handleCrawlerIngestAuthError(data.error || '爬虫管理密码错误');
+        return;
+      }
       if (!res.ok || !data.success) throw new Error(data.error || '删除失败');
       applyCrawlerIngestPayload(data);
       setCrawlerIngestSelectedIds([]);
@@ -6462,6 +6656,14 @@ const [mounted, setMounted] = useState(false);
         onConfirm={proceedFullRedeployAfterConfirm}
         onCancel={closeFullRedeployConfirmModal}
       />
+      <CrawlerIngestUnlockModal
+        open={crawlerIngestUnlockOpen}
+        closing={crawlerIngestUnlockClosing}
+        busy={crawlerIngestUnlockBusy}
+        passwordError={crawlerIngestUnlockError}
+        onConfirm={confirmCrawlerIngestUnlock}
+        onCancel={closeCrawlerIngestUnlockModal}
+      />
       <AdminToast message={adminToast.message} visible={adminToast.visible} closing={adminToast.closing} />
       <PublishQueuePanel
         jobs={publishQueue}
@@ -6732,7 +6934,7 @@ const [mounted, setMounted] = useState(false);
                 <div onClick={openGalleryAd} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #f59e0b', cursor: 'pointer' }}>
                   <div style={{ fontSize: '28px' }}>📢</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>广告位编辑</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>内页广告位</div>
                     <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>页底横幅banner</div>
                   </div>
                   <div style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
@@ -6972,7 +7174,7 @@ const [mounted, setMounted] = useState(false);
         ) : view === 'gallery-ad' ? (
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
-              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>📢 广告位编辑</div>
+              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>📢 内页广告位</div>
               <div style={{fontSize:'12px', color:'#888'}}>文章内页底部 + 下载页右栏顶部</div>
             </div>
 
