@@ -1,35 +1,49 @@
-let queuedRevalidateDrainTimer = null;
+let queuedRevalidateDrainTimers = [];
 
 const REVALIDATE_BATCH_SIZE = 12;
 const LIST_MUTATION_REFRESH_STEPS = 2;
 
 export const BLOG_SHELL_REFRESH_COOLDOWN_MS = 60_000;
 
+function clearQueuedRevalidateDrainTimers() {
+  queuedRevalidateDrainTimers.forEach((timer) => clearTimeout(timer));
+  queuedRevalidateDrainTimers = [];
+}
+
+async function drainQueuedRevalidations() {
+  const res = await fetch('/api/admin/revalidate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'drain', limit: 30 }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || data?.success === false) {
+    console.warn('刷新队列处理未完成', data);
+  }
+  return data;
+}
+
 export function scheduleQueuedRevalidateDrain(delayMs = 30_000) {
   if (typeof window === 'undefined') return;
   const safeDelay = Math.max(1000, Number(delayMs) || 30_000);
-  if (queuedRevalidateDrainTimer) {
-    clearTimeout(queuedRevalidateDrainTimer);
-  }
-  queuedRevalidateDrainTimer = window.setTimeout(async () => {
-    queuedRevalidateDrainTimer = null;
-    try {
-      const res = await fetch('/api/admin/revalidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'drain', limit: 30 }),
-      });
-      const data = await res.json().catch(() => null);
-      if (data?.pending > 0 || data?.drained >= 30) {
-        scheduleQueuedRevalidateDrain(12_000);
+  clearQueuedRevalidateDrainTimers();
+
+  // 一次入队后做多次轻量消费兜底：
+  // 1) 到期消费；2) 网络/标签页节流补偿；3) Notion 索引延迟补偿。
+  const delays = [safeDelay, safeDelay + 30_000, safeDelay + 90_000];
+
+  queuedRevalidateDrainTimers = delays.map((delay) =>
+    window.setTimeout(async () => {
+      try {
+        const data = await drainQueuedRevalidations();
+        if (data?.pending > 0 || data?.drained >= 30) {
+          scheduleQueuedRevalidateDrain(12_000);
+        }
+      } catch (e) {
+        console.warn('刷新队列处理失败', e);
       }
-      if (!res.ok || data?.success === false) {
-        console.warn('刷新队列处理未完成', data);
-      }
-    } catch (e) {
-      console.warn('刷新队列处理失败', e);
-    }
-  }, safeDelay);
+    }, delay)
+  );
 }
 
 export async function triggerContentRevalidation(payload = {}) {
