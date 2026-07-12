@@ -22,7 +22,7 @@ export function TweetServiceCard({
     <div className="tweet-service">
       {showSectionTitle ? (
         <TweetSectionTitle
-          emoji="🌟"
+          emoji="👋"
           label="访客"
           desktopOnly={sectionTitleDesktopOnly}
         />
