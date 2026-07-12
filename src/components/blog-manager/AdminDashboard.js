@@ -104,6 +104,14 @@ function resolvePublishIdleStallMs(job) {
   return typeof ms === 'number' ? ms : PUBLISH_QUEUE_IDLE_STALL_MS.default;
 }
 
+function hasGalleryImageItem(items) {
+  return (items || []).some(
+    (item) =>
+      item?.status === 'pending' ||
+      (item?.status === 'remote' && typeof item.url === 'string' && item.url.trim())
+  );
+}
+
 function formatJobElapsed(startedAt) {
   if (!startedAt) return '';
   const sec = Math.floor((Date.now() - startedAt) / 1000);
@@ -2201,12 +2209,21 @@ const AdminHeaderActionsMenu = ({
 };
 
 /** 全量更新确认弹窗 */
-const FullRedeployConfirmModal = ({ open, closing, busy, onConfirm, onCancel }) => {
+const FullRedeployConfirmModal = ({
+  open,
+  closing,
+  busy,
+  passwordError,
+  onConfirm,
+  onCancel,
+}) => {
   const [visible, setVisible] = useState(false);
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     if (open && !closing) {
       setVisible(false);
+      setPassword('');
       const id = requestAnimationFrame(() => {
         requestAnimationFrame(() => setVisible(true));
       });
@@ -2216,6 +2233,11 @@ const FullRedeployConfirmModal = ({ open, closing, busy, onConfirm, onCancel }) 
   }, [open, closing]);
 
   if (!open && !closing) return null;
+
+  const submit = () => {
+    if (busy) return;
+    onConfirm(password.trim());
+  };
 
   return (
     <div
@@ -2233,8 +2255,38 @@ const FullRedeployConfirmModal = ({ open, closing, busy, onConfirm, onCancel }) 
         <div className="cover-modal-icon" aria-hidden>🔄</div>
         <h3 id="full-redeploy-modal-title" className="cover-modal-title">确认全量更新</h3>
         <p className="cover-modal-desc">
-          是否确定执行全量更新，12h 内仅支持执行 1 次
+          是否确定执行全量更新，12h 内仅支持执行 1 次。请输入维护密码后继续。
         </p>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          disabled={busy}
+          placeholder="请输入全量更新密码"
+          autoComplete="off"
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            marginTop: '12px',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: `1px solid ${passwordError ? '#ff7875' : 'rgba(255,255,255,0.18)'}`,
+            background: '#151515',
+            color: '#f5f5f5',
+            outline: 'none',
+          }}
+        />
+        {passwordError ? (
+          <p style={{ margin: '8px 0 0', color: '#ff7875', fontSize: '12px' }}>
+            {passwordError}
+          </p>
+        ) : null}
         <div className="cover-modal-actions">
           <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onCancel} disabled={busy}>
             取消
@@ -2242,7 +2294,7 @@ const FullRedeployConfirmModal = ({ open, closing, busy, onConfirm, onCancel }) 
           <button
             type="button"
             className="cover-modal-btn"
-            onClick={onConfirm}
+            onClick={submit}
             disabled={busy}
             style={{
               background: busy ? '#5a4a6e' : '#9a6dd7',
@@ -3945,6 +3997,7 @@ const [mounted, setMounted] = useState(false);
   const taxonomyConfirmTimerRef = useRef(null);
   const [fullRedeployConfirmOpen, setFullRedeployConfirmOpen] = useState(false);
   const [fullRedeployConfirmClosing, setFullRedeployConfirmClosing] = useState(false);
+  const [fullRedeployPasswordError, setFullRedeployPasswordError] = useState('');
   const fullRedeployConfirmTimerRef = useRef(null);
   const [themeDoneModalOpen, setThemeDoneModalOpen] = useState(false);
   const [themeDoneModalClosing, setThemeDoneModalClosing] = useState(false);
@@ -4133,6 +4186,7 @@ const [mounted, setMounted] = useState(false);
 
   const closeFullRedeployConfirmModal = () => {
     if (fullRedeployConfirmTimerRef.current) clearTimeout(fullRedeployConfirmTimerRef.current);
+    setFullRedeployPasswordError('');
     setFullRedeployConfirmClosing(true);
     fullRedeployConfirmTimerRef.current = setTimeout(() => {
       setFullRedeployConfirmOpen(false);
@@ -4148,7 +4202,11 @@ const [mounted, setMounted] = useState(false);
         form?.type !== 'Page' &&
         !isSimpleCustomPage(form?.slug) &&
         (form?.type === 'Post' || !form?.type);
-      if (isPostArticle && !hasEditorImageBlock(editorBlocksRef.current || [])) {
+      if (
+        isPostArticle &&
+        !hasEditorImageBlock(editorBlocksRef.current || []) &&
+        !hasGalleryImageItem(galleryItems)
+      ) {
         setCoverModalClosing(false);
         setCoverModalOpen(true);
         return;
@@ -5634,11 +5692,20 @@ const [mounted, setMounted] = useState(false);
     }
   };
 
-  const executeFullRedeploy = async () => {
+  const executeFullRedeploy = async (password) => {
     setFullRedeployBusy(true);
+    setFullRedeployPasswordError('');
     try {
-      const res = await fetch('/api/admin/full-redeploy', { method: 'POST' });
+      const res = await fetch('/api/admin/full-redeploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
       const data = await res.json();
+      if (res.status === 403) {
+        setFullRedeployPasswordError(data.error || '全量更新密码错误');
+        return;
+      }
       if (!res.ok || !data.success) {
         throw new Error(data.error || '触发失败');
       }
@@ -5663,9 +5730,13 @@ const [mounted, setMounted] = useState(false);
     }
   };
 
-  const proceedFullRedeployAfterConfirm = () => {
+  const proceedFullRedeployAfterConfirm = (password) => {
     if (fullRedeployBusy) return;
-    executeFullRedeploy();
+    if (!password) {
+      setFullRedeployPasswordError('请输入全量更新密码');
+      return;
+    }
+    executeFullRedeploy(password);
   };
 
   const openFullRedeployConfirm = () => {
@@ -5675,6 +5746,7 @@ const [mounted, setMounted] = useState(false);
       return;
     }
     if (fullRedeployConfirmTimerRef.current) clearTimeout(fullRedeployConfirmTimerRef.current);
+    setFullRedeployPasswordError('');
     setFullRedeployConfirmClosing(false);
     setFullRedeployConfirmOpen(true);
   };
@@ -6386,6 +6458,7 @@ const [mounted, setMounted] = useState(false);
         open={fullRedeployConfirmOpen}
         closing={fullRedeployConfirmClosing}
         busy={fullRedeployBusy}
+        passwordError={fullRedeployPasswordError}
         onConfirm={proceedFullRedeployAfterConfirm}
         onCancel={closeFullRedeployConfirmModal}
       />

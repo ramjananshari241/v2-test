@@ -124,6 +124,8 @@
 - 修改后台时要格外小心：`AdminDashboard.js` 很大，尽量做外科手术式局部修改；能抽到已有小模块的再抽，不要顺手大重构。
 - 后台 revalidate 客户端逻辑已从 `AdminDashboard.js` 抽到 `src/components/blog-manager/adminRevalidateClient.js`。后续调整刷新队列、手动刷新、批量刷新、主题切换刷新提示时，优先改这个文件，避免继续扩大 `AdminDashboard.js`。
 - 后台保存入队后，`adminRevalidateClient.js` 会安排多次轻量 `action: drain` 兜底消费，避免浏览器标签页节流、网络抖动或 Notion 索引延迟导致前台缓存没有及时刷新。
+- 后台“全量更新”按钮保留给管理员维护使用，但 `POST /api/admin/full-redeploy` 需要全量更新密码；默认密码在该 API 文件中暂定为 `123456`，可后续改为环境变量或更强的服务端配置。
+- 后台发布文章时，“尚未添加图片块”提示只在正文没有图片块且当前文章也没有图库图片时弹出；如果已存在图库，则视为已有封面候选，不再打断发布。
 
 ## Gallery、下载与统计
 
