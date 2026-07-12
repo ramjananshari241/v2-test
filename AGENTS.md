@@ -122,6 +122,7 @@
   - `DELETE/PATCH /api/admin/taxonomy`：删除标签/分类或重命名分类。
 - 后台编辑器的结构化块会转为 Notion blocks；加密内容使用 `LOCK:<password>` 的 callout 协议，前台和后台都依赖该约定。
 - 修改后台时要格外小心：`AdminDashboard.js` 很大，尽量做外科手术式局部修改；能抽到已有小模块的再抽，不要顺手大重构。
+- 后台 revalidate 客户端逻辑已从 `AdminDashboard.js` 抽到 `src/components/blog-manager/adminRevalidateClient.js`。后续调整刷新队列、手动刷新、批量刷新、主题切换刷新提示时，优先改这个文件，避免继续扩大 `AdminDashboard.js`。
 
 ## Gallery、下载与统计
 
