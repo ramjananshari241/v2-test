@@ -1,5 +1,6 @@
 import { ReactElement } from 'react'
 import { Title } from '@/src/types/blog'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { GalleryPageLayout } from '@/src/themes/gallery/GalleryPageLayout'
 import { GalleryShell } from '@/src/themes/gallery/GalleryShell'
 import { TweetPageLayout } from '@/src/themes/tweet/TweetPageLayout'
@@ -30,6 +31,7 @@ export function applyThemePageLayout(
 type ThemeNavShellProps = {
   activeTheme?: string | null
   siteTitle?: Title
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
   children: ReactElement
 }
@@ -38,6 +40,7 @@ type ThemeNavShellProps = {
 export function ThemeNavShell({
   activeTheme,
   siteTitle,
+  vendingConfig,
   vendingEnabled = true,
   children,
 }: ThemeNavShellProps) {
@@ -46,7 +49,11 @@ export function ThemeNavShell({
   if (themeId === 'gallery') {
     return (
       <GalleryPageLayout>
-        <GalleryShell siteTitle={siteTitle} vendingEnabled={vendingEnabled}>
+        <GalleryShell
+          siteTitle={siteTitle}
+          vendingConfig={vendingConfig}
+          vendingEnabled={vendingEnabled}
+        >
           {children}
         </GalleryShell>
       </GalleryPageLayout>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ProfileBioText } from '@/src/components/widget/ProfileBioText'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAsideFooter } from './TweetAsideFooter'
 import { TweetAvatar } from './TweetAvatar'
@@ -10,14 +11,17 @@ import { TweetVendingButton } from './TweetVendingButton'
 
 export function TweetMobileProfileCard({
   profile,
+  vendingConfig,
   vendingEnabled = true,
 }: {
   profile?: ProfileWidgetType | null
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const name = profile?.name?.trim() || '本站'
   const description = profile?.description?.trim() || ''
+  const showVending = vendingConfig?.enabled ?? vendingEnabled
 
   return (
     <div className="tweet-feed__profile-mobile">
@@ -55,7 +59,9 @@ export function TweetMobileProfileCard({
 
         {expanded ? (
           <div className="tweet-mobile-profile-panel">
-            {vendingEnabled ? <TweetVendingButton /> : null}
+            {showVending ? (
+              <TweetVendingButton url={vendingConfig?.url} title={vendingConfig?.title} />
+            ) : null}
             <TweetServiceCard />
             <TweetAsideFooter />
           </div>

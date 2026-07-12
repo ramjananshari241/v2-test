@@ -1,21 +1,29 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import {
+  DEFAULT_VENDING_TITLE,
+  DEFAULT_VENDING_URL,
+  VendingConfig,
+} from '@/src/lib/blog/vendingDefaults'
 // @ts-ignore
 import { createPortal } from 'react-dom'
 
 // 🟢 你的自定义购买地址（请在这里修改为你真实的贩售机链接）
-const BUY_LINK = "https://store.proplus.onl/buy"
-
 export const StatsWidget = ({
   data,
+  vendingConfig,
   vendingEnabled = true,
 }: {
   data: any
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
 }) => {
   const[showModal, setShowModal] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const showVending = vendingConfig?.enabled ?? vendingEnabled
+  const vendingUrl = vendingConfig?.url || DEFAULT_VENDING_URL
+  const vendingTitle = vendingConfig?.title || DEFAULT_VENDING_TITLE
 
   // 1. 数据解析 (保持原样不动)
   const post = data || {};
@@ -143,7 +151,7 @@ export const StatsWidget = ({
 
           {/* 唯一的入口：高级 3D 动态光感按钮 */}
           <a
-            href={BUY_LINK}
+            href={vendingUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-3d-premium"
@@ -174,7 +182,7 @@ export const StatsWidget = ({
         .animate-border-flow { background-size: 200% 200%; animation: borderFlow 3s ease infinite; }
       `}</style>
 
-      {showModal && vendingEnabled && <Modal />}
+      {showModal && showVending && <Modal />}
 
       <div className="relative h-full w-full group/card transition-transform duration-500 ease-out hover:scale-[1.015]">
         
@@ -213,7 +221,7 @@ export const StatsWidget = ({
             </Wrapper>
 
             {/* 下半部分：贩售机入口（有按钮时贴底） */}
-            {vendingEnabled ? (
+            {showVending ? (
             <div className="w-full mt-auto pt-4 relative z-20">
               <button 
                 onClick={(e) => {
@@ -229,7 +237,7 @@ export const StatsWidget = ({
                   hover:bg-white/20 hover:scale-[1.02] active:scale-95 active:bg-white/5"
               >
                 <span className="text-sm">🚛</span>
-                <span>前往贩售机</span>
+                <span>前往{vendingTitle}</span>
               </button>
             </div>
             ) : null}

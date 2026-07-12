@@ -9,6 +9,7 @@ export const RESERVED_POST_SLUGS = new Set([
   'download',
   'theme-config',
   'gallery-ad',
+  'vending',
 ])
 
 /**

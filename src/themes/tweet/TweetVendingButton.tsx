@@ -1,19 +1,27 @@
 import { useId } from 'react'
+import {
+  DEFAULT_VENDING_TITLE,
+  DEFAULT_VENDING_URL,
+} from '@/src/lib/blog/vendingDefaults'
 
-const VENDING_URL = 'https://store.proplus.onl/buy'
-
-export function TweetVendingButton() {
+export function TweetVendingButton({
+  url = DEFAULT_VENDING_URL,
+  title = DEFAULT_VENDING_TITLE,
+}: {
+  url?: string
+  title?: string
+}) {
   const uid = useId().replace(/:/g, '')
   const fillId = `tweet-vending-fill-${uid}`
   const strokeId = `tweet-vending-stroke-${uid}`
 
   return (
     <a
-      href={VENDING_URL}
+      href={url || DEFAULT_VENDING_URL}
       className="tweet-vending-btn"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="贩售机"
+      aria-label={title || DEFAULT_VENDING_TITLE}
     >
       <span className="tweet-vending-btn__ring">
         <span className="tweet-vending-btn__ring-blur">
@@ -72,7 +80,9 @@ export function TweetVendingButton() {
           </svg>
           <span className="tweet-vending-btn__icon-shine" />
         </span>
-        <span className="tweet-vending-btn__label">贩售机</span>
+        <span className="tweet-vending-btn__label">
+          {title || DEFAULT_VENDING_TITLE}
+        </span>
       </span>
     </a>
   )

@@ -2,6 +2,7 @@ import { BlogStats, Widget } from '@/src/types/blog'
 import { formatGalleryAdWidget } from './format/widget/galleryAd'
 import { formatProfileWidget } from './format/widget/profile'
 import { formatStatsWidget } from './format/widget/stats'
+import { formatVendingWidget } from './format/widget/vending'
 
 export const supportedWidgetsMap: {
   [key: string]: {
@@ -23,6 +24,10 @@ export const supportedWidgetsMap: {
   },
   'gallery-ad': {
     formatFn: formatGalleryAdWidget,
+    database: [],
+  },
+  vending: {
+    formatFn: formatVendingWidget,
     database: [],
   },
 }

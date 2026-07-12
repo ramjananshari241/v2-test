@@ -80,7 +80,9 @@ const SPECIAL_PAGE_SLUGS = new Set(['announcement', 'about', 'download', 'theme-
 
 function resolveSaveRevalidateScope(type, slug) {
   if (type === 'Widget') {
-    return slug === 'gallery-ad' ? 'gallery-ad' : 'widget';
+    if (slug === 'gallery-ad') return 'gallery-ad';
+    if (slug === 'vending') return 'vending';
+    return 'widget';
   }
   if (type === 'Page' || SPECIAL_PAGE_SLUGS.has(slug)) {
     return 'page';
@@ -4069,6 +4071,8 @@ const [mounted, setMounted] = useState(false);
   const [galleryAdSaving, setGalleryAdSaving] = useState(false);
   const [galleryAdCoverUploading, setGalleryAdCoverUploading] = useState(false);
   const [vendingEnabled, setVendingEnabled] = useState(true);
+  const [vendingTitle, setVendingTitle] = useState('贩售机');
+  const [vendingUrl, setVendingUrl] = useState('');
   const [vendingLoading, setVendingLoading] = useState(false);
   const [vendingSaving, setVendingSaving] = useState(false);
   const [friendDraft, setFriendDraft] = useState({ name: '', url: '', avatar: '' });
@@ -4982,27 +4986,49 @@ const [mounted, setMounted] = useState(false);
     try {
       const r = await fetch('/api/admin/vending');
       const d = await r.json();
-      if (d.success) setVendingEnabled(d.enabled !== false);
+      if (d.success) {
+        setVendingEnabled(d.enabled !== false);
+        setVendingTitle(d.title || '贩售机');
+        setVendingUrl(d.url || 'https://store.proplus.onl/buy');
+      }
       else alert('加载贩售机设置失败：' + (d.error || '未知错误'));
     } catch (e) { alert('加载贩售机设置失败：' + e.message); }
     finally { setVendingLoading(false); }
   };
   const openVending = () => { setView('vending'); loadVending(); };
-  const saveVending = async (nextEnabled) => {
+  const saveVending = async (patch = {}) => {
+    const nextEnabled = typeof patch.enabled === 'boolean' ? patch.enabled : vendingEnabled;
+    const nextTitle = ((patch.title ?? vendingTitle) || '').trim() || '贩售机';
+    const nextUrl = ((patch.url ?? vendingUrl) || '').trim();
+    if (!nextUrl.startsWith('http')) { alert('请填写有效的贩售机地址（需以 http 开头）'); return; }
     setVendingSaving(true);
     try {
       const r = await fetch('/api/admin/vending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: nextEnabled }),
+        body: JSON.stringify({ enabled: nextEnabled, title: nextTitle, url: nextUrl }),
       });
       const d = await r.json();
       if (d.success) {
         setVendingEnabled(d.enabled !== false);
-        showAdminToast(d.enabled ? '贩售机已开启，正在更新前台…' : '贩售机已关闭，正在更新前台…');
-        void triggerShellBlogRefresh().then((rev) =>
-          showRevalidateFeedback(rev, showAdminToast)
-        );
+        setVendingTitle(d.title || nextTitle);
+        setVendingUrl(d.url || nextUrl);
+        showAdminToast(d.enabled ? '贩售机已保存，正在更新前台…' : '贩售机已关闭，正在更新前台…');
+        void runBatchedRevalidation({
+          listScope: 'vending',
+          freshTheme: true,
+          contentChange: true,
+          progressLabels: {
+            listing: '正在统计贩售机入口页面…',
+            running: '正在更新贩售机入口…',
+            doneOk: '贩售机入口已同步到前台页面',
+            donePartial: '部分页面需稍后自动更新',
+            hintPartial: '个页面未能更新，可重新保存贩售机设置',
+            hintOk: '全部入口页面已更新',
+          },
+        }).then((rev) => {
+          if (rev.failed > 0) showAdminToast(`部分页面更新失败（${rev.failed}/${rev.total}）`);
+        }).catch((e) => console.warn('贩售机增量刷新失败', e));
       } else alert('保存失败：' + (d.error || '未知错误'));
     } catch (e) { alert('保存失败：' + e.message); }
     finally { setVendingSaving(false); }
@@ -5387,15 +5413,16 @@ const [mounted, setMounted] = useState(false);
             queuePriority: 10,
           });
           showRevalidateFeedback(rev, showAdminToast);
-        } else if (saveScope === 'gallery-ad') {
+        } else if (saveScope === 'gallery-ad' || saveScope === 'vending') {
+          const scope = saveScope;
           void triggerContentRevalidation({
-            scope: 'gallery-ad',
+            scope,
             queue: true,
             queueDelayMs: 30_000,
             clearCaches: true,
             freshTheme: true,
             contentChange: true,
-            queueReason: 'gallery-ad-save',
+            queueReason: `${scope}-save`,
             queuePriority: 20,
           }).then((rev) => showRevalidateFeedback(rev, showAdminToast));
         } else if (saveScope === 'widget') {
@@ -6432,7 +6459,7 @@ const [mounted, setMounted] = useState(false);
       p.slug !== ANNOUNCEMENT_SLUG &&
       p.favourited
   ).length;
-  const siteInfoWidget = posts.find(p => p.type === 'Widget' && p.slug !== 'gallery-ad');
+  const siteInfoWidget = posts.find(p => p.type === 'Widget' && p.slug !== 'gallery-ad' && p.slug !== 'vending');
   const pinnedDividerIndex = activeTab === 'Post' ? filtered.findIndex(p => !p.pinned) : -1;
   const publishDatesSet = (() => {
     const s = new Set();
@@ -6925,7 +6952,7 @@ const [mounted, setMounted] = useState(false);
                   <div style={{ fontSize: '28px' }}>🛒</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>贩售机</div>
-                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>全主题贩售机入口开关</div>
+                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>全主题贩售机入口与地址</div>
                   </div>
                   <div style={{ color: '#f97316', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
                 </div>
@@ -7136,14 +7163,14 @@ const [mounted, setMounted] = useState(false);
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
               <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>🛒 贩售机</div>
-              <div style={{fontSize:'12px', color:'#888'}}>全主题入口开关</div>
+              <div style={{fontSize:'12px', color:'#888'}}>全主题入口开关与跳转地址</div>
             </div>
 
             {vendingLoading ? (
               <div style={{color:'#888', textAlign:'center', padding:'30px'}}>加载中...</div>
             ) : (
               <>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'20px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'20px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555', marginBottom:'18px'}}>
                   <div>
                     <div style={{fontSize:'16px', fontWeight:'bold', color:'#fff', marginBottom:'6px'}}>贩售机功能</div>
                     <div style={{fontSize:'12px', color:'#999'}}>{vendingEnabled ? '当前：已开启' : '当前：已关闭'}</div>
@@ -7151,7 +7178,7 @@ const [mounted, setMounted] = useState(false);
                   <button
                     type="button"
                     disabled={vendingSaving}
-                    onClick={() => saveVending(!vendingEnabled)}
+                    onClick={() => saveVending({ enabled: !vendingEnabled })}
                     style={{
                       minWidth: '88px',
                       padding: '12px 20px',
@@ -7166,6 +7193,25 @@ const [mounted, setMounted] = useState(false);
                     }}
                   >
                     {vendingSaving ? '保存中…' : (vendingEnabled ? '已开启' : '已关闭')}
+                  </button>
+                </div>
+                <div style={{display:'flex', flexDirection:'column', gap:'16px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555'}}>
+                  <div>
+                    <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>按钮名称</label>
+                    <input className="glow-input" value={vendingTitle} onChange={e=>setVendingTitle(e.target.value)} placeholder="贩售机" />
+                  </div>
+                  <div>
+                    <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>贩售机地址 <span style={{color:'#ff4d4f'}}>*</span></label>
+                    <input className="glow-input" value={vendingUrl} onChange={e=>setVendingUrl(e.target.value)} placeholder="https://store.proplus.onl/buy" />
+                    <div style={{fontSize:'11px', color:'#888', marginTop:'8px', lineHeight:1.6}}>保存后会写入 Notion 中 slug 为 vending 的 Widget，商家系统后续也可通过接口统一替换这个地址。</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveVending()}
+                    disabled={vendingSaving}
+                    style={{padding:'16px', background: vendingSaving ? '#333' : '#fff', color: vendingSaving ? '#666' : '#000', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'15px', cursor: vendingSaving ? 'wait' : 'pointer'}}
+                  >
+                    {vendingSaving ? '保存中…' : '保存贩售机设置'}
                   </button>
                 </div>
               </>

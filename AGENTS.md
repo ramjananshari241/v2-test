@@ -45,7 +45,7 @@
   - `layout/`、`nav/`、`footer/`、`section/`、`post/`、`widget/`：传统 Blog 页面结构。
 - `src/lib/`：数据访问、格式化、后台辅助和业务逻辑。
   - `notion/`：Notion Client、数据库查询、block 获取、属性读取、过滤器、重试。
-  - `blog/`：文章/页面格式化、主题设置、贩售机开关、置顶、首页 Widget、静态路径限制等。
+  - `blog/`：文章/页面格式化、主题设置、贩售机配置、置顶、首页 Widget、静态路径限制等。
   - `gallery/`：Gallery 图库、多租户 site_id、封面、统计、推荐、下载路径、广告和 Supabase 数据访问。
   - `admin/`：后台上传、图库 flush、全量 redeploy、登录 token、封面设置、编辑器锁定块等辅助逻辑。
   - `ingest/`：爬虫入库队列与 Notion/Gallery 写入逻辑。
@@ -69,11 +69,12 @@
 - 常用状态包括 `Published`、`Draft`、`Hidden`；代码同时兼容 Notion 的 `status` 属性类型和旧版 `select` 类型。
 - 核心字段包括 `title`、`slug`、`excerpt`、`category`、`tags`、`date`、`cover`、`download`、`download_size`、`download_count`、`article_password`、`pinned`、`favourited` 等。部分字段存在大小写或旧字段兼容逻辑，改动时要读 `src/lib/notion/readProperty.ts` 和相关 API 的动态属性判断。
 - `slug=theme-config` 的页面用于远程主题配置，通常通过 `excerpt` 存主题代号。
+- `theme-config`、`gallery-ad`、`vending` 是系统级 slug，不应作为普通公开自定义页面；`[page].tsx` 会过滤这些 slug，避免系统 Widget 被生成成前台页面。
 - 系统保留分类包括 `网站信息`、`系统组件`、`站长通知`、`默认`，后台分类删除/重命名逻辑会保护这些名称。
 
 ## 前台渲染流程
 
-- 公共导航与站点信息由 `withNavFooterStaticProps` 注入：读取 Notion 导航缓存，同时解析当前主题和贩售机开关。
+- 公共导航与站点信息由 `withNavFooterStaticProps` 注入：读取 Notion 导航缓存，同时解析当前主题和贩售机配置。
 - 首页 `src/pages/index.tsx`：
   - 从 Notion 拉取 Archive 范围文章。
   - 用 `formatPosts(..., FORMAT_POST_LIST_OPTIONS)` 格式化，列表场景默认跳过远程封面探测以提升速度。
@@ -116,7 +117,7 @@
   - `POST /api/admin/upload`：服务端代理上传到兰空图床。
   - `GET/POST/DELETE /api/admin/gallery-ad`：Gallery/Tweet 广告条配置。
   - `GET/POST /api/admin/friends`：友链管理。
-  - `GET/POST /api/admin/vending`：贩售机入口开关。
+  - `GET/POST /api/admin/vending`：贩售机入口配置；底层写入 Notion `slug=vending` 的 Widget。
   - `POST /api/admin/revalidate`：按路径触发 ISR revalidate。
   - `GET/POST /api/admin/crawler-ingest`：爬虫入库队列处理。
   - `GET/POST /api/admin/full-redeploy`：触发全量 redeploy。
@@ -130,6 +131,8 @@
 - 后台发布文章时，“尚未添加图片块”提示只在正文没有图片块且当前文章也没有图库图片时弹出；如果已存在图库，则视为已有封面候选，不再打断发布。
 - `/admin` 不加载全局 Chatwoot 客服脚本；在线客服仅面向前台访客。
 - 后台 Widget 中的 `gallery-ad` 当前作为“内页广告位”维护，数据会用于 Gallery、Tweet 与 Standard 系列文章内页底部 banner；保存后走 `gallery-ad` revalidate 范围刷新文章页。
+- 后台 Widget 中的 `vending` 当前作为“贩售机入口”维护，约定：`type=Widget`、`slug=vending`、`title` 为入口按钮文字、`excerpt` 为跳转 URL、`status=Published` 表示开启、`status=Hidden` 表示关闭。旧 Supabase `blog_site_settings.vending_enabled` 仅作为没有该 Widget 时的兼容兜底；后台保存会创建/更新 Notion Widget，并同步旧开关。
+- `/api/admin/vending` 的 `POST` 支持 `{ enabled, title, url }`，用于后台和后续商家系统一键替换贩售机地址；保存后需要刷新 `vending` 范围（壳层 + 文章页/下载页），`/api/admin/revalidate` 已支持 `scope/listScope='vending'`。
 
 ## Gallery、下载与统计
 

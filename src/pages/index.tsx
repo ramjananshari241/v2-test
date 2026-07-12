@@ -27,7 +27,7 @@ const Home: NextPage<{
   activeTheme: ThemeId
   tweetFeedMedia?: import('../lib/tweet/loadTweetFeedMedia').TweetFeedMediaMap | null
   galleryFeedCovers?: Record<string, string> | null
-}> = ({ posts, widgets, activeTheme, siteTitle, navPages, tweetFeedMedia, galleryFeedCovers, vendingEnabled }) => {
+}> = ({ posts, widgets, activeTheme, siteTitle, navPages, tweetFeedMedia, galleryFeedCovers, vendingConfig, vendingEnabled }) => {
   const themeId =
     activeTheme ||
     (process.env.NODE_ENV === 'development' ? themeFromEnv() : null) ||
@@ -41,6 +41,7 @@ const Home: NextPage<{
       navPages={navPages}
       tweetFeedMedia={tweetFeedMedia}
       galleryFeedCovers={galleryFeedCovers}
+      vendingConfig={vendingConfig}
       vendingEnabled={vendingEnabled !== false}
     />
   )

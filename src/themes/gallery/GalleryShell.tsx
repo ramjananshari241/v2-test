@@ -1,6 +1,7 @@
 'use client'
 
 import { Page, Title } from '@/src/types/blog'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { ReactNode, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { GALLERY_LOGO_SRC } from './galleryConstants'
@@ -15,6 +16,7 @@ type GalleryShellProps = {
   siteTitle?: Title
   navPages?: Page[]
   children: ReactNode
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
   /** 顶栏居中标题，传 false 可隐藏 */
   headerTitle?: string | false
@@ -24,6 +26,7 @@ export const GalleryShell = ({
   siteTitle,
   children,
   headerTitle,
+  vendingConfig,
   vendingEnabled = true,
 }: GalleryShellProps) => {
   const siteName = siteTitle?.text || 'PRO BLOG'
@@ -59,6 +62,7 @@ export const GalleryShell = ({
       <GallerySidebar
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
+        vendingConfig={vendingConfig}
         vendingEnabled={vendingEnabled}
       />
 

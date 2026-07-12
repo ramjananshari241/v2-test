@@ -8,12 +8,17 @@ import { ThemeHomeProps } from '../types'
 export const DefaultHome = ({
   posts,
   widgets,
+  vendingConfig,
   vendingEnabled,
   galleryFeedCovers,
 }: ThemeHomeProps) => (
   <>
     <ContainerLayout>
-      <WidgetCollection widgets={widgets} vendingEnabled={vendingEnabled !== false} />
+      <WidgetCollection
+        widgets={widgets}
+        vendingConfig={vendingConfig}
+        vendingEnabled={vendingEnabled !== false}
+      />
       <div data-aos="fade-up" data-aos-delay={300}>
         <MainPostsCollection posts={posts} galleryFeedCovers={galleryFeedCovers} />
       </div>

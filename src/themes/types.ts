@@ -1,5 +1,6 @@
 import { Page, Post, Title } from '@/src/types/blog'
 import { TweetFeedMediaMap } from '@/src/lib/tweet/loadTweetFeedMedia'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 
 export type ThemeId = 'anzifan' | 'touchgal' | 'gallery' | 'tweet' | 'tweet-light' | 'tweet-dark'
 
@@ -14,5 +15,6 @@ export type ThemeHomeProps = {
   navPages?: Page[]
   tweetFeedMedia?: TweetFeedMediaMap | null
   galleryFeedCovers?: Record<string, string> | null
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
 }

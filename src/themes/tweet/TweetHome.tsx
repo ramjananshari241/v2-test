@@ -20,6 +20,7 @@ export function TweetHome({
   widgets,
   siteTitle,
   tweetFeedMedia,
+  vendingConfig,
   vendingEnabled = true,
 }: ThemeHomeProps) {
   const router = useRouter()
@@ -56,10 +57,15 @@ export function TweetHome({
     <TweetShell
       siteTitle={siteTitle}
       profile={profile}
+      vendingConfig={vendingConfig}
       vendingEnabled={vendingEnabled}
       leftAside={<TweetTagList tags={tags} layout="sidebar" />}
     >
-      <TweetMobileProfileCard profile={profile} vendingEnabled={vendingEnabled} />
+      <TweetMobileProfileCard
+        profile={profile}
+        vendingConfig={vendingConfig}
+        vendingEnabled={vendingEnabled}
+      />
       <TweetSearchBox />
       <TweetFeedHeader posts={allPosts} />
       <TweetPostList

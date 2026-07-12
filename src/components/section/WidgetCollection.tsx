@@ -1,11 +1,14 @@
 import { ProfileWidget } from '../widget/ProfileWidget'
 import { StatsWidget } from '../widget/StatsWidget'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 
 export const WidgetCollection = ({
   widgets,
+  vendingConfig,
   vendingEnabled = true,
 }: {
   widgets: { [key: string]: any }
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
 }) => {
   return (
@@ -15,7 +18,11 @@ export const WidgetCollection = ({
     >
       <ProfileWidget data={widgets.profile} />
 
-      <StatsWidget data={widgets.announcement} vendingEnabled={vendingEnabled} />
+      <StatsWidget
+        data={widgets.announcement}
+        vendingConfig={vendingConfig}
+        vendingEnabled={vendingEnabled}
+      />
     </div>
   )
 }

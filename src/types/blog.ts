@@ -6,6 +6,7 @@ import {
 import { NextPage } from 'next'
 import React, { ReactElement, ReactNode } from 'react'
 import { IconType } from 'react-icons/lib'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { ApiColor, BlockResponse } from './notion'
 
 export type FixedLengthArray<N extends number, T> = N extends N
@@ -148,7 +149,9 @@ export type SharedNavFooterStaticProps = {
       imageSrc: string | null
       promoText: string | null
     } | null
-    /** 各主题贩售机入口开关（Supabase blog_site_settings） */
+    /** 各主题贩售机入口配置（Notion Widget: slug=vending；旧 Supabase 开关作为兜底） */
+    vendingConfig?: VendingConfig | null
+    /** 兼容旧主题组件的贩售机开关 */
     vendingEnabled?: boolean
   }
   // revalidate: number

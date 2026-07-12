@@ -204,6 +204,7 @@ const PostPage: NextPage<{
   navPages?: Page[]
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
+  vendingConfig?: SharedNavFooterStaticProps['props']['vendingConfig']
 }> = ({
   post,
   blocks,
@@ -216,6 +217,7 @@ const PostPage: NextPage<{
   navPages = [],
   siteTitle,
   widgets,
+  vendingConfig,
   vendingEnabled,
 }) => {
   if (!post) return <Section404 />
@@ -243,6 +245,7 @@ const PostPage: NextPage<{
             <TweetShell
               siteTitle={siteTitle}
               profile={shellWidgets.profile}
+              vendingConfig={vendingConfig}
               vendingEnabled={vendingEnabled !== false}
             >
               <TweetPostPage

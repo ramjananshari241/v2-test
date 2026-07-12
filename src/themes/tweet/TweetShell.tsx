@@ -1,4 +1,5 @@
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { Title } from '@/src/types/blog'
 import { ReactNode } from 'react'
 import { TweetFeedGrid } from './TweetHeader'
@@ -10,6 +11,7 @@ type TweetShellProps = {
   profile?: ProfileWidgetType | null
   leftAside?: ReactNode
   children: ReactNode
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
 }
 
@@ -18,6 +20,7 @@ export function TweetShell({
   profile,
   leftAside,
   children,
+  vendingConfig,
   vendingEnabled = true,
 }: TweetShellProps) {
   const siteName = siteTitle?.text?.trim() || '本站'
@@ -28,7 +31,11 @@ export function TweetShell({
       siteName={siteName}
       leftAside={leftAside}
       rightAside={
-        <TweetRightAside profile={profileData} vendingEnabled={vendingEnabled} />
+        <TweetRightAside
+          profile={profileData}
+          vendingConfig={vendingConfig}
+          vendingEnabled={vendingEnabled}
+        />
       }
     >
       {children}

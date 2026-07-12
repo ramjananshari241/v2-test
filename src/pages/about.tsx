@@ -31,7 +31,7 @@ const About: NextPage<{
   }
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
-}> = ({ blocks, title, page, widgets, activeTheme, siteTitle, vendingEnabled }) => {
+}> = ({ blocks, title, page, widgets, activeTheme, siteTitle, vendingConfig, vendingEnabled }) => {
   if (activeTheme === 'gallery') {
     const heading = page?.nav || title
     return (
@@ -51,6 +51,7 @@ const About: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingConfig={vendingConfig}
         vendingEnabled={vendingEnabled !== false}
       >
         <TweetArticlePage

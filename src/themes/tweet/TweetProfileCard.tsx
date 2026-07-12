@@ -1,4 +1,5 @@
 import { ProfileBioText } from '@/src/components/widget/ProfileBioText'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAvatar } from './TweetAvatar'
 import { TweetSectionTitle } from './TweetSectionTitle'
@@ -7,16 +8,19 @@ import { TweetVendingButton } from './TweetVendingButton'
 type TweetProfileCardProps = {
   profile?: ProfileWidgetType | null
   showSectionTitle?: boolean
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
 }
 
 export function TweetProfileCard({
   profile,
   showSectionTitle = true,
+  vendingConfig,
   vendingEnabled = true,
 }: TweetProfileCardProps) {
   const name = profile?.name?.trim() || '本站'
   const description = profile?.description?.trim() || ''
+  const showVending = vendingConfig?.enabled ?? vendingEnabled
 
   return (
     <div className="tweet-profile">
@@ -44,7 +48,9 @@ export function TweetProfileCard({
             />
           ) : null}
         </div>
-        {vendingEnabled ? <TweetVendingButton /> : null}
+        {showVending ? (
+          <TweetVendingButton url={vendingConfig?.url} title={vendingConfig?.title} />
+        ) : null}
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import {
   GALLERY_LOGIN_URL,
   GALLERY_LOGO_SRC,
@@ -16,15 +17,20 @@ type GallerySidebarProps = {
   /** 移动端抽屉是否展开（桌面端忽略，始终常驻） */
   open?: boolean
   onClose?: () => void
+  vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
 }
 
 export const GallerySidebar = ({
   open = false,
   onClose,
+  vendingConfig,
   vendingEnabled = true,
 }: GallerySidebarProps) => {
   const router = useRouter()
+  const showVending = vendingConfig?.enabled ?? vendingEnabled
+  const vendingUrl = vendingConfig?.url || GALLERY_LOGIN_URL
+  const vendingLabel = vendingConfig?.title || 'STORE'
 
   const isActive = (href: string) => {
     if (href === '/') return router.pathname === '/'
@@ -110,15 +116,15 @@ export const GallerySidebar = ({
         ))}
       </nav>
 
-      {vendingEnabled ? (
+      {showVending ? (
       <div className="shrink-0 border-t border-neutral-200 px-4 py-5">
         <a
-          href={GALLERY_LOGIN_URL}
+          href={vendingUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="block w-full rounded-md bg-black py-2 text-center text-[13px] font-normal text-white transition-all hover:bg-neutral-800 active:scale-[0.98] active:bg-neutral-900"
         >
-          STORE
+          {vendingLabel}
         </a>
       </div>
       ) : null}

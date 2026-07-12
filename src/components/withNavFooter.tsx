@@ -18,6 +18,7 @@ export default function withNavFooter(
         <ThemeNavShell
           activeTheme={themeId}
           siteTitle={props.siteTitle}
+          vendingConfig={props.vendingConfig}
           vendingEnabled={props.vendingEnabled !== false}
         >
           <WrappedComponent {...props} />

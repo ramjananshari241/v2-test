@@ -29,7 +29,12 @@ import {
 import { BlockResponse } from '../types/notion'
 import { onDemandStaticPaths } from '../lib/blog/postLimits'
 
-const specialPages = Object.values(CONFIG.DEFAULT_SPECIAL_PAGES)
+const systemPageSlugs = new Set([
+  ...Object.values(CONFIG.DEFAULT_SPECIAL_PAGES),
+  'theme-config',
+  'gallery-ad',
+  'vending',
+])
 
 export const getStaticPaths = async () => {
   try {
@@ -41,7 +46,7 @@ export const getStaticPaths = async () => {
       .map((page) => ({
         params: { page: page.slug },
       }))
-      .filter((page) => !specialPages.includes(page.params?.page as string))
+      .filter((page) => !systemPageSlugs.has(page.params?.page as string))
 
     return {
       paths,
@@ -62,6 +67,19 @@ export const getStaticProps: GetStaticProps = withNavFooterStaticProps(
     sharedPageStaticProps: SharedNavFooterStaticProps
   ) => {
     const slug = context.params?.page as string
+    if (systemPageSlugs.has(slug)) {
+      return {
+        props: JSON.parse(
+          JSON.stringify({
+            ...sharedPageStaticProps.props,
+            page: null,
+            blocks: [],
+          })
+        ),
+        revalidate: CONFIG.NEXT_REVALIDATE_SECONDS,
+      }
+    }
+
     addSubTitle(sharedPageStaticProps.props, slug)
     const page =
       sharedPageStaticProps.props.navPages.find((page) => page.slug === slug) ??
@@ -122,7 +140,7 @@ const Page: NextPage<{
   activeTheme?: string
   siteTitle?: SharedNavFooterStaticProps['props']['siteTitle']
   widgets?: Record<string, unknown>
-}> = ({ page, blocks, activeTheme, siteTitle, widgets, vendingEnabled }) => {
+}> = ({ page, blocks, activeTheme, siteTitle, widgets, vendingConfig, vendingEnabled }) => {
   if (!page) return <Section404 />
 
   const { title } = page
@@ -133,6 +151,7 @@ const Page: NextPage<{
       <TweetShell
         siteTitle={siteTitle}
         profile={shellWidgets.profile}
+        vendingConfig={vendingConfig}
         vendingEnabled={vendingEnabled !== false}
       >
         <TweetArticlePage title={page.nav || title} blocks={blocks} />
