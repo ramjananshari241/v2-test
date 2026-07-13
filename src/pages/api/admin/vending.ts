@@ -1,4 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { verifyAdminMaintenancePassword } from '@/src/lib/admin/maintenancePassword'
+import {
+  normalizeVendingTitle,
+  normalizeVendingUrl,
+} from '@/src/lib/blog/vendingDefaults'
 import {
   getVendingConfig,
   updateVendingConfig,
@@ -20,6 +25,16 @@ export default async function handler(
 ) {
   try {
     if (req.method === 'GET') {
+      if (req.query.verifyAddress === '1') {
+        if (!verifyAdminMaintenancePassword(req)) {
+          return res.status(403).json({
+            success: false,
+            error: '维护密码错误',
+          })
+        }
+        return res.status(200).json({ success: true })
+      }
+
       const config = await getVendingConfig()
       return res.status(200).json({ success: true, ...config })
     }
@@ -34,10 +49,31 @@ export default async function handler(
           error: '贩售机地址必须以 http 开头',
         })
       }
+      const current = await getVendingConfig()
+      const hasUrl = typeof body.url === 'string' && body.url.trim() !== ''
+      const hasTitle = typeof body.title === 'string' && body.title.trim() !== ''
+      const nextUrl = hasUrl ? normalizeVendingUrl(url) : current.url
+      const nextTitle = hasTitle
+        ? normalizeVendingTitle(String(body.title || '').trim())
+        : current.title
+      const changesProtectedFields =
+        (hasUrl && nextUrl !== current.url) ||
+        (hasTitle && nextTitle !== current.title)
+
+      if (
+        changesProtectedFields &&
+        !verifyAdminMaintenancePassword(req, body)
+      ) {
+        return res.status(403).json({
+          success: false,
+          error: '修改贩售机地址需要维护密码',
+        })
+      }
+
       const config = await updateVendingConfig({
         enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
-        url,
-        title: String(body.title || '').trim(),
+        url: hasUrl ? nextUrl : undefined,
+        title: hasTitle ? nextTitle : undefined,
       })
       return res.status(200).json({ success: true, ...config })
     }

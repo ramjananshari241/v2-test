@@ -2415,6 +2415,107 @@ const CrawlerIngestUnlockModal = ({
 };
 
 /** 主题切换完成提示（替代浏览器 alert） */
+const VendingAddressUnlockModal = ({
+  open,
+  closing,
+  busy,
+  passwordError,
+  onConfirm,
+  onCancel,
+}) => {
+  const [visible, setVisible] = useState(false);
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (open && !closing) {
+      setVisible(false);
+      setPassword('');
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    if (!open || closing) setVisible(false);
+  }, [open, closing]);
+
+  if (!open && !closing) return null;
+
+  const submit = () => {
+    if (busy) return;
+    onConfirm(password.trim());
+  };
+
+  return (
+    <div
+      className={`cover-modal-backdrop ${visible && !closing ? 'is-visible' : ''} ${closing ? 'is-closing' : ''}`}
+      onClick={onCancel}
+      role="presentation"
+    >
+      <div
+        className="cover-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="vending-address-unlock-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="cover-modal-icon" aria-hidden>🔐</div>
+        <h3 id="vending-address-unlock-title" className="cover-modal-title">解锁贩售机地址</h3>
+        <p className="cover-modal-desc">
+          贩售机地址会影响统一分发与收款入口。请输入维护密码后再编辑地址或按钮名称。
+        </p>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          disabled={busy}
+          placeholder="请输入维护密码"
+          autoComplete="off"
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            marginTop: '12px',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: `1px solid ${passwordError ? '#ff7875' : 'rgba(255,255,255,0.18)'}`,
+            background: '#151515',
+            color: '#f5f5f5',
+            outline: 'none',
+          }}
+        />
+        {passwordError ? (
+          <p style={{ margin: '8px 0 0', color: '#ff7875', fontSize: '12px' }}>
+            {passwordError}
+          </p>
+        ) : null}
+        <div className="cover-modal-actions">
+          <button type="button" className="cover-modal-btn cover-modal-btn-secondary" onClick={onCancel} disabled={busy}>
+            取消
+          </button>
+          <button
+            type="button"
+            className="cover-modal-btn"
+            onClick={submit}
+            disabled={busy}
+            style={{
+              background: busy ? '#5a4a6e' : '#9a6dd7',
+              color: '#fff',
+              boxShadow: busy ? 'none' : '0 4px 14px rgba(154,109,215,0.35)',
+            }}
+          >
+            {busy ? '验证中…' : '解锁'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ThemeSwitchDoneModal = ({ open, closing, extraNote, onClose }) => {
   const [visible, setVisible] = useState(false);
 
@@ -4075,6 +4176,8 @@ const [mounted, setMounted] = useState(false);
   const [vendingUrl, setVendingUrl] = useState('');
   const [vendingLoading, setVendingLoading] = useState(false);
   const [vendingSaving, setVendingSaving] = useState(false);
+  const [vendingAddressUnlocked, setVendingAddressUnlocked] = useState(false);
+  const [vendingAddressPassword, setVendingAddressPassword] = useState('');
   const [friendDraft, setFriendDraft] = useState({ name: '', url: '', avatar: '' });
   const [friendDraftUploading, setFriendDraftUploading] = useState(false);
   const [friendBtnStatus, setFriendBtnStatus] = useState({}); // { [id|'draft']: 'saving' | 'done' }
@@ -4111,6 +4214,11 @@ const [mounted, setMounted] = useState(false);
   const [crawlerIngestUnlockBusy, setCrawlerIngestUnlockBusy] = useState(false);
   const [crawlerIngestUnlockError, setCrawlerIngestUnlockError] = useState('');
   const crawlerIngestUnlockTimerRef = useRef(null);
+  const [vendingAddressUnlockOpen, setVendingAddressUnlockOpen] = useState(false);
+  const [vendingAddressUnlockClosing, setVendingAddressUnlockClosing] = useState(false);
+  const [vendingAddressUnlockBusy, setVendingAddressUnlockBusy] = useState(false);
+  const [vendingAddressUnlockError, setVendingAddressUnlockError] = useState('');
+  const vendingAddressUnlockTimerRef = useRef(null);
   const [themeDoneModalOpen, setThemeDoneModalOpen] = useState(false);
   const [themeDoneModalClosing, setThemeDoneModalClosing] = useState(false);
   const [themeDoneModalNote, setThemeDoneModalNote] = useState('');
@@ -4313,6 +4421,16 @@ const [mounted, setMounted] = useState(false);
     crawlerIngestUnlockTimerRef.current = setTimeout(() => {
       setCrawlerIngestUnlockOpen(false);
       setCrawlerIngestUnlockClosing(false);
+    }, 240);
+  };
+
+  const closeVendingAddressUnlockModal = () => {
+    if (vendingAddressUnlockTimerRef.current) clearTimeout(vendingAddressUnlockTimerRef.current);
+    setVendingAddressUnlockError('');
+    setVendingAddressUnlockClosing(true);
+    vendingAddressUnlockTimerRef.current = setTimeout(() => {
+      setVendingAddressUnlockOpen(false);
+      setVendingAddressUnlockClosing(false);
     }, 240);
   };
 
@@ -4995,18 +5113,67 @@ const [mounted, setMounted] = useState(false);
     } catch (e) { alert('加载贩售机设置失败：' + e.message); }
     finally { setVendingLoading(false); }
   };
-  const openVending = () => { setView('vending'); loadVending(); };
+  const openVending = () => {
+    setVendingAddressUnlocked(false);
+    setVendingAddressPassword('');
+    setVendingAddressUnlockError('');
+    setView('vending');
+    loadVending();
+  };
+
+  const confirmVendingAddressUnlock = async (password) => {
+    if (vendingAddressUnlockBusy) return;
+    if (!password) {
+      setVendingAddressUnlockError('请输入维护密码');
+      return;
+    }
+
+    setVendingAddressUnlockBusy(true);
+    setVendingAddressUnlockError('');
+    try {
+      const r = await fetch('/api/admin/vending?verifyAddress=1', {
+        headers: { 'x-admin-maintenance-password': password },
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.success === false) {
+        setVendingAddressUnlockError(d.error || '维护密码错误');
+        return;
+      }
+      setVendingAddressPassword(password);
+      setVendingAddressUnlocked(true);
+      closeVendingAddressUnlockModal();
+      showAdminToast('贩售机地址编辑已解锁');
+    } catch (e) {
+      setVendingAddressUnlockError(e.message || '验证失败，请稍后重试');
+    } finally {
+      setVendingAddressUnlockBusy(false);
+    }
+  };
+
   const saveVending = async (patch = {}) => {
     const nextEnabled = typeof patch.enabled === 'boolean' ? patch.enabled : vendingEnabled;
     const nextTitle = ((patch.title ?? vendingTitle) || '').trim() || '贩售机';
     const nextUrl = ((patch.url ?? vendingUrl) || '').trim();
-    if (!nextUrl.startsWith('http')) { alert('请填写有效的贩售机地址（需以 http 开头）'); return; }
+    const includeAddress = Boolean(patch.includeAddress);
+    if (includeAddress && !vendingAddressUnlocked) {
+      setVendingAddressUnlockError('');
+      setVendingAddressUnlockClosing(false);
+      setVendingAddressUnlockOpen(true);
+      return;
+    }
+    if (includeAddress && !nextUrl.startsWith('http')) { alert('请填写有效的贩售机地址（需以 http 开头）'); return; }
     setVendingSaving(true);
     try {
+      const payload = { enabled: nextEnabled };
+      if (includeAddress) {
+        payload.title = nextTitle;
+        payload.url = nextUrl;
+        payload.password = vendingAddressPassword;
+      }
       const r = await fetch('/api/admin/vending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: nextEnabled, title: nextTitle, url: nextUrl }),
+        body: JSON.stringify(payload),
       });
       const d = await r.json();
       if (d.success) {
@@ -6691,6 +6858,14 @@ const [mounted, setMounted] = useState(false);
         onConfirm={confirmCrawlerIngestUnlock}
         onCancel={closeCrawlerIngestUnlockModal}
       />
+      <VendingAddressUnlockModal
+        open={vendingAddressUnlockOpen}
+        closing={vendingAddressUnlockClosing}
+        busy={vendingAddressUnlockBusy}
+        passwordError={vendingAddressUnlockError}
+        onConfirm={confirmVendingAddressUnlock}
+        onCancel={closeVendingAddressUnlockModal}
+      />
       <AdminToast message={adminToast.message} visible={adminToast.visible} closing={adminToast.closing} />
       <PublishQueuePanel
         jobs={publishQueue}
@@ -7196,22 +7371,51 @@ const [mounted, setMounted] = useState(false);
                   </button>
                 </div>
                 <div style={{display:'flex', flexDirection:'column', gap:'16px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555'}}>
+                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'14px'}}>
+                    <div>
+                      <div style={{fontSize:'15px', fontWeight:'bold', color:'#fff', marginBottom:'4px'}}>地址管理</div>
+                      <div style={{fontSize:'12px', color:'#999'}}>
+                        {vendingAddressUnlocked ? '已解锁：可编辑地址与按钮名称' : '已锁定：创作者只能开启或关闭贩售机'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVendingAddressUnlockError('');
+                        setVendingAddressUnlockClosing(false);
+                        setVendingAddressUnlockOpen(true);
+                      }}
+                      disabled={vendingSaving || vendingAddressUnlocked}
+                      style={{
+                        padding:'10px 16px',
+                        background: vendingAddressUnlocked ? '#2f5136' : '#9a6dd7',
+                        color:'#fff',
+                        border:'none',
+                        borderRadius:'999px',
+                        fontWeight:'bold',
+                        cursor: vendingAddressUnlocked ? 'default' : 'pointer',
+                        opacity: vendingSaving ? 0.6 : 1,
+                      }}
+                    >
+                      {vendingAddressUnlocked ? '已解锁' : '解锁编辑'}
+                    </button>
+                  </div>
                   <div>
                     <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>按钮名称</label>
-                    <input className="glow-input" value={vendingTitle} onChange={e=>setVendingTitle(e.target.value)} placeholder="贩售机" />
+                    <input className="glow-input" value={vendingTitle} onChange={e=>setVendingTitle(e.target.value)} placeholder="贩售机" disabled={!vendingAddressUnlocked || vendingSaving} />
                   </div>
                   <div>
                     <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>贩售机地址 <span style={{color:'#ff4d4f'}}>*</span></label>
-                    <input className="glow-input" value={vendingUrl} onChange={e=>setVendingUrl(e.target.value)} placeholder="https://store.proplus.onl/buy" />
-                    <div style={{fontSize:'11px', color:'#888', marginTop:'8px', lineHeight:1.6}}>保存后会写入 Notion 中 slug 为 vending 的 Widget，商家系统后续也可通过接口统一替换这个地址。</div>
+                    <input className="glow-input" value={vendingUrl} onChange={e=>setVendingUrl(e.target.value)} placeholder="https://store.proplus.onl/buy" disabled={!vendingAddressUnlocked || vendingSaving} />
+                    <div style={{fontSize:'11px', color:'#888', marginTop:'8px', lineHeight:1.6}}>地址默认由平台维护。后续商家系统可统一管理这里的维护密码与贩售机地址。</div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => saveVending()}
-                    disabled={vendingSaving}
-                    style={{padding:'16px', background: vendingSaving ? '#333' : '#fff', color: vendingSaving ? '#666' : '#000', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'15px', cursor: vendingSaving ? 'wait' : 'pointer'}}
+                    onClick={() => saveVending({ includeAddress: true })}
+                    disabled={vendingSaving || !vendingAddressUnlocked}
+                    style={{padding:'16px', background: (vendingSaving || !vendingAddressUnlocked) ? '#333' : '#fff', color: (vendingSaving || !vendingAddressUnlocked) ? '#666' : '#000', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'15px', cursor: vendingSaving ? 'wait' : (vendingAddressUnlocked ? 'pointer' : 'not-allowed')}}
                   >
-                    {vendingSaving ? '保存中…' : '保存贩售机设置'}
+                    {vendingSaving ? '保存中…' : '保存地址设置'}
                   </button>
                 </div>
               </>
