@@ -116,7 +116,9 @@
   - `GET /api/admin/gallery-storage`：读取站点图库容量用量。
   - `POST /api/admin/upload`：服务端代理上传到兰空图床。
   - `GET/POST/DELETE /api/admin/gallery-ad`：Gallery/Tweet 广告条配置。
-  - `GET/POST /api/admin/friends`：友链管理。
+  - `GET/POST /api/admin/friends`：友链管理；读取/新增/更新 `slug=friends` 页面内部 Friends 子数据库。
+  - `POST /api/admin/friends/batch`：批量新增/更新友链，支持 `upsert=true` 按 URL 去重。
+  - `POST /api/admin/friends/hide`：按 URL 隐藏友链，优先把子库 `status` 改为 `Hidden`。
   - `GET/POST /api/admin/vending`：贩售机入口配置；底层写入 Notion `slug=vending` 的 Widget。
   - `POST /api/admin/revalidate`：按路径触发 ISR revalidate。
   - `GET/POST /api/admin/crawler-ingest`：爬虫入库队列处理。
@@ -133,6 +135,8 @@
 - 后台 Widget 中的 `gallery-ad` 当前作为“内页广告位”维护，数据会用于 Gallery、Tweet 与 Standard 系列文章内页底部 banner；保存后走 `gallery-ad` revalidate 范围刷新文章页。
 - 后台 Widget 中的 `vending` 当前作为“贩售机入口”维护，约定：`type=Widget`、`slug=vending`、`title` 为入口按钮文字、`excerpt` 为跳转 URL、`status=Published` 表示开启、`status=Hidden` 表示关闭。旧 Supabase `blog_site_settings.vending_enabled` 仅作为没有该 Widget 时的兼容兜底；后台保存会创建/更新 Notion Widget，并同步旧开关。
 - `/api/admin/vending` 的 `POST` 支持 `{ enabled, title, url }`，用于后台和后续商家系统一键替换贩售机地址；修改 `title/url` 必须通过维护密码，单独切换 `enabled` 不需要密码。保存后需要刷新 `vending` 范围（壳层 + 文章页/下载页），`/api/admin/revalidate` 已支持 `scope/listScope='vending'`。
+- 友链数据不在主 Notion 数据库中，而在 `slug=friends` 的 Page 内部 Friends 子数据库中。服务端 helper 位于 `src/lib/admin/friendsNotion.js`，会自动发现该页面和内部子库；字段约定：`name` 为 title、`url` 为 url、`avatar` 为 files external URL、`description` 为可选 rich_text、`status` 为 status/select。
+- `/api/admin/friends` 返回 `{ success, friends, source:'notion' }`，单条 POST 支持 `{ id, name, url, avatar, description, status, upsert }`；`upsert=true` 时按 `url` 去重更新。`/api/admin/friends/batch` 支持批量 upsert，`/api/admin/friends/hide` 按 URL 将 `status` 改为 `Hidden`。这些接口不需要维护密码，但仍属于 admin API，不应暴露给前台访客。
 
 ## Gallery、下载与统计
 
