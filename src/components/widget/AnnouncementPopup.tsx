@@ -27,6 +27,48 @@ function resolveThemeClass(activeTheme?: string) {
   return 'announcement-popup--standard'
 }
 
+function trimTrailingUrlPunctuation(value: string) {
+  let url = value
+  let suffix = ''
+  while (/[),.;!?，。！？、）]$/.test(url)) {
+    suffix = url.slice(-1) + suffix
+    url = url.slice(0, -1)
+  }
+  return { url, suffix }
+}
+
+function renderLinkedText(text: string) {
+  const nodes: Array<string | JSX.Element> = []
+  const pattern = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text)) !== null) {
+    const raw = match[0]
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index))
+    }
+    const { url, suffix } = trimTrailingUrlPunctuation(raw)
+    const href = url.startsWith('www.') ? `https://${url}` : url
+    nodes.push(
+      <a
+        className="announcement-popup__text-link"
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        key={`${href}-${match.index}`}
+      >
+        {url}
+      </a>
+    )
+    if (suffix) nodes.push(suffix)
+    lastIndex = match.index + raw.length
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+  return nodes
+}
+
 export function AnnouncementPopup({ config, activeTheme }: Props) {
   const hasContent = Boolean(
     config?.enabled &&
@@ -95,7 +137,9 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
             <h2 className="announcement-popup__title">{config.title}</h2>
           ) : null}
           {config.content ? (
-            <p className="announcement-popup__content">{config.content}</p>
+            <div className="announcement-popup__content">
+              {renderLinkedText(config.content)}
+            </div>
           ) : null}
           {hasButton ? (
             <a
@@ -118,6 +162,7 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           --ap-backdrop: rgba(15, 23, 42, 0.42);
           --ap-shadow: 0 30px 100px rgba(15, 23, 42, 0.3);
           --ap-accent: #2563eb;
+          --ap-link: #2563eb;
           --ap-button-bg: #111827;
           --ap-button-text: #ffffff;
           --ap-panel-gradient: linear-gradient(
@@ -134,6 +179,43 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           padding: 20px;
           pointer-events: none;
         }
+        html.dark .announcement-popup,
+        .announcement-popup--standard {
+          --ap-bg: rgba(17, 21, 30, 0.96);
+          --ap-surface: rgba(255, 255, 255, 0.07);
+          --ap-text: #f8fafc;
+          --ap-muted: #cbd5e1;
+          --ap-border: rgba(148, 163, 184, 0.2);
+          --ap-backdrop: rgba(2, 6, 23, 0.62);
+          --ap-shadow: 0 34px 120px rgba(0, 0, 0, 0.5);
+          --ap-accent: #60a5fa;
+          --ap-link: #60a5fa;
+          --ap-button-bg: #f8fafc;
+          --ap-button-text: #0f172a;
+          --ap-panel-gradient: linear-gradient(
+            145deg,
+            rgba(25, 31, 43, 0.98),
+            rgba(9, 13, 22, 0.96)
+          );
+        }
+        html:not(.dark) .announcement-popup--standard {
+          --ap-bg: rgba(255, 255, 255, 0.96);
+          --ap-surface: rgba(255, 255, 255, 0.76);
+          --ap-text: #111827;
+          --ap-muted: #4b5563;
+          --ap-border: rgba(17, 24, 39, 0.12);
+          --ap-backdrop: rgba(15, 23, 42, 0.42);
+          --ap-shadow: 0 30px 100px rgba(15, 23, 42, 0.3);
+          --ap-accent: #2563eb;
+          --ap-link: #2563eb;
+          --ap-button-bg: #111827;
+          --ap-button-text: #ffffff;
+          --ap-panel-gradient: linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.98),
+            rgba(248, 250, 252, 0.92)
+          );
+        }
         html.gallery-theme .announcement-popup,
         .announcement-popup--gallery {
           --ap-bg: rgba(17, 18, 21, 0.96);
@@ -143,6 +225,7 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           --ap-border: rgba(255, 255, 255, 0.16);
           --ap-backdrop: rgba(0, 0, 0, 0.62);
           --ap-accent: #a6ff3f;
+          --ap-link: #9be7ff;
           --ap-button-bg: #a6ff3f;
           --ap-button-text: #111827;
           --ap-panel-gradient: linear-gradient(
@@ -160,6 +243,7 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           --ap-border: rgba(255, 255, 255, 0.16);
           --ap-backdrop: rgba(0, 0, 0, 0.58);
           --ap-accent: #1d9bf0;
+          --ap-link: #66c2ff;
           --ap-button-bg: #1d9bf0;
           --ap-button-text: #ffffff;
           --ap-panel-gradient: linear-gradient(
@@ -177,6 +261,7 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           --ap-border: rgba(15, 23, 42, 0.13);
           --ap-backdrop: rgba(15, 23, 42, 0.34);
           --ap-accent: #1d9bf0;
+          --ap-link: #0f7ec8;
           --ap-button-bg: #0f1419;
           --ap-button-text: #ffffff;
           --ap-panel-gradient: linear-gradient(
@@ -194,6 +279,7 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           --ap-border: rgba(255, 255, 255, 0.18);
           --ap-backdrop: rgba(0, 0, 0, 0.72);
           --ap-accent: #1d9bf0;
+          --ap-link: #66c2ff;
           --ap-button-bg: #f8fafc;
           --ap-button-text: #050505;
           --ap-panel-gradient: linear-gradient(
@@ -243,14 +329,33 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           z-index: 2;
           width: 36px;
           height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
           border: 1px solid var(--ap-border);
           border-radius: 50%;
           background: var(--ap-surface);
           color: var(--ap-text);
-          font-size: 22px;
-          line-height: 1;
+          font-size: 24px;
+          line-height: 36px;
+          font-family: Arial, Helvetica, sans-serif;
           cursor: pointer;
           backdrop-filter: blur(14px);
+          transition:
+            background 160ms ease,
+            border-color 160ms ease,
+            transform 160ms ease,
+            opacity 160ms ease;
+        }
+        .announcement-popup__close:hover {
+          border-color: var(--ap-accent);
+          background: var(--ap-bg);
+          transform: scale(1.04);
+        }
+        .announcement-popup__close:active {
+          opacity: 0.78;
+          transform: scale(0.96);
         }
         .announcement-popup__media {
           width: calc(100% - 24px);
@@ -284,6 +389,18 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           font-size: 15px;
           line-height: 1.75;
           white-space: pre-wrap;
+        }
+        .announcement-popup__text-link {
+          color: var(--ap-link);
+          font-weight: 700;
+          text-decoration: underline;
+          text-decoration-thickness: 1px;
+          text-underline-offset: 3px;
+          transition: opacity 160ms ease, text-decoration-color 160ms ease;
+        }
+        .announcement-popup__text-link:hover {
+          opacity: 0.78;
+          text-decoration-color: transparent;
         }
         .announcement-popup__button {
           display: inline-flex;

@@ -39,6 +39,38 @@ const BUTTON_URL_NAMES = [
 ]
 const IMAGE_NAMES = ['cover', 'Cover', 'COVER', '封面', 'image', 'Image']
 
+async function ensureAnnouncementPopupSchema(
+  dbProps: PartialDatabaseObjectResponse['properties']
+): Promise<PartialDatabaseObjectResponse['properties']> {
+  const missingProperties: Record<string, any> = {}
+
+  if (!findNotionPropertyKey(dbProps as any, BUTTON_TEXT_NAMES)) {
+    missingProperties.button_text = { rich_text: {} }
+  }
+  if (!findNotionPropertyKey(dbProps as any, BUTTON_URL_NAMES)) {
+    missingProperties.button_url = { url: {} }
+  }
+
+  if (!databaseId || Object.keys(missingProperties).length === 0) {
+    return dbProps
+  }
+
+  try {
+    await notion.databases.update({
+      database_id: databaseId,
+      properties: missingProperties,
+    } as any)
+    const updatedDb = await getDatabaseMetadata()
+    return updatedDb.properties || dbProps
+  } catch (error) {
+    console.warn(
+      '[announcementPopupSettings] schema update failed, optional button fields may be ignored:',
+      error instanceof Error ? error.message : error
+    )
+    return dbProps
+  }
+}
+
 function readTitle(prop: PageObjectResponse['properties'][string] | undefined) {
   if (!prop || prop.type !== 'title') return null
   const text = prop.title.map((t) => t.plain_text).join('').trim()
@@ -239,8 +271,9 @@ export async function updateAnnouncementPopupConfig(
   }
 
   const db = await getDatabaseMetadata()
+  const dbProps = await ensureAnnouncementPopupSchema(db.properties || {})
   const existing = await findAnnouncementPopupWidget()
-  const properties = buildAnnouncementPopupProperties(db.properties || {}, next)
+  const properties = buildAnnouncementPopupProperties(dbProps, next)
 
   if (existing) {
     await notion.pages.update({
