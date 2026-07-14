@@ -1,4 +1,5 @@
 import { BlogStats, Widget } from '@/src/types/blog'
+import { formatAnnouncementPopupWidget } from './format/widget/announcementPopup'
 import { formatGalleryAdWidget } from './format/widget/galleryAd'
 import { formatProfileWidget } from './format/widget/profile'
 import { formatStatsWidget } from './format/widget/stats'
@@ -28,6 +29,10 @@ export const supportedWidgetsMap: {
   },
   vending: {
     formatFn: formatVendingWidget,
+    database: [],
+  },
+  'announcement-popup': {
+    formatFn: formatAnnouncementPopupWidget,
     database: [],
   },
 }

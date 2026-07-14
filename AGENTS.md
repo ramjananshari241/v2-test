@@ -69,7 +69,7 @@
 - 常用状态包括 `Published`、`Draft`、`Hidden`；代码同时兼容 Notion 的 `status` 属性类型和旧版 `select` 类型。
 - 核心字段包括 `title`、`slug`、`excerpt`、`category`、`tags`、`date`、`cover`、`download`、`download_size`、`download_count`、`article_password`、`pinned`、`favourited` 等。部分字段存在大小写或旧字段兼容逻辑，改动时要读 `src/lib/notion/readProperty.ts` 和相关 API 的动态属性判断。
 - `slug=theme-config` 的页面用于远程主题配置，通常通过 `excerpt` 存主题代号。
-- `theme-config`、`gallery-ad`、`vending` 是系统级 slug，不应作为普通公开自定义页面；`[page].tsx` 会过滤这些 slug，避免系统 Widget 被生成成前台页面。
+- `theme-config`、`gallery-ad`、`vending`、`announcement-popup` 是系统级 slug，不应作为普通公开自定义页面；`[page].tsx` 会过滤这些 slug，避免系统 Widget 被生成成前台页面。
 - 系统保留分类包括 `网站信息`、`系统组件`、`站长通知`、`默认`，后台分类删除/重命名逻辑会保护这些名称。
 
 ## 前台渲染流程
@@ -120,6 +120,7 @@
   - `POST /api/admin/friends/batch`：批量新增/更新友链，支持 `upsert=true` 按 URL 去重。
   - `POST /api/admin/friends/hide`：按 URL 隐藏友链，优先把子库 `status` 改为 `Hidden`。
   - `GET/POST /api/admin/vending`：贩售机入口配置；底层写入 Notion `slug=vending` 的 Widget。
+  - `GET/POST /api/admin/announcement-popup`：公告弹窗配置；底层写入 Notion `slug=announcement-popup` 的 Widget。
   - `POST /api/admin/revalidate`：按路径触发 ISR revalidate。
   - `GET/POST /api/admin/crawler-ingest`：爬虫入库队列处理。
   - `GET/POST /api/admin/full-redeploy`：触发全量 redeploy。
@@ -135,6 +136,8 @@
 - 后台 Widget 中的 `gallery-ad` 当前作为“内页广告位”维护，数据会用于 Gallery、Tweet 与 Standard 系列文章内页底部 banner；保存后走 `gallery-ad` revalidate 范围刷新文章页。
 - 后台 Widget 中的 `vending` 当前作为“贩售机入口”维护，约定：`type=Widget`、`slug=vending`、`title` 为入口按钮文字、`excerpt` 为跳转 URL、`status=Published` 表示开启、`status=Hidden` 表示关闭。旧 Supabase `blog_site_settings.vending_enabled` 仅作为没有该 Widget 时的兼容兜底；后台保存会创建/更新 Notion Widget，并同步旧开关。
 - `/api/admin/vending` 的 `POST` 支持 `{ enabled, title, url }`，用于后台和后续商家系统一键替换贩售机地址；修改 `title/url` 必须通过维护密码，单独切换 `enabled` 不需要密码。保存后需要刷新 `vending` 范围（壳层 + 文章页/下载页），`/api/admin/revalidate` 已支持 `scope/listScope='vending'`。
+- 后台 Widget 中的 `announcement-popup` 当前作为“公告弹窗”维护，约定：`type=Widget`、`slug=announcement-popup`、`title` 为弹窗标题、`excerpt` 为弹窗正文、`cover` 为可选弹窗图片、`button_text`/`button_url` 为可选按钮文字和链接，`status=Published` 表示开启、`status=Hidden` 表示关闭。`button_text`/`button_url` 字段不存在时服务端会降级忽略，不阻断保存。
+- `/api/admin/announcement-popup` 的 `POST` 支持 `{ enabled, title, content, image, buttonText, buttonUrl }`，用于 Blog 后台和商家系统管理员注入/更新公告弹窗；保存后建议刷新 `announcement-popup` 范围，`/api/admin/revalidate` 已支持 `scope/listScope='announcement-popup'`。
 - 友链数据不在主 Notion 数据库中，而在 `slug=friends` 的 Page 内部 Friends 子数据库中。服务端 helper 位于 `src/lib/admin/friendsNotion.js`，会自动发现该页面和内部子库；字段约定：`name` 为 title、`url` 为 url、`avatar` 为 files external URL、`description` 为可选 rich_text、`status` 为 status/select。
 - `/api/admin/friends` 返回 `{ success, friends, source:'notion' }`，单条 POST 支持 `{ id, name, url, avatar, description, status, upsert }`；`upsert=true` 时按 `url` 去重更新。`/api/admin/friends/batch` 支持批量 upsert，`/api/admin/friends/hide` 按 URL 将 `status` 改为 `Hidden`。这些接口不需要维护密码，但仍属于 admin API，不应暴露给前台访客。
 

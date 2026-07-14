@@ -1,5 +1,6 @@
 import Footer from './footer/Footer'
 import Navbar from './nav/Navbar'
+import { AnnouncementPopup } from './widget/AnnouncementPopup'
 import { ThemeNavShell } from '@/src/themes/themeLayout'
 import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { Page, SharedNavFooterStaticProps } from '@/src/types/blog'
@@ -15,14 +16,20 @@ export default function withNavFooter(
     const themeId = props.activeTheme
     if (themeId === 'gallery' || isTweetTheme(themeId)) {
       return (
-        <ThemeNavShell
-          activeTheme={themeId}
-          siteTitle={props.siteTitle}
-          vendingConfig={props.vendingConfig}
-          vendingEnabled={props.vendingEnabled !== false}
-        >
-          <WrappedComponent {...props} />
-        </ThemeNavShell>
+        <>
+          <ThemeNavShell
+            activeTheme={themeId}
+            siteTitle={props.siteTitle}
+            vendingConfig={props.vendingConfig}
+            vendingEnabled={props.vendingEnabled !== false}
+          >
+            <WrappedComponent {...props} />
+          </ThemeNavShell>
+          <AnnouncementPopup
+            config={props.announcementPopup}
+            activeTheme={themeId}
+          />
+        </>
       )
     }
 
@@ -54,6 +61,10 @@ export default function withNavFooter(
             }}
           />
         </div>
+        <AnnouncementPopup
+          config={props.announcementPopup}
+          activeTheme={themeId}
+        />
       </main>
     )
   }

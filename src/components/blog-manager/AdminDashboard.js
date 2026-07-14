@@ -82,6 +82,7 @@ function resolveSaveRevalidateScope(type, slug) {
   if (type === 'Widget') {
     if (slug === 'gallery-ad') return 'gallery-ad';
     if (slug === 'vending') return 'vending';
+    if (slug === 'announcement-popup') return 'announcement-popup';
     return 'widget';
   }
   if (type === 'Page' || SPECIAL_PAGE_SLUGS.has(slug)) {
@@ -4178,6 +4179,17 @@ const [mounted, setMounted] = useState(false);
   const [vendingSaving, setVendingSaving] = useState(false);
   const [vendingAddressUnlocked, setVendingAddressUnlocked] = useState(false);
   const [vendingAddressPassword, setVendingAddressPassword] = useState('');
+  const [announcementPopup, setAnnouncementPopup] = useState({
+    id: null,
+    enabled: false,
+    title: '',
+    content: '',
+    image: '',
+    buttonText: '',
+    buttonUrl: '',
+  });
+  const [announcementPopupLoading, setAnnouncementPopupLoading] = useState(false);
+  const [announcementPopupSaving, setAnnouncementPopupSaving] = useState(false);
   const [friendDraft, setFriendDraft] = useState({ name: '', url: '', avatar: '' });
   const [friendDraftUploading, setFriendDraftUploading] = useState(false);
   const [friendBtnStatus, setFriendBtnStatus] = useState({}); // { [id|'draft']: 'saving' | 'done' }
@@ -5121,6 +5133,119 @@ const [mounted, setMounted] = useState(false);
     loadVending();
   };
 
+  const loadAnnouncementPopup = async () => {
+    setAnnouncementPopupLoading(true);
+    try {
+      const r = await fetch('/api/admin/announcement-popup');
+      const d = await r.json();
+      if (d.success) {
+        setAnnouncementPopup({
+          id: d.popup?.id || null,
+          enabled: d.popup?.enabled === true,
+          title: d.popup?.title || '',
+          content: d.popup?.content || '',
+          image: d.popup?.image || '',
+          buttonText: d.popup?.buttonText || '',
+          buttonUrl: d.popup?.buttonUrl || '',
+        });
+      } else {
+        alert('加载公告弹窗失败：' + (d.error || '未知错误'));
+      }
+    } catch (e) {
+      alert('加载公告弹窗失败：' + e.message);
+    } finally {
+      setAnnouncementPopupLoading(false);
+    }
+  };
+
+  const openAnnouncementPopup = () => {
+    setView('announcement-popup');
+    loadAnnouncementPopup();
+  };
+
+  const saveAnnouncementPopup = async (patch = {}) => {
+    const next = {
+      ...announcementPopup,
+      ...patch,
+      title: (patch.title ?? announcementPopup.title ?? '').trim(),
+      content: (patch.content ?? announcementPopup.content ?? '').trim(),
+      image: (patch.image ?? announcementPopup.image ?? '').trim(),
+      buttonText: (patch.buttonText ?? announcementPopup.buttonText ?? '').trim(),
+      buttonUrl: (patch.buttonUrl ?? announcementPopup.buttonUrl ?? '').trim(),
+    };
+    if (next.buttonUrl && !/^https?:\/\//i.test(next.buttonUrl) && !next.buttonUrl.startsWith('/')) {
+      alert('按钮链接请填写 http(s) 开头的网址，或 / 开头的站内路径');
+      return;
+    }
+    if (next.image && !/^https?:\/\//i.test(next.image)) {
+      alert('图片地址请填写 http(s) 开头的直链');
+      return;
+    }
+    setAnnouncementPopupSaving(true);
+    try {
+      const r = await fetch('/api/admin/announcement-popup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next),
+      });
+      const d = await r.json();
+      if (!d.success) {
+        alert('保存公告弹窗失败：' + (d.error || '未知错误'));
+        return;
+      }
+      const saved = d.popup || next;
+      setAnnouncementPopup({
+        id: saved.id || null,
+        enabled: saved.enabled === true,
+        title: saved.title || '',
+        content: saved.content || '',
+        image: saved.image || '',
+        buttonText: saved.buttonText || '',
+        buttonUrl: saved.buttonUrl || '',
+      });
+      showAdminToast(saved.enabled ? '公告弹窗已保存，正在更新前台…' : '公告弹窗已关闭，正在更新前台…');
+      void runBatchedRevalidation({
+        listScope: 'announcement-popup',
+        freshTheme: true,
+        contentChange: true,
+        progressLabels: {
+          listing: '正在统计公告弹窗页面…',
+          running: '正在更新公告弹窗…',
+          doneOk: '公告弹窗已同步到前台页面',
+          donePartial: '部分页面会稍后自动更新',
+          hintPartial: '个别页面未能更新，可重新保存公告弹窗',
+          hintOk: '公告弹窗相关页面已更新',
+        },
+      }).then((rev) => {
+        if (rev.failed > 0) showAdminToast(`部分页面更新失败：${rev.failed}/${rev.total}`);
+      }).catch((e) => console.warn('公告弹窗增量刷新失败', e));
+    } catch (e) {
+      alert('保存公告弹窗失败：' + e.message);
+    } finally {
+      setAnnouncementPopupSaving(false);
+    }
+  };
+
+  const uploadAnnouncementPopupImage = async (file) => {
+    if (!file) return;
+    setAnnouncementPopupSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (d.success && d.url) {
+        setAnnouncementPopup(prev => ({ ...prev, image: d.url }));
+      } else {
+        alert('公告图片上传失败：' + (d.error || '未知错误'));
+      }
+    } catch (e) {
+      alert('公告图片上传失败：' + e.message);
+    } finally {
+      setAnnouncementPopupSaving(false);
+    }
+  };
+
   const confirmVendingAddressUnlock = async (password) => {
     if (vendingAddressUnlockBusy) return;
     if (!password) {
@@ -5580,7 +5705,7 @@ const [mounted, setMounted] = useState(false);
             queuePriority: 10,
           });
           showRevalidateFeedback(rev, showAdminToast);
-        } else if (saveScope === 'gallery-ad' || saveScope === 'vending') {
+        } else if (saveScope === 'gallery-ad' || saveScope === 'vending' || saveScope === 'announcement-popup') {
           const scope = saveScope;
           void triggerContentRevalidation({
             scope,
@@ -6626,7 +6751,7 @@ const [mounted, setMounted] = useState(false);
       p.slug !== ANNOUNCEMENT_SLUG &&
       p.favourited
   ).length;
-  const siteInfoWidget = posts.find(p => p.type === 'Widget' && p.slug !== 'gallery-ad' && p.slug !== 'vending');
+  const siteInfoWidget = posts.find(p => p.type === 'Widget' && !['gallery-ad', 'vending', 'announcement-popup'].includes(p.slug));
   const pinnedDividerIndex = activeTab === 'Post' ? filtered.findIndex(p => !p.pinned) : -1;
   const publishDatesSet = (() => {
     const s = new Set();
@@ -7142,6 +7267,16 @@ const [mounted, setMounted] = useState(false);
                   <div style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
                 </div>
               )}
+              {activeTab === 'Widget' && viewMode !== 'folder' && (
+                <div onClick={openAnnouncementPopup} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #38bdf8', cursor: 'pointer' }}>
+                  <div style={{ fontSize: '28px' }}>📣</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>公告弹窗</div>
+                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>全站弹窗开关与内容</div>
+                  </div>
+                  <div style={{ color: '#38bdf8', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
+                </div>
+              )}
               {activeTab === 'Widget' && viewMode !== 'folder' && siteInfoWidget && (
                 <div onClick={() => handleEdit(siteInfoWidget)} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid greenyellow', cursor: 'pointer' }}>
                   <div style={{ fontSize: '28px' }}>🧩</div>
@@ -7418,6 +7553,91 @@ const [mounted, setMounted] = useState(false);
                     {vendingSaving ? '保存中…' : '保存地址设置'}
                   </button>
                 </div>
+              </>
+            )}
+          </div>
+        ) : view === 'announcement-popup' ? (
+          <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
+              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>📣 公告弹窗</div>
+              <div style={{fontSize:'12px', color:'#888'}}>全站弹窗开关与内容</div>
+            </div>
+
+            {announcementPopupLoading ? (
+              <div style={{color:'#888', textAlign:'center', padding:'30px'}}>加载中...</div>
+            ) : (
+              <>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'20px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555', marginBottom:'18px'}}>
+                  <div>
+                    <div style={{fontSize:'16px', fontWeight:'bold', color:'#fff', marginBottom:'6px'}}>弹窗功能</div>
+                    <div style={{fontSize:'12px', color:'#999'}}>{announcementPopup.enabled ? '当前：已开启' : '当前：已关闭'}</div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={announcementPopupSaving}
+                    onClick={() => saveAnnouncementPopup({ enabled: !announcementPopup.enabled })}
+                    style={{
+                      minWidth: '88px',
+                      padding: '12px 20px',
+                      border: 'none',
+                      borderRadius: '999px',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      cursor: announcementPopupSaving ? 'wait' : 'pointer',
+                      background: announcementPopup.enabled ? '#22c55e' : '#555',
+                      color: '#fff',
+                      opacity: announcementPopupSaving ? 0.6 : 1,
+                    }}
+                  >
+                    {announcementPopupSaving ? '保存中…' : (announcementPopup.enabled ? '已开启' : '已关闭')}
+                  </button>
+                </div>
+                <div style={{display:'flex', gap:'24px', alignItems:'flex-start', flexWrap:'wrap'}}>
+                  <div>
+                    <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'8px'}}>弹窗图片 <span style={{color:'#777', fontWeight:'normal'}}>(选填)</span></label>
+                    <label className="img-drop" style={{width:'280px', height:'150px', minHeight:'150px', padding:0, borderRadius:'12px', overflow:'hidden', border:'1px dashed #555'}}
+                      onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
+                      onDrop={e=>{e.preventDefault(); e.stopPropagation(); uploadAnnouncementPopupImage(e.dataTransfer.files[0]);}}>
+                      <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ uploadAnnouncementPopupImage(e.target.files[0]); e.target.value=''; }} />
+                      {announcementPopupSaving
+                        ? <div className="img-uploading"><div className="img-spin"></div></div>
+                        : announcementPopup.image
+                          ? <img src={announcementPopup.image} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="" />
+                          : <div style={{pointerEvents:'none', fontSize:'12px', textAlign:'center', color:'#999', padding:'32px 12px'}}>拖拽 / 点击上传公告图片<br/><span style={{color:'#666'}}>建议横图，弹窗顶部展示</span></div>}
+                    </label>
+                    {announcementPopup.image ? (
+                      <button type="button" onClick={()=>setAnnouncementPopup(prev=>({...prev, image:''}))} style={{marginTop:'8px', fontSize:'11px', color:'#ff7875', background:'none', border:'none', cursor:'pointer', padding:0}}>移除图片</button>
+                    ) : null}
+                  </div>
+                  <div style={{flex:1, minWidth:'280px', display:'flex', flexDirection:'column', gap:'16px'}}>
+                    <div>
+                      <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>弹窗标题</label>
+                      <input className="glow-input" value={announcementPopup.title} onChange={e=>setAnnouncementPopup({...announcementPopup, title: e.target.value})} placeholder="例如：平台公告" />
+                    </div>
+                    <div>
+                      <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>公告正文</label>
+                      <textarea className="glow-input" value={announcementPopup.content} onChange={e=>setAnnouncementPopup({...announcementPopup, content: e.target.value})} placeholder="填写要展示给访客的公告内容" style={{minHeight:'130px', lineHeight:1.7}} />
+                    </div>
+                    <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:'12px'}}>
+                      <div>
+                        <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>按钮文字 <span style={{color:'#777', fontWeight:'normal'}}>(选填)</span></label>
+                        <input className="glow-input" value={announcementPopup.buttonText} onChange={e=>setAnnouncementPopup({...announcementPopup, buttonText: e.target.value})} placeholder="查看详情" />
+                      </div>
+                      <div>
+                        <label style={{display:'block', fontSize:'11px', color:'#bbb', marginBottom:'5px'}}>按钮链接 <span style={{color:'#777', fontWeight:'normal'}}>(选填)</span></label>
+                        <input className="glow-input" value={announcementPopup.buttonUrl} onChange={e=>setAnnouncementPopup({...announcementPopup, buttonUrl: e.target.value})} placeholder="https://example.com 或 /about" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => saveAnnouncementPopup({ includeContent: true })}
+                  disabled={announcementPopupSaving}
+                  style={{width:'100%', padding:'18px', background: announcementPopupSaving ? '#333' : '#fff', color: announcementPopupSaving ? '#666' : '#000', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'15px', cursor: announcementPopupSaving ? 'wait' : 'pointer', marginTop:'32px'}}
+                >
+                  {announcementPopupSaving ? '保存中…' : '保存公告弹窗'}
+                </button>
               </>
             )}
           </div>

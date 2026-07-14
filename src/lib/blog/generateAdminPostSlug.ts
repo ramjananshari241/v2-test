@@ -10,6 +10,7 @@ export const RESERVED_POST_SLUGS = new Set([
   'theme-config',
   'gallery-ad',
   'vending',
+  'announcement-popup',
 ])
 
 /**

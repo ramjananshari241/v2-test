@@ -7,6 +7,7 @@ import { NextPage } from 'next'
 import React, { ReactElement, ReactNode } from 'react'
 import { IconType } from 'react-icons/lib'
 import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
+import type { AnnouncementPopupConfig } from '@/src/lib/blog/announcementPopupDefaults'
 import { ApiColor, BlockResponse } from './notion'
 
 export type FixedLengthArray<N extends number, T> = N extends N
@@ -153,6 +154,7 @@ export type SharedNavFooterStaticProps = {
     vendingConfig?: VendingConfig | null
     /** 兼容旧主题组件的贩售机开关 */
     vendingEnabled?: boolean
+    announcementPopup?: AnnouncementPopupConfig | null
   }
   // revalidate: number
 }

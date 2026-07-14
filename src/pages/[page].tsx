@@ -34,6 +34,7 @@ const systemPageSlugs = new Set([
   'theme-config',
   'gallery-ad',
   'vending',
+  'announcement-popup',
 ])
 
 export const getStaticPaths = async () => {

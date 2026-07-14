@@ -1,6 +1,7 @@
 import { SharedNavFooterStaticProps } from '@/src/types/blog'
 import { GetStaticPropsContext } from 'next'
 import { resolveActiveTheme } from '@/src/themes/getActiveTheme'
+import { getAnnouncementPopupConfig } from '@/src/lib/blog/announcementPopupSettings'
 import { getVendingConfig } from '@/src/lib/blog/vendingSettings'
 import { getCachedNavFooter } from '../notion/getCachedMem'
 import { isTransientNotionError, isNotionBuildPhase } from '../notion/transientErrors'
@@ -10,9 +11,10 @@ async function buildSharedProps(
   siteTitle: SharedNavFooterStaticProps['props']['siteTitle'],
   logo: SharedNavFooterStaticProps['props']['logo']
 ): Promise<SharedNavFooterStaticProps['props']> {
-  const [activeTheme, vendingConfig] = await Promise.all([
+  const [activeTheme, vendingConfig, announcementPopup] = await Promise.all([
     resolveActiveTheme(),
     getVendingConfig(),
+    getAnnouncementPopupConfig(),
   ])
   return {
     navPages,
@@ -22,6 +24,7 @@ async function buildSharedProps(
     activeTheme,
     vendingConfig,
     vendingEnabled: vendingConfig.enabled,
+    announcementPopup,
   }
 }
 
