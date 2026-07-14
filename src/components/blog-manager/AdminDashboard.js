@@ -5230,15 +5230,8 @@ const [mounted, setMounted] = useState(false);
     if (!file) return;
     setAnnouncementPopupSaving(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const d = await r.json();
-      if (d.success && d.url) {
-        setAnnouncementPopup(prev => ({ ...prev, image: d.url }));
-      } else {
-        alert('公告图片上传失败：' + (d.error || '未知错误'));
-      }
+      const url = await uploadAvatarFile(file);
+      setAnnouncementPopup(prev => ({ ...prev, image: url }));
     } catch (e) {
       alert('公告图片上传失败：' + e.message);
     } finally {
@@ -5389,12 +5382,8 @@ const [mounted, setMounted] = useState(false);
     if (!file) return;
     setGalleryAdCoverUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const d = await r.json();
-      if (d.success && d.url) setGalleryAd(prev => ({ ...prev, cover: d.url }));
-      else alert('封面上传失败：' + (d.error || '未知错误'));
+      const url = await uploadAvatarFile(file);
+      setGalleryAd(prev => ({ ...prev, cover: url }));
     } catch (e) { alert('封面上传失败：' + e.message); }
     finally { setGalleryAdCoverUploading(false); }
   };
