@@ -7,9 +7,9 @@ import type { IconType } from 'react-icons/lib'
 import {
   FaInstagram,
   FaTelegramPlane,
-  FaTwitter,
   FaWeibo,
 } from 'react-icons/fa'
+import { FaXTwitter } from 'react-icons/fa6'
 import { SiPixiv } from 'react-icons/si'
 
 type SocialLinksVariant = 'standard' | 'gallery' | 'tweet'
@@ -23,7 +23,7 @@ type SocialLinkMeta = {
 
 const SOCIAL_PLATFORMS: SocialLinkMeta[] = [
   { platform: 'weibo', label: 'Weibo', color: '#e6162d', Icon: FaWeibo },
-  { platform: 'twitter', label: 'Twitter', color: '#1d9bf0', Icon: FaTwitter },
+  { platform: 'twitter', label: 'X', color: '#ffffff', Icon: FaXTwitter },
   { platform: 'pixiv', label: 'Pixiv', color: '#0096fa', Icon: SiPixiv },
   {
     platform: 'telegram',
