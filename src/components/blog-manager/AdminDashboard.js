@@ -78,12 +78,20 @@ const isSystemReservedCategory = (name) =>
 
 const SPECIAL_PAGE_SLUGS = new Set(['announcement', 'about', 'download', 'theme-config', 'social-links']);
 const SHOW_ANNOUNCEMENT_POPUP_ADMIN_ENTRY = false;
+const SOCIAL_LINK_PLATFORMS = [
+  { platform: 'weibo', label: '微博', placeholder: 'https://weibo.com/...' },
+  { platform: 'twitter', label: 'Twitter / X', placeholder: 'https://x.com/...' },
+  { platform: 'pixiv', label: 'Pixiv', placeholder: 'https://www.pixiv.net/users/...' },
+  { platform: 'telegram', label: 'Telegram', placeholder: 'https://t.me/...' },
+  { platform: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...' },
+];
 
 function resolveSaveRevalidateScope(type, slug) {
   if (type === 'Widget') {
     if (slug === 'gallery-ad') return 'gallery-ad';
     if (slug === 'vending') return 'vending';
     if (slug === 'announcement-popup') return 'announcement-popup';
+    if (slug === 'social-links') return 'social-links';
     return 'widget';
   }
   if (type === 'Page' || SPECIAL_PAGE_SLUGS.has(slug)) {
@@ -4169,6 +4177,9 @@ const [mounted, setMounted] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [friends, setFriends] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
+  const [socialLinks, setSocialLinks] = useState({ enabled: false, links: [] });
+  const [socialLinksLoading, setSocialLinksLoading] = useState(false);
+  const [socialLinksSaving, setSocialLinksSaving] = useState(false);
   const [galleryAd, setGalleryAd] = useState({ id: null, url: '', promoText: '', cover: '' });
   const [galleryAdLoading, setGalleryAdLoading] = useState(false);
   const [galleryAdSaving, setGalleryAdSaving] = useState(false);
@@ -5098,6 +5109,104 @@ const [mounted, setMounted] = useState(false);
   };
   const openFriends = () => { setView('friends'); loadFriends(); };
 
+  const normalizeSocialLinks = (links = []) => SOCIAL_LINK_PLATFORMS.map((meta) => {
+    const found = (links || []).find((item) => item.platform === meta.platform);
+    return {
+      id: found?.id || null,
+      name: found?.name || meta.label,
+      platform: meta.platform,
+      url: found?.url || '',
+      status: found?.status || 'Hidden',
+    };
+  });
+
+  const loadSocialLinks = async () => {
+    setSocialLinksLoading(true);
+    try {
+      const r = await fetch('/api/admin/social-links');
+      const d = await r.json();
+      if (d.success) {
+        setSocialLinks({
+          enabled: d.enabled === true,
+          links: normalizeSocialLinks(d.links || []),
+        });
+      } else {
+        alert('加载社媒组件失败：' + (d.error || '未知错误'));
+      }
+    } catch (e) {
+      alert('加载社媒组件失败：' + e.message);
+    } finally {
+      setSocialLinksLoading(false);
+    }
+  };
+
+  const openSocialLinks = () => {
+    setView('social-links');
+    loadSocialLinks();
+  };
+
+  const updateSocialLink = (platform, patch) => {
+    setSocialLinks((prev) => ({
+      ...prev,
+      links: normalizeSocialLinks(prev.links).map((item) =>
+        item.platform === platform ? { ...item, ...patch } : item
+      ),
+    }));
+  };
+
+  const saveSocialLinks = async (patch = {}) => {
+    const next = {
+      enabled: typeof patch.enabled === 'boolean' ? patch.enabled : socialLinks.enabled,
+      links: normalizeSocialLinks(socialLinks.links),
+    };
+
+    for (const item of next.links) {
+      const url = (item.url || '').trim();
+      if (url && !/^https?:\/\//i.test(url)) {
+        alert(`${item.name || item.platform} 的链接需要以 http 或 https 开头`);
+        return;
+      }
+    }
+
+    setSocialLinksSaving(true);
+    try {
+      const r = await fetch('/api/admin/social-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next),
+      });
+      const d = await r.json();
+      if (!d.success) {
+        alert('保存社媒组件失败：' + (d.error || '未知错误'));
+        return;
+      }
+      setSocialLinks({
+        enabled: d.enabled === true,
+        links: normalizeSocialLinks(d.links || []),
+      });
+      showAdminToast(d.enabled ? '社媒组件已保存，正在更新前台…' : '社媒组件已关闭，正在更新前台…');
+      void runBatchedRevalidation({
+        listScope: 'social-links',
+        freshTheme: true,
+        contentChange: true,
+        progressLabels: {
+          listing: '正在统计社媒组件页面…',
+          running: '正在更新社媒组件…',
+          doneOk: '社媒组件已同步到前台页面',
+          donePartial: '部分页面会稍后自动更新',
+          hintPartial: '个别页面未能更新，可重新保存社媒组件',
+          hintOk: '社媒组件相关页面已更新',
+        },
+      }).then((rev) => {
+        if (rev.failed > 0) showAdminToast(`部分页面更新失败：${rev.failed}/${rev.total}`);
+      }).catch((e) => console.warn('社媒组件增量刷新失败', e));
+    } catch (e) {
+      alert('保存社媒组件失败：' + e.message);
+    } finally {
+      setSocialLinksSaving(false);
+    }
+  };
+
   // === 📢 Gallery 广告位 ===
   const loadGalleryAd = async () => {
     setGalleryAdLoading(true);
@@ -5694,7 +5803,7 @@ const [mounted, setMounted] = useState(false);
             queuePriority: 10,
           });
           showRevalidateFeedback(rev, showAdminToast);
-        } else if (saveScope === 'gallery-ad' || saveScope === 'vending' || saveScope === 'announcement-popup') {
+        } else if (saveScope === 'gallery-ad' || saveScope === 'vending' || saveScope === 'announcement-popup' || saveScope === 'social-links') {
           const scope = saveScope;
           void triggerContentRevalidation({
             scope,
@@ -7237,6 +7346,16 @@ const [mounted, setMounted] = useState(false);
                 </div>
               )}
               {activeTab === 'Widget' && viewMode !== 'folder' && (
+                <div onClick={openSocialLinks} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #38bdf8', cursor: 'pointer' }}>
+                  <div style={{ fontSize: '28px' }}>🌐</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#fff' }}>社媒组件</div>
+                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>微博、推特、Pixiv、Telegram、Instagram</div>
+                  </div>
+                  <div style={{ color: '#38bdf8', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
+                </div>
+              )}
+              {activeTab === 'Widget' && viewMode !== 'folder' && (
                 <div onClick={openVending} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #f97316', cursor: 'pointer' }}>
                   <div style={{ fontSize: '28px' }}>🛒</div>
                   <div style={{ flex: 1 }}>
@@ -7458,6 +7577,91 @@ const [mounted, setMounted] = useState(false);
             onRefresh={refreshCrawlerIngestPanel}
             onBack={leaveCrawlerIngestView}
           />
+        ) : view === 'social-links' ? (
+          <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
+              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>🌐 社媒组件</div>
+              <div style={{fontSize:'12px', color:'#888'}}>全主题社交媒体入口</div>
+            </div>
+
+            {socialLinksLoading ? (
+              <div style={{color:'#888', textAlign:'center', padding:'30px'}}>加载中...</div>
+            ) : (
+              <>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'20px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555', marginBottom:'18px'}}>
+                  <div>
+                    <div style={{fontSize:'16px', fontWeight:'bold', color:'#fff', marginBottom:'6px'}}>社媒功能</div>
+                    <div style={{fontSize:'12px', color:'#999'}}>{socialLinks.enabled ? '当前：已开启' : '当前：已关闭'}</div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={socialLinksSaving}
+                    onClick={() => saveSocialLinks({ enabled: !socialLinks.enabled })}
+                    style={{
+                      minWidth: '88px',
+                      padding: '12px 20px',
+                      border: 'none',
+                      borderRadius: '999px',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      cursor: socialLinksSaving ? 'wait' : 'pointer',
+                      background: socialLinks.enabled ? '#22c55e' : '#555',
+                      color: '#fff',
+                      opacity: socialLinksSaving ? 0.6 : 1,
+                    }}
+                  >
+                    {socialLinksSaving ? '保存中…' : (socialLinks.enabled ? '已开启' : '已关闭')}
+                  </button>
+                </div>
+
+                <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+                  {normalizeSocialLinks(socialLinks.links).map((item) => {
+                    const meta = SOCIAL_LINK_PLATFORMS.find((p) => p.platform === item.platform);
+                    return (
+                      <div key={item.platform} style={{display:'grid', gridTemplateColumns:'140px minmax(240px, 1fr) 130px', gap:'12px', alignItems:'center', background:'#333', padding:'14px', borderRadius:'12px', border:'1px solid #555'}}>
+                        <div>
+                          <div style={{fontSize:'14px', fontWeight:'bold', color:'#fff'}}>{meta?.label || item.name}</div>
+                          <div style={{fontSize:'11px', color:'#888', marginTop:'4px'}}>{item.platform}</div>
+                        </div>
+                        <input
+                          className="glow-input"
+                          value={item.url}
+                          onChange={(e) => updateSocialLink(item.platform, {
+                            url: e.target.value,
+                            status: e.target.value.trim() && item.status === 'Hidden' ? 'Published' : item.status,
+                          })}
+                          placeholder={meta?.placeholder || 'https://...'}
+                          style={{fontSize:'13px'}}
+                        />
+                        <select
+                          className="glow-input"
+                          value={item.status || 'Hidden'}
+                          onChange={(e) => updateSocialLink(item.platform, { status: e.target.value })}
+                          style={{fontSize:'13px'}}
+                        >
+                          <option value="Published">显示</option>
+                          <option value="Hidden">隐藏</option>
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{fontSize:'12px', color:'#aaa', lineHeight:1.8, marginTop:'18px'}}>
+                  前台会固定显示五个平台图标：填写链接并设为“显示”时图标高亮可点击；未填写或设为“隐藏”时图标灰显。
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => saveSocialLinks()}
+                  disabled={socialLinksSaving}
+                  style={{width:'100%', padding:'18px', background: socialLinksSaving ? '#333' : '#fff', color: socialLinksSaving ? '#666' : '#000', border:'none', borderRadius:'12px', fontWeight:'bold', fontSize:'15px', cursor: socialLinksSaving ? 'wait' : 'pointer', marginTop:'28px'}}
+                >
+                  {socialLinksSaving ? '保存中…' : '保存社媒组件'}
+                </button>
+              </>
+            )}
+          </div>
         ) : view === 'vending' ? (
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>

@@ -187,11 +187,12 @@ export const SPECIAL_PAGE_SLUGS = new Set([
 export function resolveSaveRevalidateScope(
   type: string,
   slug: string
-): 'post' | 'page' | 'widget' | 'gallery-ad' | 'vending' | 'announcement-popup' {
+): 'post' | 'page' | 'widget' | 'gallery-ad' | 'vending' | 'announcement-popup' | 'social-links' {
   if (type === 'Widget') {
     if (slug === 'gallery-ad') return 'gallery-ad'
     if (slug === 'vending') return 'vending'
     if (slug === 'announcement-popup') return 'announcement-popup'
+    if (slug === 'social-links') return 'social-links'
     return 'widget'
   }
   if (type === 'Page' || SPECIAL_PAGE_SLUGS.has(slug)) {

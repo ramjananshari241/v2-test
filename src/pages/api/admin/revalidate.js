@@ -177,7 +177,7 @@ export default async function handler(req, res) {
         paths = await collectThemePostRevalidatePaths()
       } else if (listScope === 'download-instructions') {
         paths = await collectDownloadInstructionsRevalidatePaths()
-      } else if (listScope === 'gallery-ad' || listScope === 'vending' || listScope === 'announcement-popup') {
+      } else if (listScope === 'gallery-ad' || listScope === 'vending' || listScope === 'announcement-popup' || listScope === 'social-links') {
         paths = await collectGalleryAdRevalidatePaths()
       }
       return res.status(200).json({
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
       paths = await collectSiteConfigRevalidatePaths()
     } else if (scope === 'shell') {
       paths = await collectShellWithCustomPagePaths()
-    } else if (scope === 'gallery-ad' || scope === 'vending' || scope === 'announcement-popup') {
+    } else if (scope === 'gallery-ad' || scope === 'vending' || scope === 'announcement-popup' || scope === 'social-links') {
       paths = await collectGalleryAdRevalidatePaths()
     } else if (scope === 'delete' && slug) {
       paths = await collectDeleteRevalidatePaths(slug, {
