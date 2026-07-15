@@ -3,6 +3,7 @@ import CONFIG from '@/blog.config'
 import { colorMap } from '@/src/lib/colors'
 import { classNames, isValidUrl } from '@/src/lib/util'
 import { ApiColor } from '@/src/types/notion'
+import { useEffect, useState } from 'react'
 
 export const NavIcon = ({
   icon,
@@ -14,19 +15,37 @@ export const NavIcon = ({
   color: string
 }) => {
   const { ICON_PATH } = CONFIG
+  const [remoteFailed, setRemoteFailed] = useState(false)
 
-  const isUrl = isValidUrl(icon)
+  const safeIcon = (icon || '').trim()
+  const isUrl = isValidUrl(safeIcon)
+  const shouldUseRemoteImage = isUrl && !remoteFailed
+  const fallbackIconPath = `${ICON_PATH}/default.svg`
+  const iconPath = shouldUseRemoteImage
+    ? safeIcon
+    : isUrl
+    ? fallbackIconPath
+    : safeIcon
+    ? safeIcon.startsWith('/')
+      ? /^\/[^/]+$/.test(safeIcon)
+        ? `${ICON_PATH}${safeIcon}`
+        : safeIcon
+      : `${ICON_PATH}/${safeIcon}`
+    : fallbackIconPath
 
-  const iconPath = isUrl ? icon : `${ICON_PATH}/${icon ?? 'default.svg'}`
+  useEffect(() => {
+    setRemoteFailed(false)
+  }, [safeIcon])
 
   return (
     <>
       {iconPath &&
-        (isUrl ? (
+        (shouldUseRemoteImage ? (
           <img
             src={iconPath}
             alt={alt}
             className="h-full text-white text-opacity-0 aspect-square dark:text-black dark:text-opacity-0"
+            onError={() => setRemoteFailed(true)}
           />
         ) : (
           <span

@@ -308,20 +308,6 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           backdrop-filter: blur(18px);
           animation: announcement-popup-rise 180ms ease-out;
         }
-        .announcement-popup__panel::before {
-          content: '';
-          position: absolute;
-          inset: 0 0 auto;
-          height: 4px;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            var(--ap-accent),
-            transparent
-          );
-          opacity: 0.95;
-          pointer-events: none;
-        }
         .announcement-popup__close {
           position: absolute;
           top: 12px;
