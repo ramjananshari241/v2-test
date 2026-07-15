@@ -7580,7 +7580,7 @@ const [mounted, setMounted] = useState(false);
         ) : view === 'social-links' ? (
           <div style={{background: '#424242', padding: 30, borderRadius: 20}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'22px'}}>
-              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>🌐 社媒组件</div>
+              <div style={{fontSize:'20px', fontWeight:'bold', color:'#fff'}}>🌐 社媒功能</div>
               <div style={{fontSize:'12px', color:'#888'}}>全主题社交媒体入口</div>
             </div>
 
@@ -7648,7 +7648,7 @@ const [mounted, setMounted] = useState(false);
                 </div>
 
                 <div style={{fontSize:'12px', color:'#aaa', lineHeight:1.8, marginTop:'18px'}}>
-                  前台会固定显示五个平台图标：填写链接并设为“显示”时图标高亮可点击；未填写或设为“隐藏”时图标灰显。
+                  如需激活，请填写社交链接并设为“显示”。
                 </div>
 
                 <button

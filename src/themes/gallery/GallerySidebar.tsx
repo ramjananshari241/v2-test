@@ -34,7 +34,6 @@ export const GallerySidebar = ({
   const router = useRouter()
   const showVending = vendingConfig?.enabled ?? vendingEnabled
   const vendingUrl = vendingConfig?.url || GALLERY_LOGIN_URL
-  const vendingLabel = vendingConfig?.title || 'STORE'
 
   const isActive = (href: string) => {
     if (href === '/') return router.pathname === '/'
@@ -129,7 +128,7 @@ export const GallerySidebar = ({
             rel="noopener noreferrer"
             className="block w-full rounded-md bg-black py-2 text-center text-[13px] font-normal text-white transition-all hover:bg-neutral-800 active:scale-[0.98] active:bg-neutral-900"
           >
-            {vendingLabel}
+            STORE
           </a>
         ) : null}
         {socialLinks?.links ? (
