@@ -760,6 +760,43 @@ html.tweet-theme a.tweet-service__link {
 }
 
 /* —— 贩售机 · Uiverse glow button (Itskrish01) —— */
+.tweet-contact {
+  margin-top: 1.25rem;
+}
+
+.tweet-contact__card {
+  display: flex;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background-color: var(--tweet-card-bg);
+}
+
+.tweet-contact .social-links--tweet {
+  width: 100%;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.social-links--tweet .social-links__item {
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--tweet-service-text);
+}
+
+.social-links--tweet .social-links__item--active:hover {
+  background-color: var(--tweet-gray5);
+  color: var(--tweet-gray12);
+}
+
+.social-links--tweet .social-links__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.social-links--tweet .social-links__icon--inactive {
+  opacity: 0.35;
+}
+
 @keyframes tweet-vending-border-glow-translate {
   from {
     transform: translate(-50%, -33%);

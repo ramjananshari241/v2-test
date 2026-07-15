@@ -468,6 +468,81 @@ html.tweet-theme--light .proplus-create-btn {
   color: rgb(61, 106, 255);
 }
 
+.social-links {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.social-links__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease,
+    color 0.18s ease;
+}
+
+.social-links__item--active:hover {
+  transform: translateY(-1px);
+}
+
+.social-links__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.social-links__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.social-links--standard {
+  gap: 0.4rem;
+}
+
+.social-links--standard .social-links__item {
+  width: 1.9rem;
+  height: 1.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.social-links--standard .social-links__icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.social-links--standard .social-links__icon--inactive {
+  color: rgba(148, 163, 184, 0.42);
+}
+
+.social-links--gallery {
+  justify-content: flex-start;
+  gap: 0.35rem;
+}
+
+.social-links--gallery .social-links__item {
+  width: 1.55rem;
+  height: 1.55rem;
+  color: #171717;
+}
+
+.social-links--gallery .social-links__icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.social-links--gallery .social-links__item--active:hover {
+  background: #171717;
+  color: #fff;
+}
+
+.social-links--gallery .social-links__icon--inactive {
+  color: rgba(23, 23, 23, 0.25);
+}
+
 @media (min-width: 768px) {
   .proplus-create-btn {
     padding: 9px 14px;

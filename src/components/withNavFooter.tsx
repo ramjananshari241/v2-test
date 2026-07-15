@@ -5,6 +5,17 @@ import { ThemeNavShell } from '@/src/themes/themeLayout'
 import { isTweetTheme } from '@/src/themes/tweet/tweetTheme'
 import { Page, SharedNavFooterStaticProps } from '@/src/types/blog'
 
+function resolveSocialLinks(widgets: unknown) {
+  if (!widgets || typeof widgets !== 'object') return null
+  const data = widgets as Record<string, any>
+  const socialWidget = data['social-links']
+  if (socialWidget?.enabled !== false && Array.isArray(socialWidget?.links)) {
+    return socialWidget
+  }
+  const profileLinks = data.profile?.links
+  return Array.isArray(profileLinks) ? { enabled: true, links: profileLinks } : null
+}
+
 export default function withNavFooter(
   WrappedComponent: any,
   pureFooter?: boolean,
@@ -14,6 +25,7 @@ export default function withNavFooter(
     props: SharedNavFooterStaticProps['props'] & { activeTheme?: string }
   ) {
     const themeId = props.activeTheme
+    const socialLinks = resolveSocialLinks((props as any).widgets)
     if (themeId === 'gallery' || isTweetTheme(themeId)) {
       return (
         <>
@@ -22,6 +34,7 @@ export default function withNavFooter(
             siteTitle={props.siteTitle}
             vendingConfig={props.vendingConfig}
             vendingEnabled={props.vendingEnabled !== false}
+            socialLinks={socialLinks}
           >
             <WrappedComponent {...props} />
           </ThemeNavShell>

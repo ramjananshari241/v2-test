@@ -1,6 +1,7 @@
 import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAsideFooter } from './TweetAsideFooter'
+import { TweetContactCard } from './TweetContactCard'
 import { TweetProfileCard } from './TweetProfileCard'
 import { TweetServiceCard } from './TweetServiceCard'
 
@@ -23,6 +24,7 @@ export function TweetRightAside({
         vendingEnabled={vendingEnabled}
       />
       <TweetServiceCard />
+      <TweetContactCard profile={profile} />
       <TweetAsideFooter />
     </>
   )

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import React from 'react'
 import { DynamicIcon } from '../DynamicIcon'
 import { ProfileBioText } from './ProfileBioText'
+import { SocialLinks } from './SocialLinks'
 
 const LinkIcon = ({ icon }: { icon: string }) => {
   if (!icon) return null;
@@ -23,6 +24,7 @@ export const ProfileWidget = ({ data }: { data: any }) => {
   const avatarSrc = data?.logo?.src || data?.image || data?.avatar || '';
   const name = data?.name || 'PRO BLOG';
   const bio = data?.description || '';
+  const socialLinks = Array.isArray(data?.links) ? data.links : null;
 
   return (
     <React.StrictMode>
@@ -61,6 +63,13 @@ export const ProfileWidget = ({ data }: { data: any }) => {
                       className="text-xs md:text-sm text-gray-400 font-medium line-clamp-2 leading-snug antialiased mt-1"
                       linkClassName="text-sky-400 hover:text-sky-300 underline underline-offset-2 break-all"
                     />
+                    {socialLinks ? (
+                      <SocialLinks
+                        links={socialLinks}
+                        variant="standard"
+                        className="mt-2"
+                      />
+                    ) : null}
                 </div>
             </div>
 

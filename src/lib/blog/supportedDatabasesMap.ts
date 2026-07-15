@@ -7,4 +7,7 @@ export const supportedDatabasesMap: {
 } = {
   Friends: formatFriendsDatabase,
   SocialLinks: formatSocialLinksDatabase,
+  'Social Links': formatSocialLinksDatabase,
+  'social-links': formatSocialLinksDatabase,
+  '社交媒体': formatSocialLinksDatabase,
 }

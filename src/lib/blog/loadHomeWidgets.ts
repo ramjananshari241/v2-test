@@ -44,6 +44,17 @@ export async function loadHomeWidgets(options?: {
     const profile = formattedWidgets.profile as { links?: unknown }
     if (profile.links === undefined) profile.links = null
   }
+  const socialLinksWidget = formattedWidgets['social-links']
+  if (
+    socialLinksWidget &&
+    typeof socialLinksWidget === 'object' &&
+    Array.isArray((socialLinksWidget as { links?: unknown }).links)
+  ) {
+    if (formattedWidgets.profile && typeof formattedWidgets.profile === 'object') {
+      const profile = formattedWidgets.profile as { links?: unknown }
+      profile.links = (socialLinksWidget as { links: unknown[] }).links
+    }
+  }
 
   const announcementPost =
     options?.announcement ?? (await getAnnouncementPost())

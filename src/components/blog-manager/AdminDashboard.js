@@ -76,7 +76,7 @@ const isFallbackCategory = (name) =>
 const isSystemReservedCategory = (name) =>
   isProtectedCategory(name) || isFallbackCategory(name);
 
-const SPECIAL_PAGE_SLUGS = new Set(['announcement', 'about', 'download', 'theme-config']);
+const SPECIAL_PAGE_SLUGS = new Set(['announcement', 'about', 'download', 'theme-config', 'social-links']);
 const SHOW_ANNOUNCEMENT_POPUP_ADMIN_ENTRY = false;
 
 function resolveSaveRevalidateScope(type, slug) {
@@ -6740,7 +6740,7 @@ const [mounted, setMounted] = useState(false);
       p.slug !== ANNOUNCEMENT_SLUG &&
       p.favourited
   ).length;
-  const siteInfoWidget = posts.find(p => p.type === 'Widget' && !['gallery-ad', 'vending', 'announcement-popup'].includes(p.slug));
+  const siteInfoWidget = posts.find(p => p.type === 'Widget' && !['gallery-ad', 'vending', 'announcement-popup', 'social-links'].includes(p.slug));
   const pinnedDividerIndex = activeTab === 'Post' ? filtered.findIndex(p => !p.pinned) : -1;
   const publishDatesSet = (() => {
     const s = new Set();

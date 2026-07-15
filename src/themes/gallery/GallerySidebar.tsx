@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
+import type { SocialLinksWidgetType } from '@/src/lib/blog/format/widget/socialLinks'
+import { SocialLinks } from '@/src/components/widget/SocialLinks'
 import {
   GALLERY_LOGIN_URL,
   GALLERY_LOGO_SRC,
@@ -19,6 +21,7 @@ type GallerySidebarProps = {
   onClose?: () => void
   vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
+  socialLinks?: SocialLinksWidgetType | null
 }
 
 export const GallerySidebar = ({
@@ -26,6 +29,7 @@ export const GallerySidebar = ({
   onClose,
   vendingConfig,
   vendingEnabled = true,
+  socialLinks,
 }: GallerySidebarProps) => {
   const router = useRouter()
   const showVending = vendingConfig?.enabled ?? vendingEnabled
@@ -116,16 +120,25 @@ export const GallerySidebar = ({
         ))}
       </nav>
 
-      {showVending ? (
+      {showVending || socialLinks?.links ? (
       <div className="shrink-0 border-t border-neutral-200 px-4 py-5">
-        <a
-          href={vendingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full rounded-md bg-black py-2 text-center text-[13px] font-normal text-white transition-all hover:bg-neutral-800 active:scale-[0.98] active:bg-neutral-900"
-        >
-          {vendingLabel}
-        </a>
+        {showVending ? (
+          <a
+            href={vendingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full rounded-md bg-black py-2 text-center text-[13px] font-normal text-white transition-all hover:bg-neutral-800 active:scale-[0.98] active:bg-neutral-900"
+          >
+            {vendingLabel}
+          </a>
+        ) : null}
+        {socialLinks?.links ? (
+          <SocialLinks
+            links={socialLinks.links}
+            variant="gallery"
+            className={showVending ? 'mt-3' : ''}
+          />
+        ) : null}
       </div>
       ) : null}
     </aside>

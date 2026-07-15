@@ -1,6 +1,7 @@
 import { ReactElement } from 'react'
 import { Title } from '@/src/types/blog'
 import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
+import type { SocialLinksWidgetType } from '@/src/lib/blog/format/widget/socialLinks'
 import { GalleryPageLayout } from '@/src/themes/gallery/GalleryPageLayout'
 import { GalleryShell } from '@/src/themes/gallery/GalleryShell'
 import { TweetPageLayout } from '@/src/themes/tweet/TweetPageLayout'
@@ -33,6 +34,7 @@ type ThemeNavShellProps = {
   siteTitle?: Title
   vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
+  socialLinks?: SocialLinksWidgetType | null
   children: ReactElement
 }
 
@@ -42,6 +44,7 @@ export function ThemeNavShell({
   siteTitle,
   vendingConfig,
   vendingEnabled = true,
+  socialLinks,
   children,
 }: ThemeNavShellProps) {
   const themeId = resolveThemeId(activeTheme)
@@ -53,6 +56,7 @@ export function ThemeNavShell({
           siteTitle={siteTitle}
           vendingConfig={vendingConfig}
           vendingEnabled={vendingEnabled}
+          socialLinks={socialLinks}
         >
           {children}
         </GalleryShell>

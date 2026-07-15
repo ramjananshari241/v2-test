@@ -6,6 +6,7 @@ import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
 import { ProfileWidgetType } from '@/src/lib/blog/format/widget/profile'
 import { TweetAsideFooter } from './TweetAsideFooter'
 import { TweetAvatar } from './TweetAvatar'
+import { TweetContactCard } from './TweetContactCard'
 import { TweetServiceCard } from './TweetServiceCard'
 import { TweetVendingButton } from './TweetVendingButton'
 
@@ -63,6 +64,7 @@ export function TweetMobileProfileCard({
               <TweetVendingButton url={vendingConfig?.url} title={vendingConfig?.title} />
             ) : null}
             <TweetServiceCard />
+            <TweetContactCard profile={profile} />
             <TweetAsideFooter />
           </div>
         ) : null}

@@ -2,6 +2,7 @@
 
 import { Page, Title } from '@/src/types/blog'
 import type { VendingConfig } from '@/src/lib/blog/vendingDefaults'
+import type { SocialLinksWidgetType } from '@/src/lib/blog/format/widget/socialLinks'
 import { ReactNode, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { GALLERY_LOGO_SRC } from './galleryConstants'
@@ -18,6 +19,7 @@ type GalleryShellProps = {
   children: ReactNode
   vendingConfig?: VendingConfig | null
   vendingEnabled?: boolean
+  socialLinks?: SocialLinksWidgetType | null
   /** 顶栏居中标题，传 false 可隐藏 */
   headerTitle?: string | false
 }
@@ -28,6 +30,7 @@ export const GalleryShell = ({
   headerTitle,
   vendingConfig,
   vendingEnabled = true,
+  socialLinks,
 }: GalleryShellProps) => {
   const siteName = siteTitle?.text || 'PRO BLOG'
   const showHeader = headerTitle !== false
@@ -64,6 +67,7 @@ export const GalleryShell = ({
         onClose={() => setMenuOpen(false)}
         vendingConfig={vendingConfig}
         vendingEnabled={vendingEnabled}
+        socialLinks={socialLinks}
       />
 
       {/* 移动端抽屉遮罩 */}
