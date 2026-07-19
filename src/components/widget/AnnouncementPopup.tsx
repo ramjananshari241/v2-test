@@ -376,7 +376,7 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           line-height: 1.75;
           white-space: pre-wrap;
         }
-        .announcement-popup__text-link {
+        .announcement-popup .announcement-popup__text-link {
           color: var(--ap-link);
           font-weight: 700;
           text-decoration: underline;
@@ -384,11 +384,11 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           text-underline-offset: 3px;
           transition: opacity 160ms ease, text-decoration-color 160ms ease;
         }
-        .announcement-popup__text-link:hover {
+        .announcement-popup .announcement-popup__text-link:hover {
           opacity: 0.78;
           text-decoration-color: transparent;
         }
-        .announcement-popup__button {
+        .announcement-popup .announcement-popup__button {
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -406,7 +406,7 @@ export function AnnouncementPopup({ config, activeTheme }: Props) {
           box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
           transition: transform 160ms ease, opacity 160ms ease;
         }
-        .announcement-popup__button:hover {
+        .announcement-popup .announcement-popup__button:hover {
           opacity: 0.92;
           transform: translateY(-1px);
         }

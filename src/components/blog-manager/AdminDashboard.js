@@ -77,7 +77,6 @@ const isSystemReservedCategory = (name) =>
   isProtectedCategory(name) || isFallbackCategory(name);
 
 const SPECIAL_PAGE_SLUGS = new Set(['announcement', 'about', 'download', 'theme-config', 'social-links']);
-const SHOW_ANNOUNCEMENT_POPUP_ADMIN_ENTRY = false;
 const SOCIAL_LINK_PLATFORMS = [
   { platform: 'weibo', label: '微博', placeholder: 'https://weibo.com/...' },
   { platform: 'twitter', label: 'Twitter / X', placeholder: 'https://x.com/...' },
@@ -5269,7 +5268,8 @@ const [mounted, setMounted] = useState(false);
   };
 
   const openAnnouncementPopup = () => {
-    setView('list');
+    setView('announcement-popup');
+    loadAnnouncementPopup();
   };
 
   const saveAnnouncementPopup = async (patch = {}) => {
@@ -7375,7 +7375,7 @@ const [mounted, setMounted] = useState(false);
                   <div style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' }}>进入 →</div>
                 </div>
               )}
-              {SHOW_ANNOUNCEMENT_POPUP_ADMIN_ENTRY && activeTab === 'Widget' && viewMode !== 'folder' && (
+              {activeTab === 'Widget' && viewMode !== 'folder' && (
                 <div onClick={openAnnouncementPopup} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid #38bdf8', cursor: 'pointer' }}>
                   <div style={{ fontSize: '28px' }}>📣</div>
                   <div style={{ flex: 1 }}>
