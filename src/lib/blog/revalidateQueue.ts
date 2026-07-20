@@ -28,6 +28,7 @@ type EnqueueOptions = {
   reason?: string
   priority?: number
   delayMs?: number
+  maxAttempts?: number
   freshTheme?: boolean
   clearCaches?: boolean
   warmPaths?: boolean
@@ -39,6 +40,38 @@ function normalizePath(path: string): string {
   const trimmed = String(path || '').trim()
   if (!trimmed) return '/'
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+}
+
+const NEW_POST_REASON_PREFIX = 'new-post:'
+
+export function getNewPostSlugsFromReason(reason?: string | null): string[] {
+  if (!reason?.startsWith(NEW_POST_REASON_PREFIX)) return []
+  return reason
+    .slice(NEW_POST_REASON_PREFIX.length)
+    .split(',')
+    .map((slug) => {
+      try {
+        return decodeURIComponent(slug).trim()
+      } catch {
+        return slug.trim()
+      }
+    })
+    .filter(Boolean)
+}
+
+function mergeQueueReason(
+  existingReason?: string | null,
+  incomingReason?: string | null
+): string | null {
+  const existingSlugs = getNewPostSlugsFromReason(existingReason)
+  const incomingSlugs = getNewPostSlugsFromReason(incomingReason)
+  if (existingSlugs.length > 0 && incomingSlugs.length > 0) {
+    const merged = Array.from(new Set([...existingSlugs, ...incomingSlugs]))
+    return `${NEW_POST_REASON_PREFIX}${merged
+      .map((slug) => encodeURIComponent(slug))
+      .join(',')}`
+  }
+  return incomingReason || existingReason || null
 }
 
 export function isRevalidateQueueConfigured(): boolean {
@@ -63,6 +96,10 @@ export async function enqueueRevalidatePaths(
   const siteId = getBlogSiteIdOrNull()
   const uniquePaths = Array.from(new Set(paths.map(normalizePath)))
   const delayMs = Math.max(0, Number(options.delayMs ?? DEFAULT_DELAY_MS) || 0)
+  const maxAttempts = Math.min(
+    12,
+    Math.max(1, Number(options.maxAttempts) || 3)
+  )
   const scheduledAt = new Date(Date.now() + delayMs).toISOString()
 
   if (!sb || !siteId) {
@@ -82,6 +119,7 @@ export async function enqueueRevalidatePaths(
       reason: options.reason || options.scope || null,
       priority: Math.max(0, Number(options.priority) || 0),
       scheduled_at: scheduledAt,
+      max_attempts: maxAttempts,
       fresh_theme: Boolean(options.freshTheme),
       clear_caches: options.clearCaches !== false,
       // 队列里的普通任务默认不 warm；强一致刷新仍走即时模式。
@@ -94,7 +132,7 @@ export async function enqueueRevalidatePaths(
     const { data: existing, error: existingError } = await sb
       .from(TABLE)
       .select(
-        'id, priority, fresh_theme, clear_caches, warm_paths, expected_theme, content_change'
+        'id, reason, priority, max_attempts, fresh_theme, clear_caches, warm_paths, expected_theme, content_change'
       )
       .eq('site_id', siteId)
       .eq('path', path)
@@ -108,9 +146,14 @@ export async function enqueueRevalidatePaths(
         .from(TABLE)
         .update({
           ...incoming,
+          reason: mergeQueueReason(existing.reason, incoming.reason),
           priority: Math.max(
             Number(existing.priority) || 0,
             incoming.priority
+          ),
+          max_attempts: Math.max(
+            Number(existing.max_attempts) || 3,
+            incoming.max_attempts
           ),
           fresh_theme: Boolean(existing.fresh_theme || incoming.fresh_theme),
           clear_caches: Boolean(existing.clear_caches || incoming.clear_caches),
@@ -131,7 +174,6 @@ export async function enqueueRevalidatePaths(
       site_id: siteId,
       path,
       status: 'pending',
-      max_attempts: 3,
       ...incoming,
     })
 

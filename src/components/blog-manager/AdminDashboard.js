@@ -260,6 +260,9 @@ const GlobalStyle = () => (
     .pubq-retry { background: none; border: 1px solid #555; color: #ddd; font-size: 12px; border-radius: 6px; padding: 3px 10px; cursor: pointer; width: auto; }
     .pubq-retry:hover { border-color: greenyellow; color: greenyellow; }
     .pubq-spin { width: 14px; height: 14px; border: 2px solid #333; border-top-color: greenyellow; border-radius: 50%; animation: imgspin 0.8s linear infinite; flex: none; }
+    .post-sync-banner { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px 18px; border: 1px solid rgba(173,255,47,0.45); border-radius: 12px; background: linear-gradient(90deg, rgba(173,255,47,0.12), rgba(32,32,36,0.96)); color: #fff; }
+    .post-sync-banner-title { font-size: 14px; font-weight: 700; }
+    .post-sync-banner-detail { margin-top: 3px; color: #aaa; font-size: 12px; line-height: 1.45; }
     .pubq-detail { margin-top: 8px; font-size: 12px; color: #999; line-height: 1.45; }
     .pubq-detail.is-err { color: #ff6b6d; word-break: break-word; }
     .pubq-bar-track { margin-top: 8px; height: 5px; background: #2a2a2e; border-radius: 999px; overflow: hidden; }
@@ -4213,8 +4216,11 @@ const [mounted, setMounted] = useState(false);
   const [savePhase, setSavePhase] = useState(''); // '' | 'media' | 'post' | 'gallery' | 'delete'
   const [saveProgress, setSaveProgress] = useState(null); // { done, total }
   const [publishQueue, setPublishQueue] = useState([]); // 后台发布队列
+  const [pendingPostSyncs, setPendingPostSyncs] = useState([]); // Notion 已创建、等待索引与前台刷新的新文章
   const queueRunningRef = useRef(false);
   const cancelledJobsRef = useRef(new Set()); // 已请求取消的任务 id
+  const pendingPostSyncsRef = useRef([]);
+  const pendingPostSyncPollingRef = useRef(new Set());
   const [galleryStorageStats, setGalleryStorageStats] = useState(null);
   const [galleryStorageLoading, setGalleryStorageLoading] = useState(false);
   const [galleryStorageError, setGalleryStorageError] = useState('');
@@ -4593,7 +4599,15 @@ const [mounted, setMounted] = useState(false);
        if (!r.ok) throw new Error(`API Error: ${r.status}`);
        const d = await r.json(); 
        if (d.success) { 
-         setPosts(d.posts || []); 
+         const remotePosts = d.posts || [];
+         setPosts((previousPosts) => {
+           const remoteIds = new Set(remotePosts.map((post) => post.id));
+           const pendingIds = new Set(pendingPostSyncsRef.current.map((item) => item.id));
+           const optimisticPosts = previousPosts.filter(
+             (post) => pendingIds.has(post.id) && !remoteIds.has(post.id)
+           );
+           return [...optimisticPosts, ...remotePosts];
+         });
          setOptions(d.options || { categories: [], tags: [] });
          const remote = d.posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
          if (remote) setActiveThemeLocal(remote);
@@ -4606,6 +4620,70 @@ const [mounted, setMounted] = useState(false);
     } catch(e) { console.warn(e); } 
     finally { if (!silent) setLoading(false); } 
   }
+
+  const registerPendingPostSync = useCallback((item) => {
+    const next = [
+      item,
+      ...pendingPostSyncsRef.current.filter((current) => current.id !== item.id),
+    ];
+    pendingPostSyncsRef.current = next;
+    setPendingPostSyncs(next);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || pendingPostSyncs.length === 0) return;
+    let stopped = false;
+
+    const pollPendingPostSyncs = async () => {
+      const completedIds = [];
+      for (const item of pendingPostSyncsRef.current) {
+        if (stopped || pendingPostSyncPollingRef.current.has(item.id)) continue;
+        pendingPostSyncPollingRef.current.add(item.id);
+        try {
+          const check = await fetch(
+            `/api/admin/posts?syncSlug=${encodeURIComponent(item.slug)}&syncId=${encodeURIComponent(item.id)}`,
+            { cache: 'no-store' }
+          );
+          const checkData = await check.json().catch(() => null);
+          if (!check.ok || !checkData?.indexed) continue;
+
+          const rev = await triggerContentRevalidation({
+            scope: 'post',
+            slug: item.slug,
+            category: item.category || '',
+            tags: item.tags || '',
+            clearCaches: true,
+            warmPaths: true,
+            contentChange: true,
+          });
+          if (rev.ok) {
+            completedIds.push(item.id);
+            showAdminToast(`新文章「${item.title}」已同步到前台`);
+          }
+        } catch (error) {
+          console.warn('新文章同步状态检查失败', error);
+        } finally {
+          pendingPostSyncPollingRef.current.delete(item.id);
+        }
+      }
+
+      if (!stopped && completedIds.length > 0) {
+        const completed = new Set(completedIds);
+        const next = pendingPostSyncsRef.current.filter((item) => !completed.has(item.id));
+        pendingPostSyncsRef.current = next;
+        setPendingPostSyncs(next);
+        fetchPosts({ silent: true });
+      }
+    };
+
+    const initialTimer = setTimeout(pollPendingPostSyncs, 4000);
+    const intervalTimer = setInterval(pollPendingPostSyncs, 15000);
+    return () => {
+      stopped = true;
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, [mounted, pendingPostSyncs.length]);
 
   // 🟢 5. 处理函数
   const loadThemeSwitchQuota = async () => {
@@ -5743,6 +5821,38 @@ const [mounted, setMounted] = useState(false);
       const previousSlug = payload.previousSlug || '';
       const isNewPost = !payload.currentId;
 
+      if (isNewPost && newId && saveType === 'Post') {
+        const optimisticPost = {
+          id: newId,
+          title: payload.form.title || '无标题',
+          slug: saveSlug,
+          excerpt: payload.form.excerpt || '',
+          category: payload.form.category || '',
+          tags: payload.form.tags || '',
+          status: 'Published',
+          type: 'Post',
+          date: payload.form.date || '',
+          cover: coverForSave || '',
+          pinned: false,
+          favourited: false,
+          download: payload.form.download || '',
+          download_size: payload.form.download_size || '',
+          download_count: payload.form.download_count || '',
+        };
+        setPosts((currentPosts) => [
+          optimisticPost,
+          ...currentPosts.filter((post) => post.id !== newId),
+        ]);
+        registerPendingPostSync({
+          id: newId,
+          title: optimisticPost.title,
+          slug: saveSlug,
+          category: optimisticPost.category,
+          tags: optimisticPost.tags,
+          startedAt: Date.now(),
+        });
+      }
+
       // 4) 同步图库（排序 / 新建后补写 notion id）
       if (payload.willSyncGallery && galleryItemsForSave.length > 0) {
         if (bailIfCancelled()) return;
@@ -5773,8 +5883,11 @@ const [mounted, setMounted] = useState(false);
             clearCaches: true,
             warmPaths: isNewPost,
             contentChange: true,
-            queueReason: 'post-save',
+            queueReason: isNewPost
+              ? `new-post:${encodeURIComponent(saveSlug)}`
+              : 'post-save',
             queuePriority: 10,
+            queueMaxAttempts: isNewPost ? 8 : 3,
           })
             .then((rev) => showRevalidateFeedback(rev, showAdminToast))
             .catch((e) => console.warn('文章内页增量刷新失败', e));
@@ -5850,7 +5963,7 @@ const [mounted, setMounted] = useState(false);
         error: e?.message || '发布失败',
       });
     }
-  }, [updateJob, dismissJob]);
+  }, [updateJob, dismissJob, registerPendingPostSync]);
 
   // 检测长时间无进度心跳的任务（图库大批量上传可持续数分钟，不误判）
   useEffect(() => {
@@ -6819,6 +6932,17 @@ const [mounted, setMounted] = useState(false);
      return list;
   };
   const filtered = getFilteredPosts();
+  const syncingNewPostTitles = Array.from(new Set([
+    ...publishQueue
+      .filter((job) =>
+        (job.status === 'queued' || job.status === 'running') &&
+        !job.payload?.currentId &&
+        !job.payload?.isWidget &&
+        (job.payload?.form?.type || 'Post') === 'Post'
+      )
+      .map((job) => job.title),
+    ...pendingPostSyncs.map((item) => item.title),
+  ]));
   const recyclePosts = (() => {
     let list = posts.filter((p) => p.type === 'Piece');
     if (searchQuery) {
@@ -7336,6 +7460,17 @@ const [mounted, setMounted] = useState(false);
 
             {/* 4. 列表渲染区域 */}
             <div style={viewMode === 'gallery' || viewMode === 'folder' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' } : {}}>
+              {activeTab === 'Post' && viewMode !== 'folder' && syncingNewPostTitles.length > 0 && (
+                <div className="post-sync-banner" role="status" aria-live="polite">
+                  <span className="pubq-spin" />
+                  <div>
+                    <div className="post-sync-banner-title">正在更新刚发布的文章…</div>
+                    <div className="post-sync-banner-detail">
+                      {syncingNewPostTitles.join('、')} · 正在等待 Notion 索引并自动更新 BLOG 前台，无需手动刷新
+                    </div>
+                  </div>
+                </div>
+              )}
               {activeTab === 'Widget' && viewMode !== 'folder' && (
                 <div onClick={openFriends} className="card-item" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 24px', background: 'linear-gradient(90deg,#3a3a3f,#2c2c30)', borderRadius: '12px', marginBottom: '12px', border: '1px solid greenyellow', cursor: 'pointer' }}>
                   <div style={{ fontSize: '28px' }}>🔗</div>

@@ -19,11 +19,13 @@ import {
   countPendingRevalidateJobs,
   enqueueRevalidatePaths,
   getDefaultRevalidateQueueDelayMs,
+  getNewPostSlugsFromReason,
   isRevalidateQueueConfigured,
   markRevalidateJobDone,
   markRevalidateJobFailed,
   resetStaleRevalidateJobs,
 } from '@/src/lib/blog/revalidateQueue'
+import { isPostIndexedBySlug } from '@/src/lib/notion/getBlogData'
 
 export const config = {
   maxDuration: 300,
@@ -67,22 +69,60 @@ async function drainRevalidateQueue(res, limit = 25) {
     }
   }
 
-  const paths = jobs.map((job) => job.path)
-  const results = await revalidateMany(res, paths, {
-    freshTheme: jobs.some((job) => job.fresh_theme),
-    clearCaches: jobs.some((job) => job.clear_caches),
-    warmPaths: jobs.some((job) => job.warm_paths),
-    origin: jobs.some((job) => job.warm_paths)
-      ? resolveRevalidateOrigin()
-      : undefined,
-    expectedTheme:
-      jobs.find((job) => job.expected_theme)?.expected_theme || null,
-    contentChange: jobs.some((job) => job.content_change),
-  })
-  const resultByPath = new Map(results.map((item) => [item.path, item]))
+  const newPostSlugs = Array.from(
+    new Set(jobs.flatMap((job) => getNewPostSlugsFromReason(job.reason)))
+  )
+  const indexedBySlug = new Map()
+  await Promise.all(
+    newPostSlugs.map(async (slug) => {
+      try {
+        indexedBySlug.set(slug, await isPostIndexedBySlug(slug))
+      } catch (error) {
+        console.warn(`[admin/revalidate] Notion index check failed: ${slug}`, error)
+        indexedBySlug.set(slug, false)
+      }
+    })
+  )
 
-  let failed = 0
-  for (const job of jobs) {
+  const deferredJobs = jobs.filter((job) =>
+    getNewPostSlugsFromReason(job.reason).some(
+      (slug) => indexedBySlug.get(slug) !== true
+    )
+  )
+  const deferredIds = new Set(deferredJobs.map((job) => job.id))
+  const readyJobs = jobs.filter((job) => !deferredIds.has(job.id))
+  const deferredResults = deferredJobs.map((job) => ({
+    path: job.path,
+    ok: false,
+    error: 'Notion 新文章索引尚未就绪，已自动延迟重试',
+  }))
+
+  for (const job of deferredJobs) {
+    await markRevalidateJobFailed(
+      job,
+      'Notion 新文章索引尚未就绪，已自动延迟重试'
+    )
+  }
+
+  const readyPaths = readyJobs.map((job) => job.path)
+  const readyResults = readyJobs.length > 0
+    ? await revalidateMany(res, readyPaths, {
+        freshTheme: readyJobs.some((job) => job.fresh_theme),
+        clearCaches: readyJobs.some((job) => job.clear_caches),
+        warmPaths: readyJobs.some((job) => job.warm_paths),
+        origin: readyJobs.some((job) => job.warm_paths)
+          ? resolveRevalidateOrigin()
+          : undefined,
+        expectedTheme:
+          readyJobs.find((job) => job.expected_theme)?.expected_theme || null,
+        contentChange: readyJobs.some((job) => job.content_change),
+      })
+    : []
+  const results = [...deferredResults, ...readyResults]
+  const resultByPath = new Map(readyResults.map((item) => [item.path, item]))
+
+  let failed = deferredJobs.length
+  for (const job of readyJobs) {
     const result = resultByPath.get(job.path)
     if (result?.ok) {
       await markRevalidateJobDone(job.id)
@@ -147,6 +187,7 @@ export default async function handler(req, res) {
       queueDelayMs,
       queuePriority = 0,
       queueReason,
+      queueMaxAttempts,
     } = req.body ?? {}
 
     if (scope === 'shell' && manualShell) {
@@ -251,6 +292,7 @@ export default async function handler(req, res) {
           scope,
           reason: queueReason || scope,
           priority: queuePriority,
+          maxAttempts: queueMaxAttempts,
           delayMs:
             queueDelayMs == null
               ? getDefaultRevalidateQueueDelayMs()

@@ -4,12 +4,21 @@ import { readFavouritedFromNotionProperties } from '@/src/lib/blog/favouritePost
 import { readDownloadSizeFromPageProperties, readDownloadCountFromPageProperties, readCoverFromPageProperties, readPageCoverUrl } from '@/src/lib/notion/readProperty';
 import { loadGalleryFeedCovers } from '@/src/lib/gallery/galleryFeedPreviews';
 import { resolveAdminListCoverSrc } from '@/src/lib/admin/resolveAdminListCover';
+import { isPostIndexedBySlug } from '@/src/lib/notion/getBlogData';
 
 export default async function handler(req, res) {
   const notion = new Client({ auth: process.env.NOTION_KEY || process.env.NOTION_TOKEN });
   const databaseId = process.env.NOTION_DATABASE_ID || process.env.NOTION_PAGE_ID;
 
   try {
+    const syncSlug = Array.isArray(req.query.syncSlug) ? req.query.syncSlug[0] : req.query.syncSlug;
+    const syncId = Array.isArray(req.query.syncId) ? req.query.syncId[0] : req.query.syncId;
+    if (syncSlug) {
+      res.setHeader('Cache-Control', 'no-store, max-age=0');
+      const indexed = await isPostIndexedBySlug(String(syncSlug), syncId ? String(syncId) : null);
+      return res.status(200).json({ success: true, indexed });
+    }
+
     let allResults = [];
     let hasMore = true;
     let cursor = undefined;

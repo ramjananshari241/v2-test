@@ -164,6 +164,42 @@ function findPostPageBySlugInList(
   )
 }
 
+/** 仅检查 Notion 数据库查询索引是否已收录文章，不做全量扫描回退。 */
+export async function isPostIndexedBySlug(
+  slug: string,
+  expectedId?: string | null
+): Promise<boolean> {
+  const trimmed = slug.trim()
+  if (!trimmed) return false
+
+  let results: PageObjectResponse[]
+  try {
+    results = await queryDatabasePages(
+      combineScopeWithSlugFilter(ApiScope.Archive, trimmed),
+      { pageSize: 5 }
+    )
+  } catch (error) {
+    const code = (error as { code?: string })?.code
+    if (code !== 'validation_error') throw error
+    results = await queryDatabasePages(slugEqualsFilter(trimmed), { pageSize: 5 })
+  }
+
+  return results.some((object) => {
+    if (!isNotionContentType(object, 'Post')) return false
+    if (expectedId && object.id !== expectedId) return false
+    if (readRichTextPlain(object.properties['slug']) !== trimmed) return false
+
+    const status = object.properties['status']
+    const statusName =
+      status?.type === 'status'
+        ? status.status?.name
+        : status?.type === 'select'
+          ? status.select?.name
+          : null
+    return statusName === 'Published'
+  })
+}
+
 /** 按 slug 查单篇（Archive / Draft）；Notion filter 未命中时回退内存匹配 */
 export async function getPostBySlug(
   slug: string,
