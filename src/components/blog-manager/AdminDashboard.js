@@ -77,6 +77,7 @@ const isSystemReservedCategory = (name) =>
   isProtectedCategory(name) || isFallbackCategory(name);
 
 const SPECIAL_PAGE_SLUGS = new Set(['announcement', 'about', 'download', 'theme-config', 'social-links']);
+const SHOW_VENDING_ADDRESS_ADMIN = false;
 const SOCIAL_LINK_PLATFORMS = [
   { platform: 'weibo', label: '微博', placeholder: 'https://weibo.com/...' },
   { platform: 'twitter', label: 'Twitter / X', placeholder: 'https://x.com/...' },
@@ -7698,6 +7699,7 @@ const [mounted, setMounted] = useState(false);
                     {vendingSaving ? '保存中…' : (vendingEnabled ? '已开启' : '已关闭')}
                   </button>
                 </div>
+                {SHOW_VENDING_ADDRESS_ADMIN && (
                 <div style={{display:'flex', flexDirection:'column', gap:'16px', padding:'22px 24px', background:'#333', borderRadius:'14px', border:'1px solid #555'}}>
                   <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'14px'}}>
                     <div>
@@ -7746,6 +7748,7 @@ const [mounted, setMounted] = useState(false);
                     {vendingSaving ? '保存中…' : '保存地址设置'}
                   </button>
                 </div>
+                )}
               </>
             )}
           </div>

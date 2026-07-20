@@ -136,6 +136,7 @@
 - 后台 Widget 中的 `gallery-ad` 当前作为“内页广告位”维护，数据会用于 Gallery、Tweet 与 Standard 系列文章内页底部 banner；保存后走 `gallery-ad` revalidate 范围刷新文章页。
 - 后台 Widget 中的 `vending` 当前作为“贩售机入口”维护，约定：`type=Widget`、`slug=vending`、`title` 为入口按钮文字、`excerpt` 为跳转 URL、`status=Published` 表示开启、`status=Hidden` 表示关闭。旧 Supabase `blog_site_settings.vending_enabled` 仅作为没有该 Widget 时的兼容兜底；后台保存会创建/更新 Notion Widget，并同步旧开关。
 - `/api/admin/vending` 的 `POST` 支持 `{ enabled, title, url }`，用于后台和后续商家系统一键替换贩售机地址；修改 `title/url` 必须通过维护密码，单独切换 `enabled` 不需要密码。保存后需要刷新 `vending` 范围（壳层 + 文章页/下载页），`/api/admin/revalidate` 已支持 `scope/listScope='vending'`。
+- BLOG 后台贩售机编辑页当前只显示开启/关闭功能，“地址管理”区块通过 `SHOW_VENDING_ADDRESS_ADMIN=false` 隐藏；地址解锁、维护密码校验、标题/URL 编辑和保存逻辑必须保留，后续需要时只切换该显示开关恢复界面。
 - Gallery 主题侧栏底部的贩售机按钮固定显示为 `STORE`，只复用 `vending` Widget 的开关和跳转 URL；其他主题仍显示该 Widget 的 `title`。
 - `announcement-popup` 当前作为“公告弹窗”系统 Widget 维护，约定：`type=Widget`、`slug=announcement-popup`、`title` 为弹窗标题、`excerpt` 为弹窗正文、`cover` 为可选弹窗图片、`button_text`/`button_url` 为可选按钮文字和链接，`status=Published` 表示开启、`status=Hidden` 表示关闭。`button_text`/`button_url` 字段不存在时服务端会降级忽略，不阻断保存。
 - 后台 Widget 列表显示“公告弹窗”入口，用户可自行开启/关闭并编辑标题、正文、图片、按钮文字和链接；同时保留 `/api/admin/announcement-popup` 的 `GET/POST` 供商家系统管理员注入/更新。保存后刷新 `announcement-popup` 范围，`/api/admin/revalidate` 已支持 `scope/listScope='announcement-popup'`。
