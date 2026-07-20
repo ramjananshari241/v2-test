@@ -4221,6 +4221,8 @@ const [mounted, setMounted] = useState(false);
   const cancelledJobsRef = useRef(new Set()); // 已请求取消的任务 id
   const pendingPostSyncsRef = useRef([]);
   const pendingPostSyncPollingRef = useRef(new Set());
+  const pendingPostTypeOverridesRef = useRef(new Map());
+  const [archivingPostIds, setArchivingPostIds] = useState([]);
   const [galleryStorageStats, setGalleryStorageStats] = useState(null);
   const [galleryStorageLoading, setGalleryStorageLoading] = useState(false);
   const [galleryStorageError, setGalleryStorageError] = useState('');
@@ -4601,12 +4603,27 @@ const [mounted, setMounted] = useState(false);
        if (d.success) { 
          const remotePosts = d.posts || [];
          setPosts((previousPosts) => {
-           const remoteIds = new Set(remotePosts.map((post) => post.id));
+           const synchronizedRemotePosts = remotePosts.map((post) => {
+             const expectedType = pendingPostTypeOverridesRef.current.get(post.id);
+             if (!expectedType) return post;
+             if (post.type === expectedType) {
+               pendingPostTypeOverridesRef.current.delete(post.id);
+               return post;
+             }
+             return { ...post, type: expectedType };
+           });
+           const remoteIds = new Set(synchronizedRemotePosts.map((post) => post.id));
            const pendingIds = new Set(pendingPostSyncsRef.current.map((item) => item.id));
            const optimisticPosts = previousPosts.filter(
-             (post) => pendingIds.has(post.id) && !remoteIds.has(post.id)
+             (post) =>
+               (pendingIds.has(post.id) || pendingPostTypeOverridesRef.current.has(post.id)) &&
+               !remoteIds.has(post.id)
+           ).map((post) =>
+             pendingPostTypeOverridesRef.current.has(post.id)
+               ? { ...post, type: pendingPostTypeOverridesRef.current.get(post.id) }
+               : post
            );
-           return [...optimisticPosts, ...remotePosts];
+           return [...optimisticPosts, ...synchronizedRemotePosts];
          });
          setOptions(d.options || { categories: [], tags: [] });
          const remote = d.posts.find(p => p.slug === 'theme-config')?.excerpt?.trim();
@@ -6572,53 +6589,54 @@ const [mounted, setMounted] = useState(false);
 
   const handleDeletePost = async (p) => {
     if (!confirm('移至回收站')) return;
+    setArchivingPostIds((currentIds) => [...currentIds, p.id]);
+
     try {
-      const rev = await runListMutation({
-        phase: 'archive',
-        itemCount: 1,
-        shellRefreshOptions: {
-          contentChange: true,
-          queue: true,
-          queueDelayMs: 30_000,
-          queueReason: 'archive-post',
-          queuePriority: 10,
-        },
-        mutateItems: async (report) => {
-          report(0, '正在移入回收站…');
-          const res = await fetch('/api/admin/post?id=' + p.id, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: p.id, type: 'Piece' }),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.success) {
-            throw new Error(data.error || '移入回收站失败');
-          }
-          report(1, '已更新文章状态');
-        },
-        afterRefresh: async () => {
-          void triggerContentRevalidation({
-            scope: 'delete',
-            slug: p.slug,
-            category: p.category || '',
-            tags: p.tags || '',
-            queue: true,
-            queueDelayMs: 30_000,
-            clearCaches: true,
-            contentChange: true,
-            queueReason: 'archive-post-detail',
-            queuePriority: 10,
-          }).catch((e) => console.warn('归档后页面刷新失败', e));
-        },
+      const res = await fetch('/api/admin/post?id=' + p.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, type: 'Piece' }),
       });
-      showRevalidateFeedback(rev, showAdminToast);
-      showAdminToast('已移到回收站');
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '移入回收站失败');
+      }
+
+      pendingPostTypeOverridesRef.current.set(p.id, 'Piece');
+      setPosts((currentPosts) =>
+        currentPosts.map((post) =>
+          post.id === p.id ? { ...post, type: 'Piece' } : post
+        )
+      );
+      showAdminToast('已移到回收站，前台缓存将在后台更新');
+      void triggerShellBlogRefresh({
+        contentChange: true,
+        queue: true,
+        queueDelayMs: 30_000,
+        queueReason: 'archive-post',
+        queuePriority: 10,
+      }).catch((e) => console.warn('归档后列表刷新失败', e));
+      void triggerContentRevalidation({
+        scope: 'delete',
+        slug: p.slug,
+        category: p.category || '',
+        tags: p.tags || '',
+        queue: true,
+        queueDelayMs: 30_000,
+        clearCaches: true,
+        contentChange: true,
+        queueReason: 'archive-post-detail',
+        queuePriority: 10,
+      }).catch((e) => console.warn('归档后页面刷新失败', e));
     } catch (e) {
       alert('移入回收站失败：' + (e.message || '未知错误'));
+    } finally {
+      setArchivingPostIds((currentIds) => currentIds.filter((id) => id !== p.id));
     }
   };
 
   const handleRestorePost = async (p) => {
+    pendingPostTypeOverridesRef.current.set(p.id, 'Post');
     try {
       const rev = await runListMutation({
         phase: 'restore',
@@ -6661,12 +6679,14 @@ const [mounted, setMounted] = useState(false);
       showRevalidateFeedback(rev, showAdminToast);
       showAdminToast('已恢复文章');
     } catch (e) {
+      pendingPostTypeOverridesRef.current.delete(p.id);
       alert('恢复失败：' + (e.message || '未知错误'));
     }
   };
 
   const handlePermanentDeletePost = async (p) => {
     if (!confirm('彻底删除？此操作不可恢复。')) return;
+    pendingPostTypeOverridesRef.current.delete(p.id);
     try {
       const rev = await runListMutation({
         phase: 'delete',
@@ -6751,8 +6771,12 @@ const [mounted, setMounted] = useState(false);
               body: JSON.stringify({ id, type: 'Piece' }),
             });
             const data = await res.json();
-            if (res.ok && data.success) ok += 1;
-            else fail += 1;
+            if (res.ok && data.success) {
+              ok += 1;
+              pendingPostTypeOverridesRef.current.set(id, 'Piece');
+            } else {
+              fail += 1;
+            }
             report(i + 1, `已处理 ${i + 1}/${ids.length} 篇`);
           }
         },
@@ -6781,6 +6805,7 @@ const [mounted, setMounted] = useState(false);
     const ids = [...selectedPostIds];
     if (!ids.length) return;
     if (!confirm(`彻底删除 ${ids.length} 篇文章？此操作不可恢复。`)) return;
+    ids.forEach((id) => pendingPostTypeOverridesRef.current.delete(id));
     let ok = 0;
     let fail = 0;
     try {
@@ -6891,7 +6916,9 @@ const [mounted, setMounted] = useState(false);
   );
 
   const getFilteredPosts = () => {
-     let list = posts;
+     let list = archivingPostIds.length > 0
+       ? posts.filter((post) => !archivingPostIds.includes(post.id))
+       : posts;
      if (activeTab === 'Page') {
         list = list.filter(p =>
           (p.type === 'Page' && ['about', 'download'].includes(p.slug)) ||

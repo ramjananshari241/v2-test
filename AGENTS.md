@@ -202,6 +202,7 @@
 - 修改后台保存逻辑时注意 revalidate：文章、列表、分类/标签、特殊页面和主题切换都可能需要刷新多个路径。
 - 修改图片上传或图库保存时注意 Vercel 请求体限制、兰空 Token、客户端压缩和 Supabase 容量校验。
 - ISR/revalidate 已引入 Supabase 队列：普通保存、置顶、回收站等操作优先写入 `blog_revalidate_queue`，按 `site_id + path` 合并，后台延迟触发 `/api/admin/revalidate` 的 `action: drain` 消费；手动刷新 BLOG、主题切换等强一致场景仍可走即时刷新。
+- 单篇文章“移入回收站”采用乐观界面：确认后立即在后台本地列表把类型改为 `Piece`，不显示全屏刷新遮罩；Notion 写入失败时恢复原卡片，成功后壳层与文章路径 revalidate 继续在后台队列完成。Notion 查询索引尚未同步时，后台全量列表刷新不得把该卡片错误恢复为 `Post`。
 - 新文章发布是例外：Notion 创建成功后，后台先用乐观数据把文章加入列表，并在列表顶部持续显示“正在更新”提示；同时通过 `/api/admin/posts?syncSlug=&syncId=` 轻量检查数据库查询索引，避免反复全量拉取 500+ 条数据。
 - 新 Post 的前台刷新约 60 秒后开始，队列 reason 使用 `new-post:<slug>`。消费前必须确认相关 slug 已被 Notion Published Post 查询索引收录；未收录时不能把任务标记完成，而应约 60 秒后继续重试，最多 8 次。后台保持打开时，索引就绪后会主动执行一次文章范围 revalidate 并结束同步提示；普通编辑仍使用约 30 秒的轻量队列。
 - 队列表 SQL 位于 `supabase/migrations/010_revalidate_queue.sql`。未执行该 SQL 或未配置 Supabase/BLOG_SITE_ID 时，`/api/admin/revalidate` 会自动退回旧的即时刷新逻辑，避免前台不更新。
