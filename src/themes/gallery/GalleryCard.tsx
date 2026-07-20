@@ -8,6 +8,7 @@ import {
   galleryCardTagClass,
   galleryCardTitleClass,
 } from './galleryFonts'
+import { GalleryCardCoverLazy } from './GalleryCardCoverLazy'
 import { GalleryCardLoading, useGalleryNavLoading } from './galleryNavLoading'
 
 const { TAG, CATEGORY } = CONFIG.DEFAULT_SPECIAL_PAGES
@@ -63,9 +64,7 @@ export const GalleryCard = ({
                 className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.08]"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-neutral-300">
-                P
-              </div>
+              <GalleryCardCoverLazy slug={post.slug} title={post.title} />
             )}
             {loading ? <GalleryCardLoading stalled={isStalled(post.slug)} reloading={isReloading(post.slug)} /> : null}
             {downloadCount ? (
