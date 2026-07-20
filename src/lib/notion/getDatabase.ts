@@ -12,6 +12,7 @@ import { ApiFilter, ApiScope } from './../../types/notion'
 import { filterSwitch } from './filter'
 import { databaseId, notion } from './notion'
 import {
+  isNotionBuildPhase,
   isTransientNotionError,
   notionRetryCount,
   notionRetryDelayMs,
@@ -97,7 +98,9 @@ export const queryDatabasePages = async (
   return objects
 }
 
-export const getAll = async (
+const buildAllInflight = new Map<string, Promise<Array<PageObjectResponse>>>()
+
+const getAllUncached = async (
   scope?: ApiScope,
   id?: string
 ): Promise<Array<PageObjectResponse>> => {
@@ -118,6 +121,28 @@ export const getAll = async (
   }
 
   return objects
+}
+
+export const getAll = async (
+  scope?: ApiScope,
+  id?: string
+): Promise<Array<PageObjectResponse>> => {
+  if (!isNotionBuildPhase()) return getAllUncached(scope, id)
+
+  const cacheKey = `${scope ?? 'all'}:${id ?? databaseId}`
+  const existing = buildAllInflight.get(cacheKey)
+  if (existing) return existing
+
+  const request = getAllUncached(scope, id).catch((error) => {
+    if (!isTransientNotionError(error)) throw error
+    console.warn(
+      `[getAll] Notion transient error during build, using empty data: ${cacheKey}`,
+      error instanceof Error ? error.message : error
+    )
+    return []
+  })
+  buildAllInflight.set(cacheKey, request)
+  return request
 }
 
 export const getDatabaseMetadata = async (): Promise<GetDatabaseResponse> => {

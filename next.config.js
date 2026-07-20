@@ -9,7 +9,8 @@ const nextConfig = {
   staticPageGenerationTimeout: 1200, 
   trailingSlash: false, 
 
-  // 🟢 移除了 cpus: 1 的性能限制，让 Vercel 满血并发打包
+  // Notion 公共 API 容易被 SSG 多页并发触发 429，构建期串行生成更可靠。
+  experimental: { cpus: 1 },
   
   images: {
     formats: ['image/avif', 'image/webp'],

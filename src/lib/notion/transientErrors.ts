@@ -39,8 +39,8 @@ export function notionRetryDelayMs(error: unknown, attempt: number): number {
 }
 
 export function notionRetryCount(): number {
-  // 构建期不重试，快速失败并走 nav 降级，避免 11 个页面并行重试拖垮部署
-  return process.env.NEXT_PHASE === 'phase-production-build' ? 1 : 5
+  // 构建期已限制为单并发，可做少量重试后再走静态页降级。
+  return process.env.NEXT_PHASE === 'phase-production-build' ? 3 : 5
 }
 
 export function isNotionBuildPhase(): boolean {

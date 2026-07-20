@@ -200,6 +200,7 @@
 - 修改主题配置、图库、统计、贩售机、爬虫队列等站点级状态时，优先检查 `BLOG_SITE_ID` 和 Supabase 配置是否存在。
 - 修改前台页面时注意 Gallery/Tweet 独立壳层，不要默认所有页面都走 `BlogLayout`。
 - Gallery 卡片封面回退顺序为 Notion 明确封面 → Supabase 图库首图 → Notion 正文第一个图片块；列表构建不批量拉正文 blocks，无前两类封面时由卡片进入视口后复用 `/api/tweet/post-cover/[slug]` 懒加载正文首图，避免大量文章拖慢 ISR。
+- Vercel SSG 构建使用 `experimental.cpus=1` 串行生成页面，避免多个静态页同时请求 Notion 触发 429；构建期相同数据库查询会合并，临时 Notion 错误重试耗尽后使用空数据/空 blocks 完成部署，交由后续 ISR 恢复真实内容。空页面 ID 不得请求 Notion blocks。
 - 修改后台保存逻辑时注意 revalidate：文章、列表、分类/标签、特殊页面和主题切换都可能需要刷新多个路径。
 - 修改图片上传或图库保存时注意 Vercel 请求体限制、兰空 Token、客户端压缩和 Supabase 容量校验。
 - ISR/revalidate 已引入 Supabase 队列：普通保存、置顶、回收站等操作优先写入 `blog_revalidate_queue`，按 `site_id + path` 合并，后台延迟触发 `/api/admin/revalidate` 的 `action: drain` 消费；手动刷新 BLOG、主题切换等强一致场景仍可走即时刷新。

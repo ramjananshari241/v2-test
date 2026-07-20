@@ -1,6 +1,7 @@
 import { BlockResponse } from '@/src/types/notion'
 import { collectPaginatedAPI, isFullBlock } from '@notionhq/client'
 import { notion } from './notion'
+import { isNotionBuildPhase, isTransientNotionError } from './transientErrors'
 
 const deleteUnnecessaryProperties = (object: BlockResponse) => {
   delete object.object
@@ -12,7 +13,7 @@ const deleteUnnecessaryProperties = (object: BlockResponse) => {
   delete object.last_edited_time
 }
 
-export const getAllBlocks = async (
+const loadAllBlocks = async (
   parentBlockId: string
 ): Promise<Array<BlockResponse>> => {
   const blocks = await collectPaginatedAPI(notion.blocks.children.list, {
@@ -28,7 +29,7 @@ export const getAllBlocks = async (
       if (has_children && object.id) {
         return {
           ...object,
-          children: await getAllBlocks(object.id),
+          children: await loadAllBlocks(object.id),
         }
       }
       return {
@@ -39,4 +40,22 @@ export const getAllBlocks = async (
   )
 
   return fullBlocks as BlockResponse[]
+}
+
+export const getAllBlocks = async (
+  parentBlockId: string
+): Promise<Array<BlockResponse>> => {
+  const safeId = String(parentBlockId || '').trim()
+  if (!safeId) return []
+
+  try {
+    return await loadAllBlocks(safeId)
+  } catch (error) {
+    if (!isNotionBuildPhase() || !isTransientNotionError(error)) throw error
+    console.warn(
+      `[getAllBlocks] Notion transient error during build, using empty blocks: ${safeId}`,
+      error instanceof Error ? error.message : error
+    )
+    return []
+  }
 }
